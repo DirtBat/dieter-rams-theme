@@ -13,6 +13,7 @@ Result: **yes**, in a real HA instance (2026.2.3, the newest version installable
 - `hui-stack-card-editor` is an internal HA component. It is loaded by creating a `vertical-stack` card and awaiting `hui-vertical-stack-card`. It can change between HA versions; not tested on newer versions than 2026.2.3.
 - The embedded stack editor shows its own "Title" field, which our card ignores. Needs hiding or accepting.
 - A child's `columns` / `rows` live in the child's own config (not HA's `grid_options`), so each piece needs those two fields in its form.
+- Visibility conditions work on children **if** each child is created as `<hui-card>` (HA's own wrapper) and not through `createCardElement`. Tested: a child with a state condition is hidden while the entity is off and appears when it turns on. Put the grid span on the `hui-card` element itself, not on a wrapper div; otherwise the hidden child leaves an empty cell.
 - Not tested: nested panels, performance with many pieces, phone widths, tap actions.
 
 ## Fallback if the internal editor breaks
