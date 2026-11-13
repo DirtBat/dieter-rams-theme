@@ -9,14 +9,14 @@ Principle: as few card types as possible. Anything that is only a combination of
 | `rams-button` | Key or round, 1-2 lines | entity, name, label or state line, shape, tone, alert_when, selected_when, tap/hold action, columns, rows | tabs, scenes, presets, toggles, openings, shutters, alarm modes, transport, keypad digits, - / + | done, incl. stepper (`adjust_by`) |
 | `rams-display` | Text block, 1-2 lines | title, text or entity/attribute, unit, size, align, frame (none / outline / recessed) | big values, side values, captions, LCD, status and advice strips, verdict, now-playing title block | done |
 | `rams-ruler` | Scale with pointer | entity, min, max, step, target entity, centre-zero variant, captions, optional touch to set | temperature scale and trend, dimmer level, volume | done: scale with pointer, centre-zero bar, target mark, touch to set (tested: drag sets a number helper) |
-| `rams-artwork` | Square picture | picture source (entity picture or image), caption, playing LED, tap action | now-playing cover, radio / album / podcast tiles | planned |
-| `rams-clock` | Time | analog dial or digital, seconds, alarm key | the cleaner clock | planned |
+| `rams-artwork` | Square picture | picture source (entity picture or image), caption, playing LED, tap action | now-playing cover, radio / album / podcast tiles | done (entity picture or fixed image, caption, playing LED) |
+| `rams-clock` | Time | analog dial or digital, seconds, alarm key | the cleaner clock | done (uses the HA time zone) |
 
 ## Behaviours (both done 13 Nov)
 - **Stepper** on the button: increase / decrease an entity or attribute by a step within min / max (temperature target, light level). HA has no relative "set temperature", and templates are not allowed, so the card must do it.
 - **Touch to set** on the ruler: tap or drag to set a number / light / volume value.
 
-## Dynamic and stateful cards (decided 13 Nov: all three are in)
+## Dynamic and stateful cards (decided 13 Nov: all three are in; all built 13 Nov)
 | Card | Role | Design notes | Open |
 |---|---|---|---|
 | `rams-keypad` | Alarm code entry | One piece: code dots, digit keys (round, 3 x 4), and mode keys (disarm / arm home / arm away / arm night, chosen in the form). Digits are collected inside the piece; the code is never stored in the config (it is typed each time) and goes only to the alarm service call. Fills the panel width: digits in one half, mode keys in the other. | Entities with no code required: show only mode keys |
@@ -29,3 +29,7 @@ Needed from the user: a sample of what `input_select.music_favourites_data` hold
 
 ## Not built, use HA's own
 Cameras (picture-entity), history graphs, anything else HA already has: a panel accepts any card as a piece.
+
+## Status 13 Nov, evening
+All nine cards are built and tested in a lab HA (2026.2.3): panel, button (stepper), display, ruler (touch to set), artwork, clock, list, keypad (wrong code rejected, right code arms), shelf. `rows: auto` works: list and shelf report their height and the panel sets whole row spans.
+Not yet verified: on a real HA with real entities, phone and tablet widths, the shelf against the real favourites data (it expects a list of items with title, picture, kind, media_content_id, media_content_type), the night theme (deliberately last).

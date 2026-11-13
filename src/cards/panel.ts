@@ -34,16 +34,22 @@ export class RamsPanel extends Piece<PanelConfig> {
     return { columns: 12, rows: "auto" };
   }
 
+  /** A data-driven piece reports its row count; set the span on its hui-card wrapper. */
+  private onRows = (e: Event) => {
+    const card = e.composedPath().find((n) => (n as HTMLElement).localName === "hui-card") as HTMLElement | undefined;
+    if (card) card.style.gridRow = `span ${(e as CustomEvent<{ rows: number }>).detail.rows}`;
+  };
+
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
     const cols = c.columns ?? 12;
-    return html`<div class="plate" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
+    return html`<div class="plate" @rams-rows=${this.onRows} style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
       ${(c.cards ?? []).map(
         (card) => html`<hui-card
           .config=${card}
           .hass=${this.hass}
-          style="grid-column: span ${card.columns ?? 1}; grid-row: span ${card.rows ?? 1}"
+          style="grid-column: span ${card.columns ?? 1}; grid-row: span ${typeof card.rows === "number" ? card.rows : 1}"
         ></hui-card>`,
       )}
     </div>`;

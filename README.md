@@ -9,7 +9,7 @@ Everything is editable in the HA visual editor. Status: early. `rams-panel`, `ra
   - `rams-button`: key or round, one or two lines, state-driven tone / selected outline, tap and hold actions
   - `rams-display`: text block, one or two lines, frame none / outline / recessed, fixed text or entity value
   - `rams-ruler`: scale with pointer or centre bar, optional target mark, touch to set
-  - planned: artwork, clock, list, keypad, shelf
+  - `rams-artwork`, `rams-clock`, `rams-list`, `rams-keypad`, `rams-shelf`
 - Colours and depth are roles (`--rams-*` CSS variables) with built-in light defaults; a HA theme can override them (night).
 
 ## Layout

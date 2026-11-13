@@ -10,6 +10,7 @@ export interface Hass {
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   formatEntityState?(entity: HassEntity): string;
   localize?(key: string): string;
+  config?: { time_zone?: string };
 }
 
 export interface ActionConfig {
