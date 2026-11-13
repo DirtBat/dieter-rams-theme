@@ -1,6 +1,6 @@
 # dieter-rams-theme
 
-Home Assistant cards in a Braun / Dieter Rams-inspired design language, written from scratch (TypeScript + Lit, one built file).
+Home Assistant cards in a Braun / Dieter Rams-inspired design language, written from scratch (TypeScript + Lit, one built file `dist/dieter-rams-theme.js`).
 Everything is editable in the HA visual editor. Status: early. `rams-panel`, `rams-button` (with stepper), `rams-display` and `rams-ruler` (with touch to set) work in a real HA instance (tested on 2026.2.3).
 
 ## The idea: lego
@@ -23,4 +23,9 @@ spikes/          throwaway experiments
 ```
 
 ## Build
-`npm install && npm run build` gives `dist/rams-cards.js`. Copy to `/config/www/` and add `/local/rams-cards.js` as a dashboard resource (type: module).
+`npm install && npm run build` writes `dist/dieter-rams-theme.js`. The built file is committed, so the repo can be installed with HACS.
+
+## Install (HACS)
+HACS > three-dot menu > Custom repositories > add `https://github.com/DirtBat/dieter-rams-theme`, type **Dashboard**. Download it from HACS (Frontend), then reload the browser. HACS registers the resource itself.
+
+Manual alternative: copy `dist/dieter-rams-theme.js` to `/config/www/` and add `/local/dieter-rams-theme.js` as a dashboard resource (type: module).
