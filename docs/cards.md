@@ -16,12 +16,16 @@ Principle: as few card types as possible. Anything that is only a combination of
 - **Stepper** on the button: increase / decrease an entity or attribute by a step within min / max (temperature target, light level). HA has no relative "set temperature", and templates are not allowed, so the card must do it.
 - **Touch to set** on the ruler: tap or drag to set a number / light / volume value.
 
-## Candidates (decide later)
-| Candidate | Why | Alternative |
-|---|---|---|
-| `rams-keypad` or code entry | Digit keys must accumulate a code before arming; a panel of buttons cannot hold that state | use HA's native alarm panel card inside a panel |
-| `rams-shelf` | Radio / album tiles generated from `input_select.music_favourites_data`; a fixed panel needs one artwork card per station | write each station as an artwork piece |
-| `rams-list` | Dynamic list, e.g. health / offline devices from a sensor attribute | HA's native entities or markdown card inside a panel |
+## Dynamic and stateful cards (decided 13 Nov: all three are in)
+| Card | Role | Design notes | Open |
+|---|---|---|---|
+| `rams-keypad` | Alarm code entry | One piece: code dots, digit keys (round, 3 x 4), and mode keys (disarm / arm home / arm away / arm night, chosen in the form). Digits are collected inside the piece; the code is never stored in the config (it is typed each time) and goes only to the alarm service call. Fills the panel width: digits in one half, mode keys in the other. | Entities with no code required: show only mode keys |
+| `rams-shelf` | Radio / album / podcast / playlist tiles from data | Reads items from an entity (state or attribute, JSON list). Each item becomes an artwork tile. Options: source entity and attribute, kind filter, tiles per row, target media player, tap action (play item on the player). Outlined / LED while that item plays. | Needs the real format of `input_select.music_favourites_data` (see below) |
+| `rams-list` | Dynamic text list | Reads a list from an entity attribute (e.g. `sensor.health_offline_list`, attribute `devices` = list of name / area). Options: entity, attribute, which keys give the main and second line, empty text, max items ("+n more"), optional tap action. Item height is half a grid row (two items per row unit). | none |
+
+Shared point: both data-driven cards have a height that depends on the data. Plan: the piece declares `rows: auto` and the panel measures it and sets the row span to whole rows, so the grid stays intact. To prototype.
+
+Needed from the user: a sample of what `input_select.music_favourites_data` holds (state and attributes) so the shelf reads the real format. Not guessed.
 
 ## Not built, use HA's own
 Cameras (picture-entity), history graphs, anything else HA already has: a panel accepts any card as a piece.
