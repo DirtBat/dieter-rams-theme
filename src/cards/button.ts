@@ -4,6 +4,7 @@ import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { readState, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
+import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { ActionConfig, PieceConfig } from "../shared/types";
 
 export interface ButtonConfig extends PieceConfig, StateRules {
@@ -15,6 +16,8 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   show_state?: boolean;
   shape?: "key" | "round";
   tone?: Tone;
+  /** Stepper: tap changes the entity's number by this amount (negative to decrease). Replaces tap_action. */
+  adjust_by?: number;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
 }
@@ -70,6 +73,7 @@ export class RamsButton extends Piece<ButtonConfig> {
             { name: "tone", selector: { select: { mode: "dropdown", options: [{ value: "neutral", label: "Neutral" }, { value: "dark", label: "Dark" }, { value: "alert", label: "Alert" }] } } },
             { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
             { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } },
+            { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } },
           ],
         },
         {
@@ -97,7 +101,16 @@ export class RamsButton extends Piece<ButtonConfig> {
   };
   private up = () => window.clearTimeout(this.holdTimer);
   private onTap = () => {
-    if (!this.held && this.config) fireAction(this, this.config, "tap");
+    const c = this.config;
+    if (this.held || !c) return;
+    if (c.adjust_by && c.entity && this.hass) {
+      const now = readNumber(this.hass, c.entity);
+      if (now === undefined) return;
+      const range = defaultRange(this.hass, c.entity);
+      void writeNumber(this.hass, c.entity, clamp(now + c.adjust_by, range));
+      return;
+    }
+    fireAction(this, c, "tap");
   };
 
   protected render(): TemplateResult | typeof nothing {

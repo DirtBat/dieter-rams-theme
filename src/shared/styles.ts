@@ -14,6 +14,7 @@ export const tokens = css`
     --_ink: var(--rams-ink, #261201);
     --_muted: var(--rams-muted, #736356);
     --_active: var(--rams-active, #ed8008);
+    --_honey: var(--rams-honey, #bf7c2a);
     --_alert: var(--rams-alert, #ad1d1d);
     --_alert-ink: var(--rams-alert-ink, #d9d2c6);
     --_border: var(--rams-border, 1px solid rgba(38, 18, 1, 0.28));
