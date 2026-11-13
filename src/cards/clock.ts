@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
+import { computeLabel, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface ClockConfig extends PieceConfig {
@@ -14,21 +15,21 @@ export interface ClockConfig extends PieceConfig {
 
 @customElement("rams-clock")
 export class RamsClock extends Piece<ClockConfig> {
+  protected defaultFrame = "none" as const;
   @state() private now = new Date();
   private timer?: number;
 
   static styles = [
     tokens,
     css`
-      :host { display: block; height: 100%; min-width: 0; }
-      .face { position: relative; box-sizing: border-box; height: 100%; display: grid; place-items: center; border-radius: 12px; border: var(--_border); box-shadow: var(--_raised); background: var(--_cap); }
+            .face { position: relative; box-sizing: border-box; height: 100%; display: grid; place-items: center; }
       svg { height: 100%; max-width: 100%; aspect-ratio: 1; }
       .dots { stroke: var(--_ink); }
       .hand { stroke: var(--_ink); stroke-linecap: round; transform-origin: 60px 60px; }
       .sec { stroke: var(--_honey); transform-origin: 60px 60px; }
       .hub { fill: var(--_ink); }
       .digital { font-family: var(--rams-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: 30px; letter-spacing: 0.02em; }
-      .key { position: absolute; top: -4px; right: 14%; width: 22%; height: 7px; border-radius: 2px; border: var(--_border); background: var(--_cap-dark); cursor: pointer; }
+      .key { position: absolute; top: -4px; right: 14%; width: 22%; height: 7px; border-radius: 2px; border: var(--_border); background: var(--_ink); cursor: pointer; }
       .key.on { background: var(--_active); }
     `,
   ];
@@ -43,16 +44,9 @@ export class RamsClock extends Piece<ClockConfig> {
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } },
-          ],
-        },
+        layoutFields(),
       ],
-      computeLabel: (s: { name: string }) => s.name.replace(/_/g, " "),
+      computeLabel,
     };
   }
 

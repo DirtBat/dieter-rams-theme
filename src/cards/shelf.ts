@@ -2,6 +2,7 @@ import { css, html, nothing, type PropertyValues, type TemplateResult } from "li
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
+import { computeLabel, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 /**
@@ -58,11 +59,11 @@ export class RamsShelf extends Piece<ShelfConfig> {
           schema: [
             { name: "kind", selector: { text: {} } },
             { name: "per_row", selector: { number: { min: 1, max: 8, mode: "box" } } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
           ],
         },
+        layoutFields(),
       ],
-      computeLabel: (s: { name: string }) => s.name.replace(/_/g, " "),
+      computeLabel,
     };
   }
 

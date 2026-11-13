@@ -2,6 +2,7 @@ import { css, html, nothing, type PropertyValues, type TemplateResult } from "li
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
+import { computeLabel, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 import "./button";
 
@@ -49,9 +50,9 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
         { name: "modes", selector: { select: { multiple: true, mode: "list", options: (Object.keys(MODE_LABEL) as Mode[]).map((value) => ({ value, label: MODE_LABEL[value] })) } } },
-        { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
+        layoutFields(),
       ],
-      computeLabel: (s: { name: string }) => s.name,
+      computeLabel,
     };
   }
 
@@ -88,14 +89,14 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     const state = (c.entity && this.hass?.states[c.entity]?.state) || "";
     const modes = c.modes ?? ["disarm", "arm_home", "arm_away", "arm_night"];
     const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-    const modeTone: Record<Mode, string> = { disarm: "neutral", arm_home: "neutral", arm_away: "alert", arm_night: "dark" };
+    const modeTone: Record<Mode, string> = { disarm: "neutral", arm_home: "neutral", arm_away: "red", arm_night: "blue" };
     return html`<div class="pad">
       <div class="screen">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_, i) => html`<b class=${i < this.code.length ? "f" : ""}></b>`)}</div>
         <span class="state">${state.replace(/_/g, " ")}</span>
       </div>
       ${digits.map((d) => this.key(d, "digit", () => this.press(d), { shape: "round" }))}
-      ${this.key("clr", "digit", () => (this.code = ""), { shape: "round", tone: "dark" })}
+      ${this.key("clr", "digit", () => (this.code = ""), { shape: "round", tone: "grey" })}
       ${this.key("0", "digit", () => this.press("0"), { shape: "round" })}
       ${this.key("⌫", "digit", () => (this.code = this.code.slice(0, -1)), { shape: "round" })}
       ${modes.map((m, i) => html`<div class="mode" style="grid-row: ${2 + i}">${this.key(MODE_LABEL[m], "", () => this.runMode(m), { tone: modeTone[m], selected_when: [] })}</div>`)}

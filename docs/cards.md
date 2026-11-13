@@ -33,3 +33,17 @@ Cameras (picture-entity), history graphs, anything else HA already has: a panel 
 ## Status 13 Nov, evening
 All nine cards are built and tested in a lab HA (2026.2.3): panel, button (stepper), display, ruler (touch to set), artwork, clock, list, keypad (wrong code rejected, right code arms), shelf. `rows: auto` works: list and shelf report their height and the panel sets whole row spans.
 Not yet verified: on a real HA with real entities, phone and tablet widths, the shelf against the real favourites data (it expects a list of items with title, picture, kind, media_content_id, media_content_type), the night theme (deliberately last).
+
+## Iteration 2 (13 Nov 2026, local only, not pushed)
+
+- Light plate (#F5F4F0, caps white, fields #EAE9E3), outline on the panel plate, one base radius (6) with plate radius = radius + gap, `spacing` option on the panel (default 8).
+- `frame: none | outline | recessed | raised` on every piece and on the panel plate. Defaults: panel raised, display recessed, artwork raised, others none.
+- Tones: neutral, red, orange, blue, green, grey. Stripe at rest (opposite the text alignment), key filled when active; `lamp: true` lights a corner lamp instead of filling.
+- Warnings: red key + triangle. Automatic for binary sensors with problem-type device classes; `alert_when` overrides.
+- Button label position: inside / above / below / beside. `show_state` formats timestamps (scene date stamp).
+- Actions: tap and hold on every piece and on the panel (panel action fires only where no piece handles the press). Default tap toggles toggleable domains, otherwise opens more-info.
+- `adjust_by` only for climate entities; elsewhere use a perform-action tap action (e.g. `input_number.decrement`).
+- List: multiple entities (name, state, dot), optional toggle or cover keys.
+- Dial (new): half-round scale, needle, no centre knob; value from entity or fixed; min, max, interval; optional touch to set.
+- Artwork: square from its width when no height is set; optional media keys.
+- Panel: working title; stray stack-editor title hidden; pieces default to full panel width; editor says "width / height (grid units)".

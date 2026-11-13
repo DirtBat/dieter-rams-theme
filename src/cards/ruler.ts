@@ -3,6 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
+import { computeLabel, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface RulerConfig extends PieceConfig {
@@ -62,15 +63,14 @@ export class RamsRuler extends Piece<RulerConfig> {
             { name: "max", selector: { number: { step: "any", mode: "box" } } },
             { name: "step", selector: { number: { step: "any", mode: "box" } } },
             { name: "unit", selector: { text: {} } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } },
           ],
         },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
+        layoutFields(),
       ],
-      computeLabel: (s: { name: string }) => s.name.replace(/_/g, " "),
+      computeLabel,
     };
   }
 

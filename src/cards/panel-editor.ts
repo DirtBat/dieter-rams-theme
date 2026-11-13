@@ -5,6 +5,7 @@
  */
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { property } from "lit/decorators.js";
+import { actionFields, computeLabel, dropdown, FRAMES, num } from "../shared/form";
 import type { Hass, PieceConfig } from "../shared/types";
 import type { PanelConfig } from "./panel";
 
@@ -42,7 +43,8 @@ class RamsPanelEditor extends LitElement {
 
   /** Hand the current pieces to HA's stack editor, only when they changed from outside it. */
   protected updated(): void {
-    const editor = this.renderRoot.querySelector("hui-stack-card-editor") as unknown as { setConfig(c: unknown): void } | null;
+    const editor = this.renderRoot.querySelector("hui-stack-card-editor") as unknown as { setConfig(c: unknown): void; shadowRoot?: ShadowRoot } | null;
+    this.hideStackTitle(editor?.shadowRoot);
     const cards = this.config?.cards ?? [];
     if (editor && cards !== this.lastCards) {
       this.lastCards = cards;
@@ -50,11 +52,26 @@ class RamsPanelEditor extends LitElement {
     }
   }
 
+  /** The stack editor brings its own "Title" field; the panel has a real one, so hide the stray copy. */
+  private hideStackTitle(root?: ShadowRoot | null): void {
+    if (!root || root.querySelector("style[data-rams]")) return;
+    const style = document.createElement("style");
+    style.dataset.rams = "";
+    style.textContent = "ha-form { display: none; }";
+    root.append(style);
+  }
+
   protected render(): TemplateResult | typeof nothing {
     if (!this.config || !this.hass) return nothing;
-    const schema = [{ name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } }];
+    const c = this.config;
+    const schema = [
+      { name: "title", selector: { text: {} } },
+      { type: "grid", name: "", schema: [num("columns", 1, 24), num("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      ...actionFields(),
+    ];
+    const data = { ...c, columns: c.columns ?? 12, spacing: c.spacing ?? 8, frame: c.frame ?? "raised" };
     return html`
-      <ha-form .hass=${this.hass} .data=${{ columns: this.config.columns ?? 12 }} .schema=${schema} .computeLabel=${(s: { name: string }) => s.name} @value-changed=${this.columnsChanged}></ha-form>
+      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s: { name: string }) => (s.name === "columns" ? "grid columns" : computeLabel(s))} @value-changed=${this.columnsChanged}></ha-form>
       ${this.stackOk
         ? html`<hui-stack-card-editor
             .hass=${this.hass}

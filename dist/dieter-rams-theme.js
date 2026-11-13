@@ -347,7 +347,7 @@ function M(t2, i2, s2 = t2, e2) {
   const o2 = a(i2) ? void 0 : i2._$litDirective$;
   return (h2 == null ? void 0 : h2.constructor) !== o2 && ((_b = h2 == null ? void 0 : h2._$AO) == null ? void 0 : _b.call(h2, false), void 0 === o2 ? h2 = void 0 : (h2 = new o2(t2), h2._$AT(t2, s2, e2)), void 0 !== e2 ? (s2._$Co ?? (s2._$Co = []))[e2] = h2 : s2._$Cl = h2), void 0 !== h2 && (i2 = M(t2, h2._$AS(t2, i2.values), h2, e2)), i2;
 }
-class R {
+let R$1 = class R {
   constructor(t2, i2) {
     this._$AV = [], this._$AN = void 0, this._$AD = t2, this._$AM = i2;
   }
@@ -374,7 +374,7 @@ class R {
     let i2 = 0;
     for (const s2 of this._$AV) void 0 !== s2 && (void 0 !== s2.strings ? (s2._$AI(t2, s2, i2), i2 += s2.strings.length - 2) : s2._$AI(t2[i2])), i2++;
   }
-}
+};
 class k {
   get _$AU() {
     var _a2;
@@ -411,7 +411,7 @@ class k {
     const { values: i2, _$litType$: s2 } = t2, e2 = "number" == typeof s2 ? this._$AC(t2) : (void 0 === s2.el && (s2.el = S.createElement(V(s2.h, s2.h[0]), this.options)), s2);
     if (((_a2 = this._$AH) == null ? void 0 : _a2._$AD) === e2) this._$AH.p(i2);
     else {
-      const t3 = new R(e2, this), s3 = t3.u(this.options);
+      const t3 = new R$1(e2, this), s3 = t3.u(this.options);
       t3.p(i2), this.T(s3), this._$AH = t3;
     }
   }
@@ -600,22 +600,35 @@ function n2(t2) {
 function r(r2) {
   return n2({ ...r2, state: true, attribute: false });
 }
-var __defProp$4 = Object.defineProperty;
-var __decorateClass$a = (decorators, target, key, kind) => {
+var __defProp$5 = Object.defineProperty;
+var __decorateClass$b = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(target, key, result) || result;
-  if (result) __defProp$4(target, key, result);
+  if (result) __defProp$5(target, key, result);
   return result;
 };
 class Piece extends i {
   constructor() {
     super(...arguments);
+    this.defaultFrame = "none";
+    this.hostFrame = true;
     this.lastRows = 0;
   }
   setConfig(config) {
     this.config = config;
+  }
+  /** True when this piece handles taps itself, so the panel's own action stays out of the way. */
+  actionable() {
+    const c2 = this.config;
+    return [c2 == null ? void 0 : c2.tap_action, c2 == null ? void 0 : c2.hold_action].some((a2) => a2 && a2.action !== "none");
+  }
+  willUpdate(changed) {
+    var _a2;
+    if (!changed.has("config")) return;
+    this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
+    this.toggleAttribute("actionable", this.actionable());
   }
   /** Tell the enclosing panel how many grid rows this piece needs (data-driven height). */
   reportRows(rows) {
@@ -635,48 +648,133 @@ class Piece extends i {
     return ((_a2 = this.config) == null ? void 0 : _a2.rows) ?? 1;
   }
 }
-__decorateClass$a([
+__decorateClass$b([
   n2({ attribute: false })
 ], Piece.prototype, "hass");
-__decorateClass$a([
+__decorateClass$b([
   n2({ attribute: false })
 ], Piece.prototype, "config");
+const TOGGLE = ["light", "switch", "input_boolean", "fan", "scene", "script", "automation", "cover", "lock", "humidifier", "siren", "group"];
 function fireAction(node, config, action) {
-  node.dispatchEvent(new CustomEvent("hass-action", { detail: { config, action }, bubbles: true, composed: true }));
+  var _a2;
+  const domain = ((_a2 = config.entity) == null ? void 0 : _a2.split(".")[0]) ?? "";
+  const fallback = { action: action === "tap" && TOGGLE.includes(domain) ? "toggle" : "more-info" };
+  const given = action === "tap" ? config.tap_action : config.hold_action;
+  const full = { ...config, [action === "tap" ? "tap_action" : "hold_action"]: given ?? fallback };
+  node.dispatchEvent(new CustomEvent("hass-action", { detail: { config: full, action }, bubbles: true, composed: true }));
 }
+class Press {
+  constructor(node, actions, onTap) {
+    this.node = node;
+    this.actions = actions;
+    this.onTap = onTap;
+    this.held = false;
+    this.down = () => {
+      this.held = false;
+      this.timer = window.setTimeout(() => {
+        const a2 = this.actions();
+        if (!(a2 == null ? void 0 : a2.hold_action) || a2.hold_action.action === "none") return;
+        this.held = true;
+        fireAction(this.node, a2, "hold");
+      }, 500);
+    };
+    this.up = () => window.clearTimeout(this.timer);
+    this.click = () => {
+      var _a2;
+      const a2 = this.actions();
+      if (this.held || !a2) return;
+      if ((_a2 = this.onTap) == null ? void 0 : _a2.call(this)) return;
+      fireAction(this.node, a2, "tap");
+    };
+  }
+}
+const TONES = [
+  ["neutral", "Neutral"],
+  ["red", "Red"],
+  ["orange", "Orange"],
+  ["blue", "Blue"],
+  ["green", "Green"],
+  ["grey", "Grey"]
+];
+const WARNING_CLASSES = ["problem", "safety", "smoke", "gas", "carbon_monoxide", "moisture", "tamper", "battery", "heat"];
+const ACTIVE_STATES = ["on", "open", "playing"];
 function readState(hass, entity, rules) {
-  var _a2, _b, _c;
-  const state = entity && ((_a2 = hass == null ? void 0 : hass.states[entity]) == null ? void 0 : _a2.state) || "";
+  var _a2;
+  const e2 = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
+  const state = (e2 == null ? void 0 : e2.state) ?? "";
+  const auto = !rules.alert_when && !!e2 && entity.startsWith("binary_sensor.") && state === "on" && WARNING_CLASSES.includes(String(e2.attributes.device_class));
   return {
     state,
-    alert: !!((_b = rules.alert_when) == null ? void 0 : _b.includes(state)),
-    selected: !!((_c = rules.selected_when) == null ? void 0 : _c.includes(state))
+    alert: auto || !!((_a2 = rules.alert_when) == null ? void 0 : _a2.includes(state)),
+    active: (rules.selected_when ?? ACTIVE_STATES).includes(state)
   };
 }
 const tokens = i$3`
   :host {
-    --_plate: var(--rams-plate, #c8c5b9);
-    --_cap: var(--rams-cap, #d9d2c6);
-    --_cap-dark: var(--rams-cap-dark, #261201);
-    --_cap-dark-ink: var(--rams-cap-dark-ink, #d9d2c6);
-    --_field: var(--rams-field, #c9ccbf);
+    --_plate: var(--rams-plate, #f5f4f0);
+    --_cap: var(--rams-cap, #ffffff);
+    --_field: var(--rams-field, #eae9e3);
     --_ink: var(--rams-ink, #261201);
+    --_ink-on: var(--rams-ink-on, #ffffff);
     --_muted: var(--rams-muted, #736356);
-    --_active: var(--rams-active, #ed8008);
-    --_honey: var(--rams-honey, #bf7c2a);
-    --_alert: var(--rams-alert, #ad1d1d);
-    --_alert-ink: var(--rams-alert-ink, #d9d2c6);
-    --_border: var(--rams-border, 1px solid rgba(38, 18, 1, 0.28));
-    --_raised: var(--rams-raised, 0 2px 3px rgba(38, 18, 1, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.55));
-    --_pressed: var(--rams-pressed, inset 0 2px 3px rgba(38, 18, 1, 0.3));
-    --_inset: var(--rams-inset, inset 0 2px 3px rgba(38, 18, 1, 0.18));
-    --_radius: var(--rams-radius, 5px);
+    --_red: var(--rams-red, #c8362b);
+    --_orange: var(--rams-orange, #e8801a);
+    --_blue: var(--rams-blue, #2f5fa8);
+    --_green: var(--rams-green, #3e8e5a);
+    --_grey: var(--rams-grey, #8a8a86);
+    --_active: var(--rams-active, var(--_orange));
+    --_honey: var(--rams-honey, var(--_orange));
+    --_alert: var(--rams-alert, var(--_red));
+    --_border: var(--rams-border, 1px solid rgba(38, 18, 1, 0.18));
+    --_raised: var(--rams-raised, 0 2px 3px rgba(38, 18, 1, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8));
+    --_pressed: var(--rams-pressed, inset 0 2px 3px rgba(38, 18, 1, 0.25));
+    --_inset: var(--rams-inset, inset 0 2px 3px rgba(38, 18, 1, 0.12));
+    --_radius: var(--rams-radius, 6px);
     --_row: var(--rams-row, 56px);
     --_gap: var(--rams-gap, 8px);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
+    display: block;
+    height: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
+  /* Frame: the piece's own box. The base class reflects config.frame to the host attribute. */
+  :host([frame="outline"]),
+  :host([frame="recessed"]),
+  :host([frame="raised"]) {
+    border: var(--_border);
+    border-radius: var(--_radius);
+    padding: 0 var(--_fpad, var(--_gap));
+  }
+  :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
+  :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
+const LABELS = {
+  columns: "width (grid units)",
+  rows: "height (grid units)",
+  selected_when: "active when",
+  alert_when: "warning when"
+};
+const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
+const num$1 = (name, min, max, extra = {}) => ({
+  name,
+  selector: { number: { min, max, mode: "box", ...extra } }
+});
+const dropdown = (name, options) => ({
+  name,
+  selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } }
+});
+const FRAMES = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
+const layoutFields = () => ({
+  type: "grid",
+  name: "",
+  schema: [num$1("columns", 1, 12), num$1("rows", 1, 12), dropdown("frame", FRAMES)]
+});
+const actionFields = () => [
+  { name: "tap_action", selector: { ui_action: {} } },
+  { name: "hold_action", selector: { ui_action: {} } }
+];
 const domainOf = (entity) => entity.split(".")[0];
 const num = (v2) => v2 === void 0 || v2 === null || v2 === "" || Number.isNaN(Number(v2)) ? void 0 : Number(v2);
 function readNumber(hass, entity, attribute) {
@@ -729,6 +827,172 @@ async function writeNumber(hass, entity, value) {
       throw new Error(`rams: cannot set a number on ${entity}`);
   }
 }
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = decorator(result) || result;
+  return result;
+};
+function readable(state, tz) {
+  if (!/^\d{4}-\d\d-\d\dT/.test(state)) return state;
+  const d2 = new Date(state);
+  if (isNaN(d2.getTime())) return state;
+  return new Intl.DateTimeFormat("en-GB", { timeZone: tz, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d2);
+}
+let RamsButton = class extends Piece {
+  constructor() {
+    super(...arguments);
+    this.hostFrame = false;
+    this.press = new Press(this, () => this.config, () => this.step());
+  }
+  static getStubConfig() {
+    return { type: "custom:rams-button", name: "Button", columns: 3 };
+  }
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "entity", selector: { entity: {} } },
+        { name: "name", selector: { text: {} } },
+        { name: "label", selector: { text: {} } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("label_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["beside", "Beside"]]),
+            { name: "show_state", selector: { boolean: {} } },
+            dropdown("shape", [["key", "Key"], ["round", "Round"]]),
+            dropdown("tone", TONES),
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
+            { name: "lamp", selector: { boolean: {} } }
+          ]
+        },
+        layoutFields(),
+        ...actionFields(),
+        {
+          type: "expandable",
+          name: "",
+          title: "State rules",
+          schema: [
+            { name: "selected_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
+            { name: "alert_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
+            { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } }
+          ]
+        }
+      ],
+      computeLabel
+    };
+  }
+  actionable() {
+    var _a2;
+    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
+  }
+  /** Climate stepper: the only case that needs more than a perform-action. */
+  step() {
+    var _a2;
+    const c2 = this.config;
+    if (!(c2 == null ? void 0 : c2.adjust_by) || !((_a2 = c2.entity) == null ? void 0 : _a2.startsWith("climate.")) || !this.hass) return false;
+    const now = readNumber(this.hass, c2.entity);
+    if (now !== void 0) void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, defaultRange(this.hass, c2.entity)));
+    return true;
+  }
+  render() {
+    var _a2, _b;
+    const c2 = this.config;
+    if (!c2) return A;
+    const view = readState(this.hass, c2.entity, c2);
+    const pos = c2.label_position ?? "inside";
+    const shape = c2.shape ?? "key";
+    const tone = c2.tone ?? "neutral";
+    const align = c2.align ?? "center";
+    const state = c2.show_state ? readable(view.state, (_b = (_a2 = this.hass) == null ? void 0 : _a2.config) == null ? void 0 : _b.time_zone) : "";
+    const frame = c2.frame ?? "raised";
+    const cls = [
+      "btn",
+      `f-${frame}`,
+      shape === "round" ? "round" : "",
+      tone !== "neutral" ? `${tone} toned` : "",
+      `a-${align}`,
+      view.alert ? "alert" : view.active ? "active" : "",
+      c2.lamp ? "lamp" : ""
+    ].filter(Boolean).join(" ");
+    const triangle = view.alert ? b`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : A;
+    const inside = pos === "inside" ? c2.label ?? state : "";
+    const key = b`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+      ${c2.lamp || view.alert ? b`<span class="lampdot"></span>` : A}
+      ${inside ? b`<span class="small">${inside}</span>` : A}
+      ${c2.name || view.alert ? b`<span class="row">${triangle}${c2.name ?? ""}</span>` : A}
+    </button></div>`;
+    if (pos === "inside") return b`<div class="cell">${key}</div>`;
+    const text = c2.label ?? (c2.show_state ? state : "");
+    const second = pos === "beside" && c2.label && c2.show_state ? state : "";
+    return b`<div class="cell ${pos}">
+      ${key}${text || second ? b`<div class="txt">${text}${second ? b`<small>${second}</small>` : A}</div>` : A}
+    </div>`;
+  }
+};
+RamsButton.styles = [
+  tokens,
+  i$3`
+      .cell { height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
+      .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
+      .cell.above { flex-direction: column; }
+      .cell.below { flex-direction: column-reverse; }
+      .txt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .beside .txt { text-align: left; font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--_ink); }
+      .beside .txt small { display: block; font-size: 11px; color: var(--_muted); }
+      .above .txt, .below .txt { flex: none; }
+
+      .btn {
+        --t: var(--_ink);
+        position: relative; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; min-width: 0;
+        display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 8px;
+        background: var(--_cap); color: var(--_ink);
+        border: var(--_border); border-radius: var(--_radius);
+        font: inherit; font-size: 13px; cursor: pointer; user-select: none;
+      }
+      /* the key's room: the key fills it, a round key is the biggest circle that fits, never an oval */
+      .keyarea { flex: 1; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
+      .beside .keyarea { flex: none; height: 100%; aspect-ratio: 1; }
+      .round { border-radius: 50%; padding: 0; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); }
+
+      /* frame of the key itself */
+      .f-raised { box-shadow: var(--_raised); }
+      .f-recessed { background: var(--_field); box-shadow: var(--_inset); }
+      .f-none { border-color: transparent; background: transparent; }
+      .btn:active { box-shadow: var(--_pressed); filter: brightness(0.96); }
+
+      .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
+      /* tone stripe at rest, opposite the text alignment */
+      .toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
+      .a-center::before { left: 50%; transform: translateX(-50%); }
+      .a-start::before { right: 8px; }
+      .a-end::before { left: 8px; }
+      .a-start { align-items: flex-start; text-align: left; }
+      .a-end { align-items: flex-end; text-align: right; }
+
+      /* active: filled in the tone (neutral fills with ink) */
+      .active:not(.lamp) { background: var(--t); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: var(--_pressed); }
+      .active:not(.lamp)::before { background: rgba(255, 255, 255, 0.7); }
+      .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
+      .active:not(.lamp) .small, .alert .small { color: inherit; opacity: 0.85; }
+
+      /* warning: red key + triangle */
+      .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); }
+      .alert::before { background: rgba(255, 255, 255, 0.7); }
+      .warn { width: 11px; height: 10px; flex: none; }
+      .row { display: flex; align-items: center; gap: 5px; }
+
+      /* lamp: a lit dot in the corner */
+      .lampdot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: rgba(38, 18, 1, 0.16); }
+      .lamp.active .lampdot { background: var(--t); box-shadow: 0 0 6px 2px color-mix(in srgb, var(--t) 55%, transparent); }
+      .alert .lampdot { background: #fff; box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.55); }
+    `
+];
+RamsButton = __decorateClass$a([
+  t("rams-button")
+], RamsButton);
 var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
 var __decorateClass$9 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
@@ -737,125 +1001,16 @@ var __decorateClass$9 = (decorators, target, key, kind) => {
       result = decorator(result) || result;
   return result;
 };
-const HOLD_MS = 500;
-let RamsButton = class extends Piece {
+let RamsDisplay = class extends Piece {
   constructor() {
     super(...arguments);
-    this.held = false;
-    this.down = () => {
-      this.held = false;
-      this.holdTimer = window.setTimeout(() => {
-        this.held = true;
-        if (this.config) fireAction(this, this.config, "hold");
-      }, HOLD_MS);
-    };
-    this.up = () => window.clearTimeout(this.holdTimer);
-    this.onTap = () => {
-      const c2 = this.config;
-      if (this.held || !c2) return;
-      if (c2.adjust_by && c2.entity && this.hass) {
-        const now = readNumber(this.hass, c2.entity);
-        if (now === void 0) return;
-        const range = defaultRange(this.hass, c2.entity);
-        void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, range));
-        return;
-      }
-      fireAction(this, c2, "tap");
-    };
+    this.defaultFrame = "recessed";
   }
-  static getStubConfig() {
-    return { type: "custom:rams-button", name: "Button" };
-  }
-  static getConfigForm() {
-    return {
-      schema: [
-        { name: "entity", selector: { entity: {} } },
-        { name: "name", selector: { text: {} } },
-        { name: "label", selector: { text: {} } },
-        { name: "show_state", selector: { boolean: {} } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            { name: "shape", selector: { select: { mode: "dropdown", options: [{ value: "key", label: "Key" }, { value: "round", label: "Round" }] } } },
-            { name: "tone", selector: { select: { mode: "dropdown", options: [{ value: "neutral", label: "Neutral" }, { value: "dark", label: "Dark" }, { value: "alert", label: "Alert" }] } } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } },
-            { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } }
-          ]
-        },
-        {
-          type: "expandable",
-          name: "",
-          title: "State rules",
-          schema: [
-            { name: "alert_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
-            { name: "selected_when", selector: { select: { multiple: true, custom_value: true, options: [] } } }
-          ]
-        },
-        { name: "tap_action", selector: { ui_action: {} } },
-        { name: "hold_action", selector: { ui_action: {} } }
-      ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
-    };
-  }
-  render() {
-    const c2 = this.config;
-    if (!c2) return A;
-    const view = readState(this.hass, c2.entity, c2);
-    const tone = view.alert ? "alert" : c2.tone ?? "neutral";
-    const small = c2.show_state ? view.state : c2.label;
-    const shape = c2.shape ?? "key";
-    const cls = [shape === "round" ? "btn round" : "btn", tone !== "neutral" ? tone : "", view.selected ? "selected" : ""].filter(Boolean).join(" ");
-    const button = b`<button class=${cls} @pointerdown=${this.down} @pointerup=${this.up} @pointerleave=${this.up} @click=${this.onTap}>
-      ${shape === "key" && small ? b`<span class="small">${small}</span>` : A}
-      <span>${c2.name ?? ""}</span>
-    </button>`;
-    if (shape === "key") return button;
-    return b`<div class="round-cell ${small ? "has-label" : ""}">${small ? b`<span class="small">${small}</span>` : A}${button}</div>`;
-  }
-};
-RamsButton.styles = [
-  tokens,
-  i$3`
-      :host { display: block; height: 100%; min-width: 0; }
-      .btn {
-        box-sizing: border-box; height: 100%; width: 100%;
-        display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px;
-        background: var(--_cap); color: var(--_ink);
-        border: var(--_border); border-radius: var(--_radius); box-shadow: var(--_raised);
-        font: inherit; font-size: 13px; cursor: pointer; user-select: none; position: relative; padding: 0 6px;
-      }
-      .btn:active { box-shadow: var(--_pressed); filter: brightness(0.94); }
-      .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-      .dark { background: var(--_cap-dark); color: var(--_cap-dark-ink); }
-      .alert { background: var(--_alert); color: var(--_alert-ink); }
-      .alert .small, .dark .small { color: inherit; opacity: 0.8; }
-      .selected { outline: 2px solid var(--_ink); outline-offset: -2px; }
-      /* round: a circle as tall as the cell, centred */
-      .round-cell { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
-      .round-cell .small { text-transform: none; letter-spacing: 0; }
-      .round { aspect-ratio: 1; height: auto; width: min(100%, var(--_row)); flex: 0 1 auto; border-radius: 50%; padding: 0; }
-      .round-cell.has-label .round { width: min(100%, 38px); }
-    `
-];
-RamsButton = __decorateClass$9([
-  t("rams-button")
-], RamsButton);
-var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
-var __decorateClass$8 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
-      result = decorator(result) || result;
-  return result;
-};
-let RamsDisplay = class extends Piece {
   static getStubConfig() {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
   }
   static getConfigForm() {
-    const dropdown = (name, options) => ({
+    const dropdown2 = (name, options) => ({
       name,
       selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } }
     });
@@ -870,15 +1025,13 @@ let RamsDisplay = class extends Piece {
           schema: [
             { name: "attribute", selector: { attribute: {} } },
             { name: "unit", selector: { text: {} } },
-            dropdown("frame", [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"]]),
-            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
-            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } }
+            dropdown2("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
+            dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
-        }
+        },
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
   }
   value() {
@@ -892,7 +1045,7 @@ let RamsDisplay = class extends Piece {
   render() {
     const c2 = this.config;
     if (!c2) return A;
-    const cls = [c2.frame && c2.frame !== "none" ? c2.frame : "", c2.align ?? "start", c2.size ?? "medium", c2.title ? "has-title" : ""].filter(Boolean).join(" ");
+    const cls = [c2.align ?? "start", c2.size ?? "medium", c2.title ? "has-title" : ""].filter(Boolean).join(" ");
     return b`<div class="box ${cls}">
       ${c2.title ? b`<span class="title">${c2.title}</span>` : A}
       <span class="value">${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
@@ -902,14 +1055,11 @@ let RamsDisplay = class extends Piece {
 RamsDisplay.styles = [
   tokens,
   i$3`
-      :host { display: block; height: 100%; min-width: 0; }
-      .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 10px; border-radius: var(--_radius); overflow: hidden; }
-      .outline { border: var(--_border); }
-      .recessed { background: var(--_field); border: var(--_border); box-shadow: var(--_inset); }
+            .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
       .start { align-items: flex-start; text-align: left; }
       .center { align-items: center; text-align: center; }
       .end { align-items: flex-end; text-align: right; }
-      .box.has-title { justify-content: flex-start; padding-top: 8px; padding-bottom: 8px; }
+      .box.has-title { justify-content: flex-start; padding: 8px 0; }
       .has-title .value { flex: 1; display: flex; align-items: center; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .value { line-height: 1.1; }
@@ -919,16 +1069,16 @@ RamsDisplay.styles = [
       .unit { font-size: 0.4em; color: var(--_muted); margin-left: 3px; letter-spacing: 0; }
     `
 ];
-RamsDisplay = __decorateClass$8([
+RamsDisplay = __decorateClass$9([
   t("rams-display")
 ], RamsDisplay);
-var __defProp$3 = Object.defineProperty;
-var __decorateClass$7 = (decorators, target, key, kind) => {
+var __defProp$4 = Object.defineProperty;
+var __decorateClass$8 = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(target, key, result) || result;
-  if (result) __defProp$3(target, key, result);
+  if (result) __defProp$4(target, key, result);
   return result;
 };
 class RamsPanelEditor extends i {
@@ -956,17 +1106,32 @@ class RamsPanelEditor extends i {
   updated() {
     var _a2;
     const editor = this.renderRoot.querySelector("hui-stack-card-editor");
+    this.hideStackTitle(editor == null ? void 0 : editor.shadowRoot);
     const cards = ((_a2 = this.config) == null ? void 0 : _a2.cards) ?? [];
     if (editor && cards !== this.lastCards) {
       this.lastCards = cards;
       editor.setConfig({ type: "vertical-stack", cards });
     }
   }
+  /** The stack editor brings its own "Title" field; the panel has a real one, so hide the stray copy. */
+  hideStackTitle(root) {
+    if (!root || root.querySelector("style[data-rams]")) return;
+    const style = document.createElement("style");
+    style.dataset.rams = "";
+    style.textContent = "ha-form { display: none; }";
+    root.append(style);
+  }
   render() {
     if (!this.config || !this.hass) return A;
-    const schema = [{ name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } }];
+    const c2 = this.config;
+    const schema = [
+      { name: "title", selector: { text: {} } },
+      { type: "grid", name: "", schema: [num$1("columns", 1, 24), num$1("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      ...actionFields()
+    ];
+    const data = { ...c2, columns: c2.columns ?? 12, spacing: c2.spacing ?? 8, frame: c2.frame ?? "raised" };
     return b`
-      <ha-form .hass=${this.hass} .data=${{ columns: this.config.columns ?? 12 }} .schema=${schema} .computeLabel=${(s2) => s2.name} @value-changed=${this.columnsChanged}></ha-form>
+      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s2) => s2.name === "columns" ? "grid columns" : computeLabel(s2)} @value-changed=${this.columnsChanged}></ha-form>
       ${this.stackOk ? b`<hui-stack-card-editor
             .hass=${this.hass}
             .lovelace=${this.lovelace}
@@ -975,13 +1140,13 @@ class RamsPanelEditor extends i {
     `;
   }
 }
-__decorateClass$7([
+__decorateClass$8([
   n2({ attribute: false })
 ], RamsPanelEditor.prototype, "hass");
-__decorateClass$7([
+__decorateClass$8([
   n2({ attribute: false })
 ], RamsPanelEditor.prototype, "lovelace");
-__decorateClass$7([
+__decorateClass$8([
   n2({ attribute: false })
 ], RamsPanelEditor.prototype, "config");
 if (!customElements.get("rams-panel-editor")) customElements.define("rams-panel-editor", RamsPanelEditor);
@@ -996,24 +1161,39 @@ async function loadPanelEditor() {
   }
   return document.createElement("rams-panel-editor");
 }
-var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
-var __decorateClass$6 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
+var __getOwnPropDesc$7 = Object.getOwnPropertyDescriptor;
+var __decorateClass$7 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$7(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
   return result;
 };
+const BASE_GAP = 8;
+const BASE_RADIUS = 6;
 let RamsPanel = class extends Piece {
   constructor() {
     super(...arguments);
+    this.defaultFrame = "raised";
+    this.hostFrame = false;
+    this.press = new Press(this, () => this.config);
     this.onRows = (e2) => {
       const card = e2.composedPath().find((n3) => n3.localName === "hui-card");
       if (card) card.style.gridRow = `span ${e2.detail.rows}`;
     };
+    this.fits = (e2) => !e2.composedPath().some((n3) => {
+      var _a2;
+      return (_a2 = n3.hasAttribute) == null ? void 0 : _a2.call(n3, "actionable");
+    });
+    this.onClick = (e2) => {
+      if (this.fits(e2)) this.press.click();
+    };
+    this.onDown = (e2) => {
+      if (this.fits(e2)) this.press.down();
+    };
   }
   static getStubConfig() {
-    return { type: "custom:rams-panel", columns: 6, cards: [] };
+    return { type: "custom:rams-panel", columns: 12, cards: [] };
   }
   static async getConfigElement() {
     return loadPanelEditor();
@@ -1021,40 +1201,57 @@ let RamsPanel = class extends Piece {
   getGridOptions() {
     return { columns: 12, rows: "auto" };
   }
+  /** One base radius and one gap: both come from the panel's spacing, so the corners stay concentric. */
+  willUpdate(changed) {
+    var _a2;
+    super.willUpdate(changed);
+    if (!changed.has("config")) return;
+    const gap = ((_a2 = this.config) == null ? void 0 : _a2.spacing) ?? BASE_GAP;
+    this.style.setProperty("--rams-gap", `${gap}px`);
+    this.style.setProperty("--rams-radius", `${Math.max(2, BASE_RADIUS + (gap - BASE_GAP) / 2)}px`);
+  }
   render() {
     const c2 = this.config;
     if (!c2) return A;
     const cols = c2.columns ?? 12;
-    return b`<div class="plate" @rams-rows=${this.onRows} style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
-      ${(c2.cards ?? []).map(
+    return b`<div class="plate f-${c2.frame ?? this.defaultFrame}" @rams-rows=${this.onRows} @click=${this.onClick} @pointerdown=${this.onDown} @pointerup=${this.press.up} @pointerleave=${this.press.up}>
+      ${c2.title ? b`<div class="title">${c2.title}</div>` : A}
+      <div class="grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
+        ${(c2.cards ?? []).map(
       (card) => b`<hui-card
-          .config=${card}
-          .hass=${this.hass}
-          style="grid-column: span ${card.columns ?? 1}; grid-row: span ${typeof card.rows === "number" ? card.rows : 1}"
-        ></hui-card>`
+            .config=${card}
+            .hass=${this.hass}
+            style="grid-column: ${card.columns ? `span ${Math.min(card.columns, cols)}` : "1 / -1"}; grid-row: span ${typeof card.rows === "number" ? card.rows : 1}"
+          ></hui-card>`
     )}
+      </div>
     </div>`;
   }
 };
 RamsPanel.styles = [
   tokens,
   i$3`
-      :host { display: block; }
-      .plate { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); padding: var(--_gap); background: var(--_plate); border-radius: calc(var(--_radius) + 1px); }
+      .plate { display: block; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
+      .plate.f-recessed { box-shadow: var(--_inset); }
+      .plate.f-raised { box-shadow: var(--_raised); }
+      .plate.f-none { padding: 0; border-radius: 0; }
+      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
+      .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
       hui-card { min-width: 0; }
     `
 ];
-RamsPanel = __decorateClass$6([
+RamsPanel = __decorateClass$7([
   t("rams-panel")
 ], RamsPanel);
-var __defProp$2 = Object.defineProperty;
-var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
-var __decorateClass$5 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
+var __defProp$3 = Object.defineProperty;
+var __getOwnPropDesc$6 = Object.getOwnPropertyDescriptor;
+var __decorateClass$6 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$6(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$2(target, key, result);
+  if (kind && result) __defProp$3(target, key, result);
   return result;
 };
 let RamsRuler = class extends Piece {
@@ -1093,16 +1290,15 @@ let RamsRuler = class extends Piece {
             { name: "min", selector: { number: { step: "any", mode: "box" } } },
             { name: "max", selector: { number: { step: "any", mode: "box" } } },
             { name: "step", selector: { number: { step: "any", mode: "box" } } },
-            { name: "unit", selector: { text: {} } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } }
+            { name: "unit", selector: { text: {} } }
           ]
         },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
-        { name: "interactive", selector: { boolean: {} } }
+        { name: "interactive", selector: { boolean: {} } },
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
   }
   range() {
@@ -1162,15 +1358,15 @@ RamsRuler.styles = [
       .labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--_muted); }
     `
 ];
-__decorateClass$5([
+__decorateClass$6([
   r()
 ], RamsRuler.prototype, "drag", 2);
-RamsRuler = __decorateClass$5([
+RamsRuler = __decorateClass$6([
   t("rams-ruler")
 ], RamsRuler);
-var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
-var __decorateClass$4 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
+var __getOwnPropDesc$5 = Object.getOwnPropertyDescriptor;
+var __decorateClass$5 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$5(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -1179,12 +1375,13 @@ var __decorateClass$4 = (decorators, target, key, kind) => {
 let RamsArtwork = class extends Piece {
   constructor() {
     super(...arguments);
+    this.defaultFrame = "raised";
     this.onTap = () => {
       if (this.config) fireAction(this, this.config, "tap");
     };
   }
   static getStubConfig() {
-    return { type: "custom:rams-artwork", columns: 4, rows: 2 };
+    return { type: "custom:rams-artwork", columns: 4 };
   }
   static getConfigForm() {
     return {
@@ -1193,19 +1390,36 @@ let RamsArtwork = class extends Piece {
         { name: "image", selector: { text: {} } },
         { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } }
-          ]
-        },
-        { name: "tap_action", selector: { ui_action: {} } },
-        { name: "hold_action", selector: { ui_action: {} } }
+        { name: "controls", selector: { boolean: {} } },
+        layoutFields(),
+        ...actionFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
+  }
+  actionable() {
+    var _a2;
+    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
+  }
+  firstUpdated(_c) {
+    this.observer = new ResizeObserver(() => this.fit());
+    this.observer.observe(this);
+  }
+  disconnectedCallback() {
+    var _a2;
+    (_a2 = this.observer) == null ? void 0 : _a2.disconnect();
+    super.disconnectedCallback();
+  }
+  updated(_c) {
+    this.fit();
+  }
+  fit() {
+    if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth + 8) / 64)));
+  }
+  media(service) {
+    var _a2, _b;
+    const e2 = (_a2 = this.config) == null ? void 0 : _a2.entity;
+    if (e2) void ((_b = this.hass) == null ? void 0 : _b.callService("media_player", service, { entity_id: e2 }));
   }
   render() {
     var _a2, _b, _c, _d;
@@ -1216,34 +1430,42 @@ let RamsArtwork = class extends Piece {
     return b`<div class="art" style=${picture ? `background-image:url('${picture}')` : ""} @click=${this.onTap}>
       ${c2.caption ? b`<span class="cap">${c2.caption}</span>` : A}
       ${playing ? b`<span class="led"></span>` : A}
+      ${c2.controls ? b`<div class="ctl" @click=${(e2) => e2.stopPropagation()}>
+        <button @click=${() => this.media("media_previous_track")}>&#9664;&#9664;</button>
+        <button @click=${() => this.media("media_play_pause")}>${playing ? "II" : "▶"}</button>
+        <button @click=${() => this.media("media_next_track")}>&#9654;&#9654;</button>
+      </div>` : A}
     </div>`;
   }
 };
 RamsArtwork.styles = [
   tokens,
   i$3`
-      :host { display: block; height: 100%; min-width: 0; }
-      .art { position: relative; box-sizing: border-box; height: 100%; overflow: hidden; border-radius: var(--_radius); border: var(--_border); box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      :host { --_fpad: 0px; overflow: hidden; }
+      .art { position: relative; box-sizing: border-box; height: 100%; background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
+      .ctl { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
+      .ctl button { flex: 1; max-width: 56px; height: 28px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); color: var(--_ink); box-shadow: var(--_raised); font: inherit; font-size: 10px; cursor: pointer; }
       .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
     `
 ];
-RamsArtwork = __decorateClass$4([
+RamsArtwork = __decorateClass$5([
   t("rams-artwork")
 ], RamsArtwork);
-var __defProp$1 = Object.defineProperty;
-var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
-var __decorateClass$3 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
+var __defProp$2 = Object.defineProperty;
+var __getOwnPropDesc$4 = Object.getOwnPropertyDescriptor;
+var __decorateClass$4 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$4(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp$1(target, key, result);
+  if (kind && result) __defProp$2(target, key, result);
   return result;
 };
 let RamsClock = class extends Piece {
   constructor() {
     super(...arguments);
+    this.defaultFrame = "none";
     this.now = /* @__PURE__ */ new Date();
     this.toggleAlarm = (e2) => {
       var _a2;
@@ -1260,16 +1482,9 @@ let RamsClock = class extends Piece {
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } },
-            { name: "rows", selector: { number: { min: 1, max: 6, mode: "box" } } }
-          ]
-        }
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
   }
   connectedCallback() {
@@ -1313,92 +1528,100 @@ let RamsClock = class extends Piece {
 RamsClock.styles = [
   tokens,
   i$3`
-      :host { display: block; height: 100%; min-width: 0; }
-      .face { position: relative; box-sizing: border-box; height: 100%; display: grid; place-items: center; border-radius: 12px; border: var(--_border); box-shadow: var(--_raised); background: var(--_cap); }
+            .face { position: relative; box-sizing: border-box; height: 100%; display: grid; place-items: center; }
       svg { height: 100%; max-width: 100%; aspect-ratio: 1; }
       .dots { stroke: var(--_ink); }
       .hand { stroke: var(--_ink); stroke-linecap: round; transform-origin: 60px 60px; }
       .sec { stroke: var(--_honey); transform-origin: 60px 60px; }
       .hub { fill: var(--_ink); }
       .digital { font-family: var(--rams-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: 30px; letter-spacing: 0.02em; }
-      .key { position: absolute; top: -4px; right: 14%; width: 22%; height: 7px; border-radius: 2px; border: var(--_border); background: var(--_cap-dark); cursor: pointer; }
+      .key { position: absolute; top: -4px; right: 14%; width: 22%; height: 7px; border-radius: 2px; border: var(--_border); background: var(--_ink); cursor: pointer; }
       .key.on { background: var(--_active); }
     `
 ];
-__decorateClass$3([
+__decorateClass$4([
   r()
 ], RamsClock.prototype, "now", 2);
-RamsClock = __decorateClass$3([
+RamsClock = __decorateClass$4([
   t("rams-clock")
 ], RamsClock);
-var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
-var __decorateClass$2 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
+var __getOwnPropDesc$3 = Object.getOwnPropertyDescriptor;
+var __decorateClass$3 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$3(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
   return result;
 };
+const ON = ["on", "open", "playing", "home", "unlocked"];
+const PROBLEM = ["problem", "safety", "smoke", "gas", "carbon_monoxide", "moisture", "tamper", "battery", "heat"];
 let RamsList = class extends Piece {
   static getStubConfig() {
-    return { type: "custom:rams-list", columns: 12, rows: "auto", empty_text: "None" };
+    return { type: "custom:rams-list", entities: [] };
   }
   static getConfigForm() {
     return {
       schema: [
         { name: "title", selector: { text: {} } },
-        { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "entities", selector: { entity: { multiple: true } } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "primary_key", selector: { text: {} } },
-            { name: "secondary_key", selector: { text: {} } },
-            { name: "max_items", selector: { number: { min: 1, max: 50, mode: "box" } } },
-            { name: "empty_text", selector: { text: {} } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } }
+            { name: "attribute", selector: { text: {} } },
+            dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
+            num$1("max_items", 1, 50),
+            { name: "empty_text", selector: { text: {} } }
           ]
-        }
+        },
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
   }
-  items() {
+  actionable() {
+    return true;
+  }
+  more(entity) {
+    fireAction(this, { entity, tap_action: { action: "more-info" } }, "tap");
+  }
+  call(e2, domain, service, entity) {
+    var _a2;
+    e2.stopPropagation();
+    void ((_a2 = this.hass) == null ? void 0 : _a2.callService(domain, service, { entity_id: entity }));
+  }
+  value(hass, e2) {
+    return hass.formatEntityState ? hass.formatEntityState(e2) : `${e2.state}${e2.attributes.unit_of_measurement ? ` ${e2.attributes.unit_of_measurement}` : ""}`;
+  }
+  updated(_c) {
+    const box = this.renderRoot.querySelector(".list");
+    if (box) this.reportRows(this.rowsFor(box.offsetHeight + 2));
+  }
+  row(id) {
     var _a2;
     const c2 = this.config;
-    const e2 = c2.entity ? (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity] : void 0;
-    if (!e2) return [];
-    const raw = c2.attribute ? e2.attributes[c2.attribute] : e2.state;
-    if (Array.isArray(raw)) return raw;
-    if (typeof raw === "string") {
-      try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  }
-  text(item, key) {
-    if (item && typeof item === "object") return key ? String(item[key] ?? "") : "";
-    return key ? "" : String(item);
-  }
-  updated(_changed) {
-    const box = this.renderRoot.querySelector(".list");
-    if (box) this.reportRows(this.rowsFor(box.offsetHeight));
+    const e2 = (_a2 = this.hass) == null ? void 0 : _a2.states[id];
+    if (!this.hass || !e2) return b`<div class="row"><span class="dot"></span><span class="name">${id}</span><span class="val">n/a</span></div>`;
+    const name = String(e2.attributes.friendly_name ?? id);
+    const small = c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
+    const alert = id.startsWith("binary_sensor.") && e2.state === "on" && PROBLEM.includes(String(e2.attributes.device_class));
+    const dot = alert ? "alert" : ON.includes(e2.state) ? "on" : "";
+    const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
+    return b`<div class="row" @click=${() => this.more(id)}>
+      <span class="dot ${dot}"></span>
+      <span class="name">${name}${small ? b`<small>${small.replace(/_/g, " ")}</small>` : A}</span>
+      <span class="val">${this.value(this.hass, e2)}</span>${keys}
+    </div>`;
   }
   render() {
     const c2 = this.config;
     if (!c2) return A;
-    const all = this.items();
-    const max = c2.max_items ?? all.length;
-    const shown = all.slice(0, max);
+    const all = c2.entities ?? [];
+    const shown = all.slice(0, c2.max_items ?? all.length);
     return b`<div class="list">
       ${c2.title ? b`<div class="title">${c2.title}</div>` : A}
       ${shown.length === 0 && c2.empty_text ? b`<div class="empty">${c2.empty_text}</div>` : A}
-      ${shown.map((i2) => b`<div class="item"><span>${this.text(i2, c2.primary_key)}</span><span>${this.text(i2, c2.secondary_key)}</span></div>`)}
+      ${shown.map((id) => this.row(id))}
       ${all.length > shown.length ? b`<div class="more">+${all.length - shown.length} more</div>` : A}
     </div>`;
   }
@@ -1406,25 +1629,33 @@ let RamsList = class extends Piece {
 RamsList.styles = [
   tokens,
   i$3`
-      :host { display: block; min-width: 0; }
-      .list { display: flex; flex-direction: column; gap: var(--_gap); }
-      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); height: 24px; display: flex; align-items: center; }
-      .item { box-sizing: border-box; height: 24px; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 0 10px; font-size: 12px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); }
-      .item span:last-child { color: var(--_muted); }
-      .empty, .more { font-size: 12px; color: var(--_muted); padding: 0 2px; }
+      :host { height: auto; }
+      .list { display: flex; flex-direction: column; }
+      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; }
+      .row { display: flex; align-items: center; gap: var(--_gap); min-height: 40px; box-sizing: border-box; padding: 4px 0; border-top: var(--_border); cursor: pointer; font-size: 13px; }
+      .title + .row, .row:first-child { border-top: 0; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--_grey); }
+      .dot.on { background: var(--_green); }
+      .dot.alert { background: var(--_red); }
+      .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .name small { display: block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
+      .val { color: var(--_muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .key { flex: none; min-width: 34px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); box-shadow: var(--_raised); color: var(--_ink); font: inherit; font-size: 11px; cursor: pointer; }
+      .key:active { box-shadow: var(--_pressed); }
+      .empty, .more { font-size: 12px; color: var(--_muted); padding: 4px 0; }
     `
 ];
-RamsList = __decorateClass$2([
+RamsList = __decorateClass$3([
   t("rams-list")
 ], RamsList);
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
-var __decorateClass$1 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
+var __defProp$1 = Object.defineProperty;
+var __getOwnPropDesc$2 = Object.getOwnPropertyDescriptor;
+var __decorateClass$2 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$2(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
-  if (kind && result) __defProp(target, key, result);
+  if (kind && result) __defProp$1(target, key, result);
   return result;
 };
 const MODE_LABEL = { disarm: "Disarm", arm_home: "Arm home", arm_away: "Arm away", arm_night: "Night mode" };
@@ -1444,9 +1675,9 @@ let RamsKeypad = class extends Piece {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
         { name: "modes", selector: { select: { multiple: true, mode: "list", options: Object.keys(MODE_LABEL).map((value) => ({ value, label: MODE_LABEL[value] })) } } },
-        { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } }
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name
+      computeLabel
     };
   }
   touch() {
@@ -1478,14 +1709,14 @@ let RamsKeypad = class extends Piece {
     const state2 = c2.entity && ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity]) == null ? void 0 : _b.state) || "";
     const modes = c2.modes ?? ["disarm", "arm_home", "arm_away", "arm_night"];
     const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-    const modeTone = { disarm: "neutral", arm_home: "neutral", arm_away: "alert", arm_night: "dark" };
+    const modeTone = { disarm: "neutral", arm_home: "neutral", arm_away: "red", arm_night: "blue" };
     return b`<div class="pad">
       <div class="screen">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_2, i2) => b`<b class=${i2 < this.code.length ? "f" : ""}></b>`)}</div>
         <span class="state">${state2.replace(/_/g, " ")}</span>
       </div>
       ${digits.map((d2) => this.key(d2, "digit", () => this.press(d2), { shape: "round" }))}
-      ${this.key("clr", "digit", () => this.code = "", { shape: "round", tone: "dark" })}
+      ${this.key("clr", "digit", () => this.code = "", { shape: "round", tone: "grey" })}
       ${this.key("0", "digit", () => this.press("0"), { shape: "round" })}
       ${this.key("⌫", "digit", () => this.code = this.code.slice(0, -1), { shape: "round" })}
       ${modes.map((m2, i2) => b`<div class="mode" style="grid-row: ${2 + i2}">${this.key(MODE_LABEL[m2], "", () => this.runMode(m2), { tone: modeTone[m2], selected_when: [] })}</div>`)}
@@ -1507,15 +1738,15 @@ RamsKeypad.styles = [
       .mode { grid-column: 7 / -1; }
     `
 ];
-__decorateClass$1([
+__decorateClass$2([
   r()
 ], RamsKeypad.prototype, "code", 2);
-RamsKeypad = __decorateClass$1([
+RamsKeypad = __decorateClass$2([
   t("rams-keypad")
 ], RamsKeypad);
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __decorateClass = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+var __getOwnPropDesc$1 = Object.getOwnPropertyDescriptor;
+var __decorateClass$1 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$1(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -1536,12 +1767,12 @@ let RamsShelf = class extends Piece {
           name: "",
           schema: [
             { name: "kind", selector: { text: {} } },
-            { name: "per_row", selector: { number: { min: 1, max: 8, mode: "box" } } },
-            { name: "columns", selector: { number: { min: 1, max: 12, mode: "box" } } }
+            { name: "per_row", selector: { number: { min: 1, max: 8, mode: "box" } } }
           ]
-        }
+        },
+        layoutFields()
       ],
-      computeLabel: (s2) => s2.name.replace(/_/g, " ")
+      computeLabel
     };
   }
   items() {
@@ -1600,19 +1831,138 @@ RamsShelf.styles = [
       .empty { font-size: 12px; color: var(--_muted); }
     `
 ];
-RamsShelf = __decorateClass([
+RamsShelf = __decorateClass$1([
   t("rams-shelf")
 ], RamsShelf);
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __decorateClass = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp(target, key, result);
+  return result;
+};
+const CX = 100, CY = 90, R2 = 72;
+let RamsDial = class extends Piece {
+  constructor() {
+    super(...arguments);
+    this.onDown = (e2) => {
+      var _a2;
+      if (!((_a2 = this.config) == null ? void 0 : _a2.interactive)) return;
+      e2.currentTarget.setPointerCapture(e2.pointerId);
+      this.drag = this.fromPointer(e2);
+    };
+    this.onMove = (e2) => {
+      if (this.drag !== void 0) this.drag = this.fromPointer(e2);
+    };
+    this.onUp = () => {
+      const c2 = this.config;
+      if (this.drag !== void 0 && (c2 == null ? void 0 : c2.entity) && this.hass) void writeNumber(this.hass, c2.entity, this.drag);
+      this.drag = void 0;
+    };
+  }
+  static getStubConfig() {
+    return { type: "custom:rams-dial", min: 0, max: 100, interval: 10, value: 40, columns: 6, rows: 3 };
+  }
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "entity", selector: { entity: {} } },
+        { name: "attribute", selector: { attribute: {} } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            num$1("value", void 0, void 0, { step: "any" }),
+            num$1("min", void 0, void 0, { step: "any" }),
+            num$1("max", void 0, void 0, { step: "any" }),
+            num$1("interval", void 0, void 0, { step: "any" }),
+            { name: "unit", selector: { text: {} } },
+            { name: "label", selector: { text: {} } }
+          ]
+        },
+        { name: "interactive", selector: { boolean: {} } },
+        layoutFields()
+      ],
+      computeLabel
+    };
+  }
+  range() {
+    const c2 = this.config;
+    return { min: c2.min ?? 0, max: c2.max ?? 100, step: c2.interval ?? 1 };
+  }
+  point(f2, r2) {
+    const a2 = Math.PI * (1 - f2);
+    return [CX + r2 * Math.cos(a2), CY - r2 * Math.sin(a2)];
+  }
+  fromPointer(e2) {
+    const box = e2.currentTarget.getBoundingClientRect();
+    const k2 = Math.min(box.width / 200, box.height / 134);
+    const px = (e2.clientX - (box.left + (box.width - 200 * k2) / 2)) / k2;
+    const py = (e2.clientY - (box.top + (box.height - 134 * k2) / 2)) / k2;
+    const a2 = Math.min(Math.PI, Math.max(0, Math.atan2(CY - py, px - CX)));
+    const r2 = this.range();
+    return clamp(r2.min + (1 - a2 / Math.PI) * (r2.max - r2.min), r2);
+  }
+  render() {
+    const c2 = this.config;
+    if (!c2) return A;
+    const { min, max, step } = this.range();
+    const value = this.drag ?? (c2.entity ? readNumber(this.hass, c2.entity, c2.attribute) : c2.value);
+    const f2 = value === void 0 ? void 0 : Math.min(1, Math.max(0, (value - min) / (max - min)));
+    const count = Math.min(60, Math.max(1, Math.round((max - min) / step)));
+    const ticks = Array.from({ length: count + 1 }, (_2, i2) => i2 / count);
+    const shown = value === void 0 ? "–" : String(Math.round(value * 10) / 10);
+    const [nx, ny] = f2 === void 0 ? [CX, CY] : this.point(f2, R2 - 6);
+    return b`<svg viewBox="0 0 200 134" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+      ${w$1`<path class="arc" d="M ${CX - R2} ${CY} A ${R2} ${R2} 0 0 1 ${CX + R2} ${CY}" />
+      ${ticks.map((t2, i2) => {
+      const major = i2 === 0 || i2 === count || count % 2 === 0 && i2 === count / 2;
+      const [x1, y1] = this.point(t2, R2);
+      const [x2, y22] = this.point(t2, R2 - (major ? 12 : 7));
+      return w$1`<line class="tick ${major ? "major" : ""}" x1=${x1} y1=${y1} x2=${x2} y2=${y22} />`;
+    })}
+      ${f2 === void 0 ? A : w$1`<line class="needle" x1=${CX} y1=${CY} x2=${nx} y2=${ny} />`}
+      <text class="end" x=${CX - R2} y=${CY + 12}>${min}</text>
+      <text class="end" x=${CX + R2} y=${CY + 12}>${max}</text>
+      <text class="num" x=${CX} y=${CY + 28}>${shown}</text>
+      ${c2.unit ? w$1`<text class="unit" x=${CX} y=${CY + 40}>${c2.unit}</text>` : A}
+      ${c2.label ? w$1`<text class="lab" x=${CX} y="10">${c2.label}</text>` : A}`}
+    </svg>`;
+  }
+};
+RamsDial.styles = [
+  tokens,
+  i$3`
+      svg { display: block; width: 100%; height: 100%; touch-action: none; }
+      .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
+      .tick { stroke: var(--_muted); stroke-width: 1; }
+      .tick.major { stroke: var(--_ink); stroke-width: 1.5; }
+      .needle { stroke: var(--_red); stroke-width: 3; stroke-linecap: round; }
+      .num { fill: var(--_ink); font-size: 22px; text-anchor: middle; }
+      .unit, .lab, .end { fill: var(--_muted); font-size: 9px; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
+      .interactive { cursor: pointer; }
+    `
+];
+__decorateClass([
+  r()
+], RamsDial.prototype, "drag", 2);
+RamsDial = __decorateClass([
+  t("rams-dial")
+], RamsDial);
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
-  { type: "rams-panel", name: "Rams panel", description: "Container: a plate with pieces on an N-column grid" },
-  { type: "rams-display", name: "Rams display", description: "Text block: one or two lines, optional frame" },
-  { type: "rams-ruler", name: "Rams ruler", description: "Scale with pointer or centre bar; optional touch to set" },
-  { type: "rams-artwork", name: "Rams artwork", description: "Square picture with playing LED" },
-  { type: "rams-clock", name: "Rams clock", description: "Analog or digital clock" },
-  { type: "rams-list", name: "Rams list", description: "Dynamic list from an entity attribute" },
-  { type: "rams-keypad", name: "Rams keypad", description: "Alarm code entry and mode keys" },
-  { type: "rams-shelf", name: "Rams shelf", description: "Artwork tiles generated from a list" },
-  { type: "rams-button", name: "Rams button", description: "Key or round button" }
+  { type: "rams-panel", name: "Rams panel", description: "Container: a plate with pieces on an N-column grid", preview: true },
+  { type: "rams-display", name: "Rams display", description: "Text block: one or two lines, optional frame", preview: true },
+  { type: "rams-ruler", name: "Rams ruler", description: "Scale with pointer or centre bar; optional touch to set", preview: true },
+  { type: "rams-artwork", name: "Rams artwork", description: "Picture with playing LED and optional media keys", preview: true },
+  { type: "rams-clock", name: "Rams clock", description: "Analog or digital clock", preview: true },
+  { type: "rams-list", name: "Rams list", description: "List of entities with state and optional keys", preview: true },
+  { type: "rams-keypad", name: "Rams keypad", description: "Alarm code entry and mode keys", preview: true },
+  { type: "rams-shelf", name: "Rams shelf", description: "Artwork tiles generated from a list", preview: true },
+  { type: "rams-button", name: "Rams button", description: "Key or round button", preview: true },
+  { type: "rams-dial", name: "Rams dial", description: "Half-round scale with a needle, value from an entity or fixed", preview: true }
 );

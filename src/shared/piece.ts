@@ -1,17 +1,34 @@
-import { LitElement } from "lit";
+import { LitElement, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
-import type { Hass, PieceConfig } from "./types";
+import type { Frame, Hass, PieceConfig } from "./types";
 
 /**
- * Base class for every piece. Holds hass and config, and exposes the grid span.
- * The panel reads `columns` and `rows` from the piece's config and sets them on the wrapping element.
+ * Base class for every piece. Holds hass and config, reflects the frame to the host,
+ * and reports data-driven heights to the enclosing panel.
  */
 export abstract class Piece<C extends PieceConfig> extends LitElement {
   @property({ attribute: false }) hass?: Hass;
   @property({ attribute: false }) protected config?: C;
 
+  /** Frame used when the config sets none. */
+  protected defaultFrame: Frame = "none";
+  /** False when the piece draws its own box (buttons). */
+  protected hostFrame = true;
+
   setConfig(config: C): void {
     this.config = config;
+  }
+
+  /** True when this piece handles taps itself, so the panel's own action stays out of the way. */
+  protected actionable(): boolean {
+    const c = this.config;
+    return [c?.tap_action, c?.hold_action].some((a) => a && a.action !== "none");
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (!changed.has("config")) return;
+    this.setAttribute("frame", this.hostFrame ? (this.config?.frame ?? this.defaultFrame) : "none");
+    this.toggleAttribute("actionable", this.actionable());
   }
 
   private lastRows = 0;

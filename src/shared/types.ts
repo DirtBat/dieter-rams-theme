@@ -18,9 +18,17 @@ export interface ActionConfig {
   [key: string]: unknown;
 }
 
-/** Fields every piece accepts: its size on the panel grid. */
+/** How a piece's own box is drawn. The same four values everywhere. */
+export type Frame = "none" | "outline" | "recessed" | "raised";
+
+/** Fields every piece accepts: its size on the panel grid, its frame and its actions. */
 export interface PieceConfig {
   type: string;
+  /** Width in grid units. Default: the full width of the panel. */
   columns?: number;
+  /** Height in grid units. */
   rows?: number;
+  frame?: Frame;
+  tap_action?: ActionConfig;
+  hold_action?: ActionConfig;
 }
