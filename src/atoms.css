@@ -1,0 +1,142 @@
+/* dieter-rams / atoms.css
+   Every atom is a grid item: it takes whole columns and whole rows and never sets its own height.
+   Row unit = --rm-row. Spans are set by the parent with --c (columns) and --r (rows). */
+
+.rm-section {
+  display: grid;
+  grid-template-columns: repeat(var(--rm-cols), minmax(0, 1fr));
+  grid-auto-rows: var(--rm-row);
+  gap: var(--rm-gap);
+  font-family: var(--rm-font);
+  font-size: var(--rm-fs-body);
+  color: var(--rm-ink);
+}
+.rm-section > *, .rm-cluster > * {
+  grid-column: span var(--c, 12);
+  grid-row: span var(--r, 1);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* ---- key: rectangular tactile key ---- */
+.rm-key {
+  position: relative;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 6px 8px;
+  border-radius: var(--rm-radius);
+  background: var(--rm-cap);
+  color: var(--rm-ink);
+  border: var(--rm-border);
+  box-shadow: var(--rm-raised);
+  line-height: 1.2;
+  cursor: pointer; user-select: none;
+}
+.rm-key[data-tone="dark"]  { background: var(--rm-cap-dark); color: var(--rm-cap-dark-ink); }
+.rm-key[data-tone="alert"] { background: var(--rm-alert);    color: var(--rm-alert-ink); }
+.rm-key[data-state="pressed"], .rm-key:active {
+  box-shadow: var(--rm-pressed);
+  filter: brightness(.94);
+}
+.rm-key[data-state="on"]::after, .rm-led::after {
+  content: ""; position: absolute; top: 7px; right: 7px;
+  width: 6px; height: 6px; background: var(--rm-active);
+}
+
+/* ---- round button: 2 columns x 1 row cell, circle inside ---- */
+.rm-round {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; cursor: pointer; user-select: none;
+  font-size: var(--rm-fs-label); color: var(--rm-muted);
+}
+.rm-round__cap {
+  height: 100%; aspect-ratio: 1; border-radius: 50%; box-sizing: border-box;
+  display: grid; place-items: center;
+  background: var(--rm-cap); color: var(--rm-ink);
+  border: var(--rm-border);
+  box-shadow: var(--rm-raised);
+  font-size: 15px; line-height: 1;
+}
+.rm-round[data-tone="active"] .rm-round__cap { background: var(--rm-active); color: #261201; }
+.rm-round[data-tone="dark"]   .rm-round__cap { background: var(--rm-cap-dark); color: var(--rm-cap-dark-ink); }
+.rm-round[data-tone="alert"]  .rm-round__cap { background: var(--rm-alert); color: var(--rm-alert-ink); }
+.rm-round[data-state="pressed"] .rm-round__cap, .rm-round:active .rm-round__cap {
+  box-shadow: var(--rm-pressed); filter: brightness(.94);
+}
+.rm-round[data-label] .rm-round__cap { height: var(--rm-round-label); }
+.rm-round.is-text .rm-round__cap { font-size: 11px; }
+
+/* ---- tile: label, big value, side values, optional ruler ---- */
+.rm-tile {
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto auto;
+  column-gap: 10px; padding: 8px 10px;
+  border-radius: var(--rm-radius);
+  background: var(--rm-field); border: var(--rm-border); box-shadow: var(--rm-inset);
+}
+.rm-tile__label { grid-column: 1 / 3; font-size: var(--rm-fs-label); color: var(--rm-muted); }
+.rm-tile__value { align-self: center; font-size: 44px; line-height: 1; letter-spacing: -.02em; }
+.rm-tile[data-rows="2"] .rm-tile__value { font-size: 36px; }
+.rm-tile__value small { font-size: 14px; color: var(--rm-muted); margin-left: 2px; letter-spacing: 0; }
+.rm-tile__side { align-self: center; text-align: right; font-size: var(--rm-fs-body); line-height: 1.5; }
+.rm-tile__side span { color: var(--rm-muted); }
+.rm-tile .rm-ruler { grid-column: 1 / 3; }
+.rm-tile__foot { grid-column: 1 / 3; display: flex; justify-content: space-between; font-size: var(--rm-fs-label); color: var(--rm-muted); }
+
+/* ---- ruler: ticks + pointer. --v and --t are 0..1 ---- */
+.rm-ruler {
+  position: relative; height: 14px; width: 100%;
+  background: repeating-linear-gradient(90deg, var(--rm-muted) 0 1px, transparent 1px 12px) bottom / 100% 8px no-repeat,
+              repeating-linear-gradient(90deg, var(--rm-muted) 0 1px, transparent 1px 60px) bottom / 100% 14px no-repeat;
+}
+.rm-ruler::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 3px;
+  left: calc(var(--v, .5) * (100% - 3px)); background: var(--rm-active);
+}
+.rm-ruler[data-target]::before {
+  content: ""; position: absolute; top: 0; height: 5px; width: 3px;
+  left: calc(var(--t, .5) * (100% - 3px)); background: var(--rm-honey);
+}
+
+/* ---- lcd: recessed text field. Same atom for numbers, status and advice. Mono, no ghost segments. ---- */
+.rm-lcd {
+  display: flex; align-items: center; gap: 8px; padding: 0 10px;
+  font-family: var(--rm-mono); font-size: var(--rm-fs-lcd); line-height: 1.3;
+  background: var(--rm-field); color: var(--rm-ink);
+  border: var(--rm-border); border-radius: var(--rm-radius);
+  box-shadow: var(--rm-inset);
+  overflow: hidden;
+}
+.rm-lcd[data-big] { font-size: 26px; justify-content: center; letter-spacing: .02em; }
+.rm-lcd small { font-size: var(--rm-fs-body); color: var(--rm-muted); }
+.rm-lcd .rm-dot { flex: none; width: 8px; height: 8px; background: var(--rm-active); }
+.rm-lcd[data-ok] .rm-dot { background: var(--rm-on); }
+.rm-lcd[data-alert] .rm-dot { background: var(--rm-alert); }
+
+/* ---- artwork: square (cols = 2 x rows) ---- */
+.rm-art {
+  position: relative; overflow: hidden;
+  border-radius: var(--rm-radius); border: var(--rm-border); box-shadow: var(--rm-raised);
+  background: var(--rm-field);
+}
+.rm-art > svg, .rm-art > img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.rm-art__cap {
+  position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px;
+  font-size: var(--rm-fs-label); background: var(--rm-housing); color: var(--rm-ink);
+}
+.rm-art[data-playing]::after {
+  content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--rm-active);
+}
+
+/* ---- dial: clock face. Square. Hands rotate with --h --m --s (degrees) ---- */
+.rm-dial {
+  position: relative; aspect-ratio: 1; align-self: start;
+  border-radius: 12px; background: var(--rm-housing); border: var(--rm-border); box-shadow: var(--rm-raised);
+}
+.rm-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.rm-dial .dots { stroke: var(--rm-ink); }
+.rm-dial .hand { stroke: var(--rm-ink); stroke-linecap: round; transform-origin: 60px 60px; }
+.rm-dial .sec  { stroke: var(--rm-honey); transform-origin: 60px 60px; }
+.rm-dial .hub  { fill: var(--rm-ink); }
+.rm-dial__key {
+  position: absolute; top: -4px; right: 12%; width: 22%; height: 6px; border-radius: 2px;
+  background: var(--rm-warm); border: var(--rm-border);
+}

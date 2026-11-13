@@ -1,0 +1,25 @@
+/* Light: Rams poster palette (housing sampled from the posters). */
+:root, [data-theme="light"] {
+  --rm-housing:   #D9DBCC;   /* page / section background */
+  --rm-plate:     #C8C5B9;   /* cluster tray */
+  --rm-cap:       #D9D2C6;   /* neutral key and round cap */
+  --rm-cap-dark:  #261201;   /* off / stop / secondary */
+  --rm-cap-dark-ink: #D9D2C6;
+  --rm-field:     #C9CCBF;   /* LCD and recessed tile field */
+  --rm-ink:       #261201;
+  --rm-muted:     #736356;
+  --rm-line:      rgba(38,18,1,.28);
+  --rm-active:    #ED8008;   /* on, selected, pointer: "blood orange" */
+  --rm-on:        #736B1E;   /* healthy / power: "leaf green" stand-in */
+  --rm-alert:     #AD1D1D;
+  --rm-alert-ink: #D9D2C6;
+  --rm-cool:      #AAB7BF;
+  --rm-warm:      #CC6324;
+  --rm-honey:     #BF7C2A;   /* secondary pointer: "honey yellow" */
+
+  /* elevation: one light source, top-left. Night turns these off. */
+  --rm-raised:  0 2px 3px rgba(38,18,1,.22), inset 0 1px 0 rgba(255,255,255,.55);
+  --rm-pressed: inset 0 2px 3px rgba(38,18,1,.30);
+  --rm-inset:   inset 0 2px 3px rgba(38,18,1,.18);
+  --rm-border:  1px solid var(--rm-line);
+}

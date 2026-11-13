@@ -1,0 +1,24 @@
+/* Night: anthracite panels on black, grey caps, no outline, no shadow. */
+[data-theme="night"] {
+  --rm-housing:   #000000;
+  --rm-plate:     #232325;   /* cluster tray, anthracite */
+  --rm-cap:       #46474B;
+  --rm-cap-dark:  #121213;
+  --rm-cap-dark-ink: #B9B5AC;
+  --rm-field:     #151516;
+  --rm-ink:       #DEDAD0;
+  --rm-muted:     #8E8B84;
+  --rm-line:      transparent;
+  --rm-active:    #ED8008;
+  --rm-on:        #8A8A2C;
+  --rm-alert:     #BF1B1B;
+  --rm-alert-ink: #F0E8DC;
+  --rm-cool:      #7C8A93;
+  --rm-warm:      #CC6324;
+  --rm-honey:     #BF7C2A;
+
+  --rm-raised:  none;
+  --rm-pressed: none;
+  --rm-inset:   none;
+  --rm-border:  none;
+}

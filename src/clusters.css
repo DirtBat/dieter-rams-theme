@@ -1,0 +1,17 @@
+/* dieter-rams / clusters.css
+   A cluster is one HA card = one function. It draws a plate (tray) behind its cells and uses
+   subgrid, so its atoms stay on the outer 12-column grid and the 8px gap. Set --r to the row count. */
+.rm-cluster {
+  grid-column: 1 / -1;
+  grid-row: span var(--r, 1);
+  display: grid;
+  grid-template-columns: subgrid;
+  grid-template-rows: subgrid;
+  position: relative;
+}
+.rm-cluster::before {
+  content: ""; position: absolute;
+  inset: calc(var(--rm-tray-bleed) * -1);
+  background: var(--rm-plate); border-radius: calc(var(--rm-radius) + 1px);
+}
+.rm-cluster > * { position: relative; }

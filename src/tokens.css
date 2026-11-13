@@ -1,0 +1,19 @@
+/* dieter-rams / tokens.css
+   Layer 2 (skin) names only roles. No component may use a raw colour.
+   Grid constants live here too so the scaffolding has one source of truth. */
+:root {
+  /* grid (layer 1) */
+  --rm-cols: 12;
+  --rm-row: 56px;
+  --rm-gap: 8px;
+  --rm-radius: 5px;
+  --rm-tray-bleed: 3px;      /* cluster plate extends this far into the gap */
+  --rm-round-label: 38px;    /* cap diameter when a round button carries a label */
+
+  /* type */
+  --rm-font: "Helvetica Neue", Helvetica, Arial, "Inter", sans-serif;
+  --rm-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --rm-fs-label: 11px;
+  --rm-fs-body: 12px;
+  --rm-fs-lcd: 13px;
+}

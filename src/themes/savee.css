@@ -1,0 +1,23 @@
+/* Alternative: warmer adapted palette (from the savee reference). For comparison only. */
+[data-theme="savee"] {
+  --rm-housing:   #E3D6C2;
+  --rm-plate:     #D3C5AE;
+  --rm-cap:       #EBE0CD;
+  --rm-cap-dark:  #2B1E14;
+  --rm-cap-dark-ink: #E3D6C2;
+  --rm-field:     #D6CAB6;
+  --rm-ink:       #2B1E14;
+  --rm-muted:     #7A6A58;
+  --rm-line:      rgba(43,30,20,.28);
+  --rm-active:    #FF6037;
+  --rm-on:        #7D8B3F;
+  --rm-alert:     #C0392B;
+  --rm-alert-ink: #F3E9D8;
+  --rm-cool:      #5F9EA0;
+  --rm-warm:      #B87333;
+  --rm-honey:     #B87333;
+  --rm-raised:  0 2px 3px rgba(43,30,20,.22), inset 0 1px 0 rgba(255,255,255,.55);
+  --rm-pressed: inset 0 2px 3px rgba(43,30,20,.30);
+  --rm-inset:   inset 0 2px 3px rgba(43,30,20,.18);
+  --rm-border:  1px solid var(--rm-line);
+}
