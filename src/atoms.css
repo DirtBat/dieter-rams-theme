@@ -49,7 +49,7 @@
   font-size: var(--rm-fs-label); color: var(--rm-muted);
 }
 .rm-round__cap {
-  height: 100%; aspect-ratio: 1; border-radius: 50%; box-sizing: border-box;
+  width: min(100%, var(--rm-row)); aspect-ratio: 1; border-radius: 50%; box-sizing: border-box;
   display: grid; place-items: center;
   background: var(--rm-cap); color: var(--rm-ink);
   border: var(--rm-border);
@@ -62,7 +62,7 @@
 .rm-round[data-state="pressed"] .rm-round__cap, .rm-round:active .rm-round__cap {
   box-shadow: var(--rm-pressed); filter: brightness(.94);
 }
-.rm-round[data-label] .rm-round__cap { height: var(--rm-round-label); }
+.rm-round[data-label] .rm-round__cap { width: min(100%, var(--rm-round-label)); }
 .rm-round.is-text .rm-round__cap { font-size: 11px; }
 
 /* ---- tile: label, big value, side values, optional ruler ---- */

@@ -11,7 +11,7 @@ Supersedes the HA project doc `design-scaffolding-spec-2026-11-13.md` (v0.1). Ch
 - Section = 12 columns, gap 8px, row unit 56px. Card internal grid = its own column span, same gap and row.
 - R1 all items in a row have the same height (every row is one unit; tiles span whole rows)
 - R2 cluster atoms sit on the outer grid (CSS subgrid); the plate bleeds 3px into the gap
-- R3 round button cell is 2 x 1; the circle is as tall as the cell (56px) or 38px with a label above, centred, so it stays a circle at any width of 56px or more
+- R3 round button cell is 2 x 1; the circle is as tall as the cell (56px) or 38px with a label above, centred, and shrinks to the cell width when the section is narrower (below 376px the circle is smaller than 56px but stays round)
 - R4 artwork and dial are square: columns = 2 x rows
 
 ## Atoms (v0.2)
