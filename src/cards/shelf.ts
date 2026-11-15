@@ -71,7 +71,9 @@ export class RamsShelf extends Piece<ShelfConfig> {
     const c = this.config!;
     const e = c.entity ? this.hass?.states[c.entity] : undefined;
     if (!e) return [];
-    let raw: unknown = c.attribute ? e.attributes[c.attribute] : e.state;
+    // An input_select reads its options by default.
+    const attr = c.attribute ?? (c.entity?.startsWith("input_select.") ? "options" : undefined);
+    let raw: unknown = attr ? e.attributes[attr] : e.state;
     if (typeof raw === "string") {
       try {
         raw = JSON.parse(raw);
@@ -79,7 +81,18 @@ export class RamsShelf extends Piece<ShelfConfig> {
         return [];
       }
     }
-    const list = Array.isArray(raw) ? (raw as ShelfItem[]) : [];
+    if (!Array.isArray(raw)) return [];
+    const list: ShelfItem[] = [];
+    for (const r of raw as unknown[]) {
+      if (typeof r === "string") {
+        // "kind|title|media_content_id|picture"
+        const [kind, title, id, ...pic] = r.split("|");
+        if (!kind || !id) continue;
+        list.push({ kind: kind.trim(), title: title?.trim(), media_content_id: id.trim(), media_content_type: kind.trim(), picture: pic.join("|").trim() || undefined });
+      } else if (r && typeof r === "object") {
+        list.push(r as ShelfItem);
+      }
+    }
     return c.kind ? list.filter((i) => i.kind === c.kind) : list;
   }
 
