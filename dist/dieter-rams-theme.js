@@ -614,6 +614,7 @@ class Piece extends i {
     super(...arguments);
     this.defaultFrame = "none";
     this.hostFrame = true;
+    this.minRows = false;
     this.lastRows = 0;
   }
   setConfig(config) {
@@ -625,10 +626,14 @@ class Piece extends i {
     return [c2 == null ? void 0 : c2.tap_action, c2 == null ? void 0 : c2.hold_action].some((a2) => a2 && a2.action !== "none");
   }
   willUpdate(changed) {
-    var _a2;
+    var _a2, _b;
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
     this.toggleAttribute("actionable", this.actionable());
+    if (this.minRows) {
+      const n3 = typeof ((_b = this.config) == null ? void 0 : _b.rows) === "number" ? this.config.rows : 1;
+      this.style.minHeight = `calc(var(--_row) * ${n3} + var(--_gap) * ${n3 - 1})`;
+    }
   }
   /** Tell the enclosing panel how many grid rows this piece needs (data-driven height). */
   reportRows(rows) {
@@ -845,6 +850,7 @@ let RamsButton = class extends Piece {
   constructor() {
     super(...arguments);
     this.hostFrame = false;
+    this.minRows = true;
     this.press = new Press(this, () => this.config, () => this.step());
   }
   static getStubConfig() {
@@ -935,6 +941,7 @@ let RamsButton = class extends Piece {
 RamsButton.styles = [
   tokens,
   i$3`
+      :host { display: block; }
       .cell { height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
       .cell.above { flex-direction: column; }
@@ -1571,6 +1578,7 @@ let RamsList = class extends Piece {
               label_field: "entity",
               fields: {
                 entity: { required: true, selector: { entity: {} } },
+                name: { selector: { text: {} } },
                 category: { selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
               }
             }
@@ -1656,11 +1664,11 @@ let RamsList = class extends Piece {
   row(entry) {
     var _a2;
     const c2 = this.config;
-    const { entity: id, category } = parse(entry);
+    const { entity: id, name: own, category } = parse(entry);
     const e2 = (_a2 = this.hass) == null ? void 0 : _a2.states[id];
     const dot = category && COLOURS[category] ? b`<span class="dot" style="--c:${COLOURS[category]}"></span>` : this.categorised ? b`<span class="dot spacer"></span>` : A;
-    if (!this.hass || !e2) return b`<div class="row">${dot}<span class="name">${id}</span><span class="val">n/a</span></div>`;
-    const name = String(e2.attributes.friendly_name ?? id);
+    if (!this.hass || !e2) return b`<div class="row">${dot}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
+    const name = own || String(e2.attributes.friendly_name ?? id);
     const small = c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
     const alert = readState(this.hass, id, {}).alert;
     const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
@@ -1813,8 +1821,15 @@ var __decorateClass$1 = (decorators, target, key, kind) => {
   return result;
 };
 let RamsShelf = class extends Piece {
-  static getStubConfig() {
-    return { type: "custom:rams-shelf", columns: 12, rows: "auto", per_row: 3 };
+  /** A new shelf starts on the first input_select whose options look like "kind|title|id|picture". */
+  static getStubConfig(hass) {
+    const found = Object.keys((hass == null ? void 0 : hass.states) ?? {}).find(
+      (id) => {
+        var _a2;
+        return id.startsWith("input_select.") && ((_a2 = hass.states[id].attributes.options) == null ? void 0 : _a2.some((o2) => o2.split("|").length >= 3));
+      }
+    );
+    return { type: "custom:rams-shelf", columns: 12, per_row: 4, ...found ? { entity: found } : {} };
   }
   static getConfigForm() {
     return {
@@ -1876,13 +1891,16 @@ let RamsShelf = class extends Piece {
     if (grid) this.reportRows(this.rowsFor(grid.offsetHeight));
   }
   render() {
-    var _a2, _b, _c, _d;
+    var _a2, _b, _c, _d, _e;
     const c2 = this.config;
     if (!c2) return A;
     const items = this.items();
     const playingId = c2.player ? (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.player]) == null ? void 0 : _b.attributes.media_content_id : void 0;
     const playing = c2.player && ((_d = (_c = this.hass) == null ? void 0 : _c.states[c2.player]) == null ? void 0 : _d.state) === "playing";
-    if (items.length === 0) return b`<div class="empty">Nothing to show</div>`;
+    if (items.length === 0) {
+      const why = !c2.entity ? "Choose an entity" : !((_e = this.hass) == null ? void 0 : _e.states[c2.entity]) ? `${c2.entity} not found` : `No items in ${c2.entity}`;
+      return b`<div class="empty">${why}</div>`;
+    }
     return b`<div class="grid" style="grid-template-columns: repeat(${c2.per_row ?? 3}, minmax(0, 1fr))">
       ${items.map(
       (i2) => b`<div class="tile" style=${i2.picture ? `background-image:url('${i2.picture}')` : ""} @click=${() => this.play(i2)}>
@@ -1897,7 +1915,8 @@ RamsShelf.styles = [
   i$3`
       :host { display: block; min-width: 0; }
       .grid { display: grid; gap: var(--_gap); }
-      .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: var(--_radius); border: var(--_border); box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      /* square covers: the picture is the object, a rounded corner would show the picture behind its edge */
+      .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 0; box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
       .empty { font-size: 12px; color: var(--_muted); }
     `
@@ -1915,7 +1934,9 @@ var __decorateClass = (decorators, target, key, kind) => {
   if (kind && result) __defProp(target, key, result);
   return result;
 };
-const CX = 100, CY = 90, R2 = 72;
+const R2 = 72;
+const rad = (deg) => deg * Math.PI / 180;
+const at = (deg, r2) => [r2 * Math.sin(rad(deg)), -r2 * Math.cos(rad(deg))];
 let RamsDial = class extends Piece {
   constructor() {
     super(...arguments);
@@ -1935,7 +1956,7 @@ let RamsDial = class extends Piece {
     };
   }
   static getStubConfig() {
-    return { type: "custom:rams-dial", min: 0, max: 100, interval: 10, value: 40, columns: 6, rows: 3 };
+    return { type: "custom:rams-dial", min: 0, max: 100, interval: 10, value: 40, start_angle: -90, end_angle: 90, columns: 6, rows: 3 };
   }
   static getConfigForm() {
     return {
@@ -1950,6 +1971,8 @@ let RamsDial = class extends Piece {
             num$1("min", void 0, void 0, { step: "any" }),
             num$1("max", void 0, void 0, { step: "any" }),
             num$1("interval", void 0, void 0, { step: "any" }),
+            num$1("start_angle", -360, 360, { step: 5 }),
+            num$1("end_angle", -360, 360, { step: 5 }),
             { name: "unit", selector: { text: {} } },
             { name: "label", selector: { text: {} } }
           ]
@@ -1964,43 +1987,74 @@ let RamsDial = class extends Piece {
     const c2 = this.config;
     return { min: c2.min ?? 0, max: c2.max ?? 100, step: c2.interval ?? 1 };
   }
-  point(f2, r2) {
-    const a2 = Math.PI * (1 - f2);
-    return [CX + r2 * Math.cos(a2), CY - r2 * Math.sin(a2)];
+  /** Start and end angle; the end is always after the start and the arc at most a full circle. */
+  angles() {
+    const c2 = this.config;
+    const start = c2.start_angle ?? -90;
+    const end = c2.end_angle ?? 90;
+    return [start, Math.min(start + 360, Math.max(start + 1, end))];
+  }
+  at(f2, r2) {
+    const [a0, a1] = this.angles();
+    return at(a0 + f2 * (a1 - a0), r2);
+  }
+  /** The drawing area: the arc, the end labels and the centre text, whatever the angles are. */
+  box() {
+    var _a2, _b;
+    const [a0, a1] = this.angles();
+    const pts = [at(a0, R2 + 14), at(a1, R2 + 14), [0, 34 + (((_a2 = this.config) == null ? void 0 : _a2.unit) ? 12 : 0)]];
+    for (let a2 = Math.ceil(a0 / 90) * 90; a2 <= a1; a2 += 90) pts.push(at(a2, R2 + 4));
+    if ((_b = this.config) == null ? void 0 : _b.label) pts.push([0, -R2 - 16]);
+    const xs = pts.map((p2) => p2[0]), ys = pts.map((p2) => p2[1]);
+    const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4;
+    return [x0 - 8, y0, Math.max(...xs) + 4 - x0 + 16, Math.max(...ys) + 4 - y0];
   }
   fromPointer(e2) {
-    const box = e2.currentTarget.getBoundingClientRect();
-    const k2 = Math.min(box.width / 200, box.height / 134);
-    const px = (e2.clientX - (box.left + (box.width - 200 * k2) / 2)) / k2;
-    const py = (e2.clientY - (box.top + (box.height - 134 * k2) / 2)) / k2;
-    const a2 = Math.min(Math.PI, Math.max(0, Math.atan2(CY - py, px - CX)));
+    const el = e2.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const [bx, by, bw, bh] = this.box();
+    const k2 = Math.min(rect.width / bw, rect.height / bh);
+    const px = (e2.clientX - (rect.left + (rect.width - bw * k2) / 2)) / k2 + bx;
+    const py = (e2.clientY - (rect.top + (rect.height - bh * k2) / 2)) / k2 + by;
+    const [a0, a1] = this.angles();
+    let a2 = Math.atan2(px, -py) * 180 / Math.PI;
+    while (a2 < a0) a2 += 360;
+    while (a2 >= a0 + 360) a2 -= 360;
+    if (a2 > a1) a2 = a2 - a1 < a0 + 360 - a2 ? a1 : a0;
     const r2 = this.range();
-    return clamp(r2.min + (1 - a2 / Math.PI) * (r2.max - r2.min), r2);
+    return clamp(r2.min + (a2 - a0) / (a1 - a0) * (r2.max - r2.min), r2);
   }
   render() {
     const c2 = this.config;
     if (!c2) return A;
     const { min, max, step } = this.range();
+    const [a0, a1] = this.angles();
     const value = this.drag ?? (c2.entity ? readNumber(this.hass, c2.entity, c2.attribute) : c2.value);
     const f2 = value === void 0 ? void 0 : Math.min(1, Math.max(0, (value - min) / (max - min)));
     const count = Math.min(60, Math.max(1, Math.round((max - min) / step)));
     const ticks = Array.from({ length: count + 1 }, (_2, i2) => i2 / count);
     const shown = value === void 0 ? "–" : String(Math.round(value * 10) / 10);
-    const [nx, ny] = f2 === void 0 ? [CX, CY] : this.point(f2, R2 - 6);
-    return b`<svg viewBox="0 0 200 134" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
-      ${w$1`<path class="arc" d="M ${CX - R2} ${CY} A ${R2} ${R2} 0 0 1 ${CX + R2} ${CY}" />
+    const [x0, y0, w2, h2] = this.box();
+    const [sx, sy] = at(a0, R2), [ex, ey] = at(a1, R2);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    const endLabel = (a2, text) => {
+      const [x2, y3] = at(a2, R2 + 12);
+      const s2 = Math.sin(rad(a2));
+      return w$1`<text class="end" x=${x2} y=${y3 + 3} text-anchor=${s2 > 0.4 ? "start" : s2 < -0.4 ? "end" : "middle"}>${text}</text>`;
+    };
+    return b`<svg viewBox="${x0} ${y0} ${w2} ${h2}" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+      ${w$1`<path class="arc" d="M ${sx} ${sy} A ${R2} ${R2} 0 ${large} 1 ${ex} ${ey}" />
       ${ticks.map((t2, i2) => {
       const major = i2 === 0 || i2 === count || count % 2 === 0 && i2 === count / 2;
-      const [x1, y1] = this.point(t2, R2);
-      const [x2, y22] = this.point(t2, R2 - (major ? 12 : 7));
+      const [x1, y1] = this.at(t2, R2);
+      const [x2, y22] = this.at(t2, R2 - (major ? 12 : 7));
       return w$1`<line class="tick ${major ? "major" : ""}" x1=${x1} y1=${y1} x2=${x2} y2=${y22} />`;
     })}
-      ${f2 === void 0 ? A : w$1`<line class="needle" x1=${CX} y1=${CY} x2=${nx} y2=${ny} />`}
-      <text class="end" x=${CX - R2} y=${CY + 12}>${min}</text>
-      <text class="end" x=${CX + R2} y=${CY + 12}>${max}</text>
-      <text class="num" x=${CX} y=${CY + 28}>${shown}</text>
-      ${c2.unit ? w$1`<text class="unit" x=${CX} y=${CY + 40}>${c2.unit}</text>` : A}
-      ${c2.label ? w$1`<text class="lab" x=${CX} y="10">${c2.label}</text>` : A}`}
+      ${f2 === void 0 ? A : w$1`<line class="needle" x1=${this.at(f2, R2 * 0.5)[0]} y1=${this.at(f2, R2 * 0.5)[1]} x2=${this.at(f2, R2 - 6)[0]} y2=${this.at(f2, R2 - 6)[1]} />`}
+      ${endLabel(a0, min)}${endLabel(a1, max)}
+      <text class="num" x="0" y="26">${shown}</text>
+      ${c2.unit ? w$1`<text class="unit" x="0" y="38">${c2.unit}</text>` : A}
+      ${c2.label ? w$1`<text class="lab" x="0" y=${-R2 - 8}>${c2.label}</text>` : A}`}
     </svg>`;
   }
 };

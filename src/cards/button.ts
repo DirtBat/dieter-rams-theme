@@ -41,11 +41,13 @@ function readable(state: string, tz?: string): string {
 @customElement("rams-button")
 export class RamsButton extends Piece<ButtonConfig> {
   protected hostFrame = false;
+  protected minRows = true;
   private press = new Press(this, () => this.config, () => this.step());
 
   static styles = [
     tokens,
     css`
+      :host { display: block; }
       .cell { height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
       .cell.above { flex-direction: column; }

@@ -7,8 +7,8 @@ import { tokens } from "../shared/styles";
 import { computeLabel, dropdown, layoutFields, num } from "../shared/form";
 import type { Hass, HassEntity, PieceConfig } from "../shared/types";
 
-/** A row: just an entity id, or an entity with a category (shown as a coloured dot). */
-export type ListEntry = string | { entity: string; category?: Tone };
+/** A row: just an entity id, or an entity with its own name and a category (shown as a coloured dot). */
+export type ListEntry = string | { entity: string; name?: string; category?: Tone };
 
 export interface ListConfig extends PieceConfig {
   title?: string;
@@ -24,7 +24,7 @@ export interface ListConfig extends PieceConfig {
 }
 
 /** One reader for both entry forms. */
-const parse = (e: ListEntry): { entity: string; category?: Tone } => (typeof e === "string" ? { entity: e } : e);
+const parse = (e: ListEntry): { entity: string; name?: string; category?: Tone } => (typeof e === "string" ? { entity: e } : e);
 
 const COLOURS: Record<string, string> = { red: "var(--_red)", orange: "var(--_orange)", blue: "var(--_blue)", green: "var(--_green)", grey: "var(--_grey)" };
 
@@ -68,6 +68,7 @@ export class RamsList extends Piece<ListConfig> {
               label_field: "entity",
               fields: {
                 entity: { required: true, selector: { entity: {} } },
+                name: { selector: { text: {} } },
                 category: { selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
               },
             },
@@ -158,11 +159,11 @@ export class RamsList extends Piece<ListConfig> {
 
   private row(entry: ListEntry): TemplateResult {
     const c = this.config!;
-    const { entity: id, category } = parse(entry);
+    const { entity: id, name: own, category } = parse(entry);
     const e = this.hass?.states[id];
     const dot = category && COLOURS[category] ? html`<span class="dot" style="--c:${COLOURS[category]}"></span>` : this.categorised ? html`<span class="dot spacer"></span>` : nothing;
-    if (!this.hass || !e) return html`<div class="row">${dot}<span class="name">${id}</span><span class="val">n/a</span></div>`;
-    const name = String(e.attributes.friendly_name ?? id);
+    if (!this.hass || !e) return html`<div class="row">${dot}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
+    const name = own || String(e.attributes.friendly_name ?? id);
     const small = c.attribute ? String(e.attributes[c.attribute] ?? "") : String(e.attributes.device_class ?? "");
     const alert = readState(this.hass, id, {}).alert;
     const keys = c.keys === "toggle"

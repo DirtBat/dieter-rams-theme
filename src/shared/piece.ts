@@ -14,6 +14,8 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
   protected defaultFrame: Frame = "none";
   /** False when the piece draws its own box (buttons). */
   protected hostFrame = true;
+  /** True for pieces with no height of their own: they take `rows` (default 1) as a minimum, so they never collapse in an editor preview. */
+  protected minRows = false;
 
   setConfig(config: C): void {
     this.config = config;
@@ -29,6 +31,10 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? (this.config?.frame ?? this.defaultFrame) : "none");
     this.toggleAttribute("actionable", this.actionable());
+    if (this.minRows) {
+      const n = typeof this.config?.rows === "number" ? this.config.rows : 1;
+      this.style.minHeight = `calc(var(--_row) * ${n} + var(--_gap) * ${n - 1})`;
+    }
   }
 
   private lastRows = 0;

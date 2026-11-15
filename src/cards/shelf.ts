@@ -3,7 +3,7 @@ import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
 import { computeLabel, layoutFields } from "../shared/form";
-import type { PieceConfig } from "../shared/types";
+import type { Hass, PieceConfig } from "../shared/types";
 
 /**
  * One entry of the source list. This is the shape the shelf expects; adapt the source (or this reader)
@@ -37,14 +37,19 @@ export class RamsShelf extends Piece<ShelfConfig> {
     css`
       :host { display: block; min-width: 0; }
       .grid { display: grid; gap: var(--_gap); }
-      .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: var(--_radius); border: var(--_border); box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      /* square covers: the picture is the object, a rounded corner would show the picture behind its edge */
+      .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 0; box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
       .empty { font-size: 12px; color: var(--_muted); }
     `,
   ];
 
-  static getStubConfig(): ShelfConfig {
-    return { type: "custom:rams-shelf", columns: 12, rows: "auto" as unknown as number, per_row: 3 };
+  /** A new shelf starts on the first input_select whose options look like "kind|title|id|picture". */
+  static getStubConfig(hass?: Hass): ShelfConfig {
+    const found = Object.keys(hass?.states ?? {}).find(
+      (id) => id.startsWith("input_select.") && (hass!.states[id].attributes.options as string[] | undefined)?.some((o) => o.split("|").length >= 3),
+    );
+    return { type: "custom:rams-shelf", columns: 12, per_row: 4, ...(found ? { entity: found } : {}) };
   }
 
   static getConfigForm() {
@@ -117,7 +122,10 @@ export class RamsShelf extends Piece<ShelfConfig> {
     const items = this.items();
     const playingId = c.player ? this.hass?.states[c.player]?.attributes.media_content_id : undefined;
     const playing = c.player && this.hass?.states[c.player]?.state === "playing";
-    if (items.length === 0) return html`<div class="empty">Nothing to show</div>`;
+    if (items.length === 0) {
+      const why = !c.entity ? "Choose an entity" : !this.hass?.states[c.entity] ? `${c.entity} not found` : `No items in ${c.entity}`;
+      return html`<div class="empty">${why}</div>`;
+    }
     return html`<div class="grid" style="grid-template-columns: repeat(${c.per_row ?? 3}, minmax(0, 1fr))">
       ${items.map(
         (i) => html`<div class="tile" style=${i.picture ? `background-image:url('${i.picture}')` : ""} @click=${() => this.play(i)}>
