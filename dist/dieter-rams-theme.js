@@ -714,6 +714,14 @@ const TONES = [
 ];
 const WARNING_CLASSES = ["problem", "safety", "smoke", "gas", "carbon_monoxide", "moisture", "tamper", "battery", "heat"];
 const ACTIVE_STATES = ["on", "open", "playing"];
+function valueTone(state, rows) {
+  var _a2;
+  const v2 = Number(state);
+  if (!rows || state === "" || Number.isNaN(v2)) return void 0;
+  const above = rows.filter((r2) => r2.when !== "below" && v2 > Number(r2.value)).sort((a2, b2) => Number(b2.value) - Number(a2.value))[0];
+  const below = rows.filter((r2) => r2.when === "below" && v2 < Number(r2.value)).sort((a2, b2) => Number(a2.value) - Number(b2.value))[0];
+  return (_a2 = above ?? below) == null ? void 0 : _a2.tone;
+}
 const same = (a2, b2) => (a2 ?? "").trim().toLowerCase() === b2.toLowerCase();
 function readState(hass, entity, rules) {
   var _a2, _b, _c;
@@ -724,11 +732,12 @@ function readState(hass, entity, rules) {
   const auto = !rules.alert_when && !!e2 && judged.startsWith("binary_sensor.") && state === "on" && WARNING_CLASSES.includes(String(e2.attributes.device_class));
   const alert = auto || !!((_a2 = rules.alert_when) == null ? void 0 : _a2.some((w2) => same(w2, state)));
   const hit = state ? (_c = (_b = rules.state_colours) == null ? void 0 : _b.find((r2) => same(r2.state, state))) == null ? void 0 : _c.tone : void 0;
+  const byValue = hit ?? valueTone(state, rules.value_colours);
   return {
     state: (own == null ? void 0 : own.state) ?? "",
     alert,
     active: (rules.selected_when ?? ACTIVE_STATES).some((a2) => same(a2, state)),
-    signal: hit && hit !== "neutral" ? hit : alert ? "red" : void 0
+    signal: byValue && byValue !== "neutral" ? byValue : alert ? "red" : void 0
   };
 }
 const tokens = i$3`
@@ -800,7 +809,8 @@ const LABELS = {
   rows: "height in panel (grid units)",
   selected_when: "active when",
   alert_when: "warning when",
-  state_colours: "colour by state"
+  state_colours: "colour by state",
+  value_colours: "colour by value"
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
@@ -808,6 +818,7 @@ const HELPERS = {
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
   state_colours: 'Optional. A colour for each state, instead of red for every warning. A state listed here wins over "warning when".',
+  value_colours: "Optional. Colour the piece when the number is above or below a value, for example CO2 above 1000. The strictest matching row wins.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab."
 };
@@ -1103,6 +1114,21 @@ let RamsDisplay = class extends Piece {
           schema: [
             { name: "rules_entity", selector: { entity: {} } },
             { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            {
+              name: "value_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "value",
+                  description_field: "when",
+                  fields: {
+                    when: { label: "When the number is", required: true, selector: { select: { mode: "dropdown", options: [{ value: "above", label: "Above" }, { value: "below", label: "Below" }] } } },
+                    value: { label: "Value", required: true, selector: { number: { mode: "box", step: "any" } } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
+                  }
+                }
+              }
+            },
             {
               name: "state_colours",
               selector: {

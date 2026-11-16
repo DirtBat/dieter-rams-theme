@@ -5,6 +5,7 @@ const LABELS: Record<string, string> = {
   selected_when: "active when",
   alert_when: "warning when",
   state_colours: "colour by state",
+  value_colours: "colour by value",
 };
 
 export const computeLabel = (s: { name: string }): string => LABELS[s.name] ?? s.name.replace(/_/g, " ");
@@ -14,6 +15,7 @@ const HELPERS: Record<string, string> = {
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
   state_colours: "Optional. A colour for each state, instead of red for every warning. A state listed here wins over \"warning when\".",
+  value_colours: "Optional. Colour the piece when the number is above or below a value, for example CO2 above 1000. The strictest matching row wins.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
 };

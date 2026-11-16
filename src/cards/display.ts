@@ -23,6 +23,8 @@ export interface DisplayConfig extends PieceConfig {
   rules_entity?: string;
   /** A colour per state, instead of red for every warning. */
   state_colours?: Array<{ state: string; tone: Tone }>;
+  /** A colour per number: above or below a value. */
+  value_colours?: Array<{ when: "above" | "below"; value: number; tone: Tone }>;
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -88,6 +90,21 @@ export class RamsDisplay extends Piece<DisplayConfig> {
           schema: [
             { name: "rules_entity", selector: { entity: {} } },
             { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            {
+              name: "value_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "value",
+                  description_field: "when",
+                  fields: {
+                    when: { label: "When the number is", required: true, selector: { select: { mode: "dropdown", options: [{ value: "above", label: "Above" }, { value: "below", label: "Below" }] } } },
+                    value: { label: "Value", required: true, selector: { number: { mode: "box", step: "any" } } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
+                  },
+                },
+              },
+            },
             {
               name: "state_colours",
               selector: {
