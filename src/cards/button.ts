@@ -12,11 +12,9 @@ type Position = "inside" | "above" | "below" | "beside";
 
 export interface ButtonConfig extends PieceConfig, StateRules {
   entity?: string;
-  /** Text on the key. */
+  /** The only text: the key legend, or the caption outside the key (see `label_position`). Defaults to the entity name. */
   name?: string;
-  /** Small text: inside above the name, or outside the key, see `label_position`. */
-  label?: string;
-  /** Use the entity state (a date for scenes) as the small text. */
+  /** Show the entity state (a date for scenes) inside the key; the name then moves to the label position. */
   show_state?: boolean;
   label_position?: Position;
   shape?: "key" | "round";
@@ -113,7 +111,6 @@ export class RamsButton extends Piece<ButtonConfig> {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "name", selector: { text: {} } },
-        { name: "label", selector: { text: {} } },
         {
           type: "grid",
           name: "",
@@ -167,7 +164,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const c = this.config;
     if (!c) return nothing;
     const view = readState(this.hass, c.entity, c);
-    const label = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
+    const name = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     const pos = c.label_position ?? "inside";
     const shape = c.shape ?? "key";
     const tone = c.tone ?? "neutral";
@@ -178,16 +175,14 @@ export class RamsButton extends Piece<ButtonConfig> {
       view.alert ? "alert" : view.active ? "active" : "",
     ].filter(Boolean).join(" ");
     const triangle = view.alert ? html`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : nothing;
-    const inside = pos === "inside" ? (c.label ?? state) : "";
+    // Inside the key: the state when shown, otherwise the name (unless the name sits outside).
+    const main = state || (pos === "inside" ? name : "");
+    const small = state && pos === "inside" ? name : "";
+    const caption = pos === "inside" ? "" : name;
     const key = html`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${inside ? html`<span class="small">${inside}</span>` : nothing}
-      ${label || view.alert ? html`<span class="row">${triangle}${label}</span>` : nothing}
+      ${small ? html`<span class="small">${small}</span>` : nothing}
+      ${main || view.alert ? html`<span class="row">${triangle}${main}</span>` : nothing}
     </button></div>`;
-    if (pos === "inside") return html`<div class="cell">${key}</div>`;
-    const text = c.label ?? (c.show_state ? state : "");
-    const second = pos === "beside" && c.label && c.show_state ? state : "";
-    return html`<div class="cell ${pos}">
-      ${key}${text || second ? html`<div class="txt">${text}${second ? html`<small>${second}</small>` : nothing}</div>` : nothing}
-    </div>`;
+    return html`<div class="cell ${pos}">${key}${caption ? html`<div class="txt">${caption}</div>` : nothing}</div>`;
   }
 }

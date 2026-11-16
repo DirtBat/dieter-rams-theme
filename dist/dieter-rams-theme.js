@@ -625,8 +625,13 @@ class Piece extends i {
     const c2 = this.config;
     return [c2 == null ? void 0 : c2.tap_action, c2 == null ? void 0 : c2.hold_action].some((a2) => a2 && a2.action !== "none");
   }
+  /** Pieces that can warn override this; the look is defined once in the shared styles. */
+  warning() {
+    return false;
+  }
   willUpdate(changed) {
     var _a2, _b;
+    this.toggleAttribute("warning", this.warning());
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
     this.toggleAttribute("actionable", this.actionable());
@@ -764,6 +769,10 @@ const tokens = i$3`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
+  /* Warning, the same on every piece: red outline and a triangle in the corner. */
+  :host([warning]) { position: relative; outline: 2px solid var(--_alert); outline-offset: -2px; border-radius: var(--_radius); }
+  :host([warning])::after { content: ""; position: absolute; top: 5px; right: 6px; width: 10px; height: 9px; background: var(--_alert); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
@@ -883,7 +892,6 @@ let RamsButton = class extends Piece {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "name", selector: { text: {} } },
-        { name: "label", selector: { text: {} } },
         {
           type: "grid",
           name: "",
@@ -937,7 +945,7 @@ let RamsButton = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const view = readState(this.hass, c2.entity, c2);
-    const label = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
+    const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
     const pos = c2.label_position ?? "inside";
     const shape = c2.shape ?? "key";
     const tone = c2.tone ?? "neutral";
@@ -952,17 +960,14 @@ let RamsButton = class extends Piece {
       view.alert ? "alert" : view.active ? "active" : ""
     ].filter(Boolean).join(" ");
     const triangle = view.alert ? b`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : A;
-    const inside = pos === "inside" ? c2.label ?? state : "";
+    const main = state || (pos === "inside" ? name : "");
+    const small = state && pos === "inside" ? name : "";
+    const caption = pos === "inside" ? "" : name;
     const key = b`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${inside ? b`<span class="small">${inside}</span>` : A}
-      ${label || view.alert ? b`<span class="row">${triangle}${label}</span>` : A}
+      ${small ? b`<span class="small">${small}</span>` : A}
+      ${main || view.alert ? b`<span class="row">${triangle}${main}</span>` : A}
     </button></div>`;
-    if (pos === "inside") return b`<div class="cell">${key}</div>`;
-    const text = c2.label ?? (c2.show_state ? state : "");
-    const second = pos === "beside" && c2.label && c2.show_state ? state : "";
-    return b`<div class="cell ${pos}">
-      ${key}${text || second ? b`<div class="txt">${text}${second ? b`<small>${second}</small>` : A}</div>` : A}
-    </div>`;
+    return b`<div class="cell ${pos}">${key}${caption ? b`<div class="txt">${caption}</div>` : A}</div>`;
   }
 };
 RamsButton.styles = [
@@ -1037,6 +1042,11 @@ let RamsDisplay = class extends Piece {
   constructor() {
     super(...arguments);
     this.defaultFrame = "recessed";
+    this.press = new Press(this, () => this.actionable() ? this.config : void 0);
+  }
+  warning() {
+    var _a2;
+    return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).alert;
   }
   static getStubConfig() {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
@@ -1061,7 +1071,14 @@ let RamsDisplay = class extends Piece {
             dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
-        ...layoutFields()
+        ...layoutFields(),
+        ...actionFields(),
+        {
+          type: "expandable",
+          name: "",
+          title: "State rules",
+          schema: [{ name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }]
+        }
       ],
       computeLabel,
       computeHelper
@@ -1079,7 +1096,7 @@ let RamsDisplay = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const cls = [c2.align ?? "start", c2.size ?? "medium", c2.title ? "has-title" : ""].filter(Boolean).join(" ");
-    return b`<div class="box ${cls}">
+    return b`<div class="box ${cls}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${c2.title ? b`<span class="title">${c2.title}</span>` : A}
       <span class="value">${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
     </div>`;

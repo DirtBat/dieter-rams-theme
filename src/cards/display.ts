@@ -2,7 +2,9 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
-import { computeLabel, computeHelper, layoutFields } from "../shared/form";
+import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
+import { Press } from "../shared/press";
+import { readState } from "../shared/state-rules";
 import type { PieceConfig } from "../shared/types";
 
 type Size = "small" | "medium" | "large";
@@ -16,6 +18,8 @@ export interface DisplayConfig extends PieceConfig {
   /** Show this attribute instead of the state. */
   attribute?: string;
   unit?: string;
+  /** Warning (red outline and triangle) while the entity state is one of these. Default: automatic for problem-type binary sensors. */
+  alert_when?: string[];
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -23,6 +27,12 @@ export interface DisplayConfig extends PieceConfig {
 @customElement("rams-display")
 export class RamsDisplay extends Piece<DisplayConfig> {
   protected defaultFrame = "recessed" as const;
+  private press = new Press(this, () => (this.actionable() ? this.config : undefined));
+
+  protected warning(): boolean {
+    return readState(this.hass, this.config?.entity, this.config ?? {}).alert;
+  }
+
   static styles = [
     tokens,
     css`
@@ -67,6 +77,13 @@ export class RamsDisplay extends Piece<DisplayConfig> {
           ],
         },
         ...layoutFields(),
+        ...actionFields(),
+        {
+          type: "expandable",
+          name: "",
+          title: "State rules",
+          schema: [{ name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }],
+        },
       ],
       computeLabel,
       computeHelper,
@@ -85,7 +102,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const c = this.config;
     if (!c) return nothing;
     const cls = [c.align ?? "start", c.size ?? "medium", c.title ? "has-title" : ""].filter(Boolean).join(" ");
-    return html`<div class="box ${cls}">
+    return html`<div class="box ${cls}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${c.title ? html`<span class="title">${c.title}</span>` : nothing}
       <span class="value">${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
     </div>`;

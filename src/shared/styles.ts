@@ -52,6 +52,10 @@ export const tokens = css`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
+  /* Warning, the same on every piece: red outline and a triangle in the corner. */
+  :host([warning]) { position: relative; outline: 2px solid var(--_alert); outline-offset: -2px; border-radius: var(--_radius); }
+  :host([warning])::after { content: ""; position: absolute; top: 5px; right: 6px; width: 10px; height: 9px; background: var(--_alert); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
