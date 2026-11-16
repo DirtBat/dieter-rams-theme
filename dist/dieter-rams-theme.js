@@ -1228,6 +1228,23 @@ let RamsPanel = class extends Piece {
     this.defaultFrame = "raised";
     this.hostFrame = false;
     this.press = new Press(this, () => this.config);
+    this.needed = 1;
+    this.fit = () => {
+      var _a2, _b, _c, _d;
+      const plate = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".plate");
+      const grid = (_b = this.shadowRoot) == null ? void 0 : _b.querySelector(".grid");
+      if (!plate || !grid) return;
+      const cs = getComputedStyle(plate);
+      const px = (v2) => parseFloat(v2) || 0;
+      const title = ((_d = (_c = this.shadowRoot) == null ? void 0 : _c.querySelector(".title")) == null ? void 0 : _d.offsetHeight) ?? 0;
+      const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
+      const row = px(cs.getPropertyValue("--_row")) || 56;
+      const gap = px(cs.getPropertyValue("--_gap")) || 8;
+      const n3 = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
+      this.needed = n3;
+      const h2 = `${n3 * row + (n3 - 1) * gap}px`;
+      if (plate.style.minHeight !== h2) plate.style.minHeight = h2;
+    };
     this.onRows = (e2) => {
       const card = e2.composedPath().find((n3) => n3.localName === "hui-card");
       if (card) card.style.gridRow = `span ${e2.detail.rows}`;
@@ -1259,7 +1276,7 @@ let RamsPanel = class extends Piece {
     return loadPanelEditor();
   }
   getGridOptions() {
-    return { columns: 12, rows: "auto" };
+    return { columns: 12, rows: "auto", min_rows: this.needed };
   }
   /** One base radius and one gap: both come from the panel's spacing, so the corners stay concentric. */
   willUpdate(changed) {
@@ -1269,6 +1286,21 @@ let RamsPanel = class extends Piece {
     const gap = ((_a2 = this.config) == null ? void 0 : _a2.spacing) ?? BASE_GAP;
     this.style.setProperty("--rams-gap", `${gap}px`);
     this.style.setProperty("--rams-radius", `${Math.max(2, BASE_RADIUS + (gap - BASE_GAP) / 2)}px`);
+  }
+  updated() {
+    var _a2;
+    const grid = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".grid");
+    if (grid && !this.watcher) {
+      this.watcher = new ResizeObserver(this.fit);
+      this.watcher.observe(grid);
+    }
+    this.fit();
+  }
+  disconnectedCallback() {
+    var _a2;
+    super.disconnectedCallback();
+    (_a2 = this.watcher) == null ? void 0 : _a2.disconnect();
+    this.watcher = void 0;
   }
   render() {
     const c2 = this.config;
@@ -1291,7 +1323,7 @@ let RamsPanel = class extends Piece {
 RamsPanel.styles = [
   tokens,
   i$3`
-      .plate { display: block; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: block; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }

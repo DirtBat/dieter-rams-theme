@@ -28,7 +28,7 @@ export class RamsPanel extends Piece<PanelConfig> {
   static styles = [
     tokens,
     css`
-      .plate { display: block; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: block; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
@@ -57,8 +57,11 @@ export class RamsPanel extends Piece<PanelConfig> {
     return loadPanelEditor();
   }
 
+  /** The most rows the content needs, measured by fit(): HA's Layout tab will not offer fewer. */
+  private needed = 1;
+
   getGridOptions() {
-    return { columns: 12, rows: "auto" };
+    return { columns: 12, rows: "auto", min_rows: this.needed };
   }
 
   /** One base radius and one gap: both come from the panel's spacing, so the corners stay concentric. */
@@ -68,6 +71,43 @@ export class RamsPanel extends Piece<PanelConfig> {
     const gap = this.config?.spacing ?? BASE_GAP;
     this.style.setProperty("--rams-gap", `${gap}px`);
     this.style.setProperty("--rams-radius", `${Math.max(2, BASE_RADIUS + (gap - BASE_GAP) / 2)}px`);
+  }
+
+  private watcher?: ResizeObserver;
+
+  /**
+   * HA sizes a section in whole rows. Round the plate up to an exact number of rows (rows x row height + gaps),
+   * so the height HA measures converts back to the same number of rows and never overlaps the next card.
+   */
+  private fit = (): void => {
+    const plate = this.shadowRoot?.querySelector<HTMLElement>(".plate");
+    const grid = this.shadowRoot?.querySelector<HTMLElement>(".grid");
+    if (!plate || !grid) return;
+    const cs = getComputedStyle(plate);
+    const px = (v: string) => parseFloat(v) || 0;
+    const title = this.shadowRoot?.querySelector<HTMLElement>(".title")?.offsetHeight ?? 0;
+    const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
+    const row = px(cs.getPropertyValue("--_row")) || 56;
+    const gap = px(cs.getPropertyValue("--_gap")) || 8;
+    const n = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
+    this.needed = n;
+    const h = `${n * row + (n - 1) * gap}px`;
+    if (plate.style.minHeight !== h) plate.style.minHeight = h;
+  };
+
+  protected updated(): void {
+    const grid = this.shadowRoot?.querySelector<HTMLElement>(".grid");
+    if (grid && !this.watcher) {
+      this.watcher = new ResizeObserver(this.fit);
+      this.watcher.observe(grid);
+    }
+    this.fit();
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.watcher?.disconnect();
+    this.watcher = undefined;
   }
 
   /** A data-driven piece reports its row count; set the span on its hui-card wrapper. */
