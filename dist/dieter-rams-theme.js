@@ -781,11 +781,16 @@ const dropdown = (name, options) => ({
   selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } }
 });
 const FRAMES = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
-const layoutFields = () => ({
-  type: "grid",
-  name: "",
-  schema: [num$1("columns", 1, 12), num$1("rows", 1, 12), dropdown("frame", FRAMES)]
-});
+const SIZES = [["small", "Small"], ["medium", "Medium"], ["large", "Large"]];
+const layoutFields = (frame = true) => [
+  {
+    type: "expandable",
+    name: "",
+    title: "Size in panel",
+    schema: [{ type: "grid", name: "", schema: [num$1("columns", 1, 12), num$1("rows", 1, 12)] }]
+  },
+  ...frame ? [dropdown("frame", FRAMES)] : []
+];
 const actionFields = () => [
   { name: "tap_action", selector: { ui_action: {} } },
   { name: "hold_action", selector: { ui_action: {} } }
@@ -880,10 +885,12 @@ let RamsButton = class extends Piece {
             { name: "show_state", selector: { boolean: {} } },
             dropdown("shape", [["key", "Key"], ["round", "Round"]]),
             dropdown("tone", TONES),
+            dropdown("tone_style", [["stripe", "Stripe"], ["cap", "Full colour"]]),
+            dropdown("size", SIZES),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
-        layoutFields(),
+        ...layoutFields(false),
         ...actionFields(),
         {
           type: "expandable",
@@ -900,6 +907,11 @@ let RamsButton = class extends Piece {
       computeHelper
     };
   }
+  willUpdate(changed) {
+    var _a2;
+    super.willUpdate(changed);
+    if (changed.has("config")) this.setAttribute("size", ((_a2 = this.config) == null ? void 0 : _a2.size) ?? "medium");
+  }
   actionable() {
     var _a2;
     return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
@@ -914,21 +926,21 @@ let RamsButton = class extends Piece {
     return true;
   }
   render() {
-    var _a2, _b;
+    var _a2, _b, _c, _d;
     const c2 = this.config;
     if (!c2) return A;
     const view = readState(this.hass, c2.entity, c2);
+    const label = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
     const pos = c2.label_position ?? "inside";
     const shape = c2.shape ?? "key";
     const tone = c2.tone ?? "neutral";
     const align = c2.align ?? "center";
-    const state = c2.show_state ? readable(view.state, (_b = (_a2 = this.hass) == null ? void 0 : _a2.config) == null ? void 0 : _b.time_zone) : "";
-    const frame = c2.frame ?? "raised";
+    const state = c2.show_state ? readable(view.state, (_d = (_c = this.hass) == null ? void 0 : _c.config) == null ? void 0 : _d.time_zone) : "";
     const cls = [
       "btn",
-      `f-${frame}`,
+      "f-raised",
       shape === "round" ? "round" : "",
-      tone !== "neutral" ? `${tone} toned` : "",
+      tone !== "neutral" ? `${tone} toned ${c2.tone_style === "cap" ? "cap" : "stripe"}` : "",
       `a-${align}`,
       view.alert ? "alert" : view.active ? "active" : ""
     ].filter(Boolean).join(" ");
@@ -936,7 +948,7 @@ let RamsButton = class extends Piece {
     const inside = pos === "inside" ? c2.label ?? state : "";
     const key = b`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${inside ? b`<span class="small">${inside}</span>` : A}
-      ${c2.name || view.alert ? b`<span class="row">${triangle}${c2.name ?? ""}</span>` : A}
+      ${label || view.alert ? b`<span class="row">${triangle}${label}</span>` : A}
     </button></div>`;
     if (pos === "inside") return b`<div class="cell">${key}</div>`;
     const text = c2.label ?? (c2.show_state ? state : "");
@@ -950,10 +962,10 @@ RamsButton.styles = [
   tokens,
   i$3`
       :host { display: block; }
-      .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
+      .cell { --sz: 13px; height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
-      .cell.above { flex-direction: column; }
-      .cell.below { flex-direction: column-reverse; }
+      .cell.above { flex-direction: column-reverse; }
+      .cell.below { flex-direction: column; }
       .txt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .beside .txt { text-align: left; font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--_ink); }
       .beside .txt small { display: block; font-size: 11px; color: var(--_muted); }
@@ -965,7 +977,7 @@ RamsButton.styles = [
         display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 8px;
         background: var(--_cap); color: var(--_ink);
         border: var(--_border); border-radius: var(--_radius);
-        font: inherit; font-size: 13px; cursor: pointer; user-select: none;
+        font: inherit; font-size: var(--sz, 13px); cursor: pointer; user-select: none;
       }
       /* the key's room: the key fills it, a round key is the biggest circle that fits, never an oval */
       .keyarea { flex: 1; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
@@ -974,20 +986,23 @@ RamsButton.styles = [
 
       /* frame of the key itself */
       .f-raised { box-shadow: var(--_raised); }
-      .f-recessed { background: var(--_field); box-shadow: var(--_inset); }
-      .f-none { border-color: transparent; background: transparent; }
-      .btn:active { box-shadow: var(--_pressed); filter: brightness(0.96); }
+            .btn:active { box-shadow: var(--_pressed); filter: brightness(0.96); }
 
       .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
       /* tone stripe at rest, opposite the text alignment */
-      .toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
-      .a-center::before { left: 50%; transform: translateX(-50%); }
-      .a-start::before { right: 8px; }
-      .a-end::before { left: 8px; }
+      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
+      .stripe.a-center::before { left: 50%; transform: translateX(-50%); }
+      .stripe.a-start::before { right: 8px; }
+      .stripe.a-end::before { left: 8px; }
+      .cap { background: var(--t); color: var(--_ink-on); }
+      .cap .small { color: inherit; opacity: 0.85; }
+      .cap.active { background: color-mix(in srgb, var(--t) 78%, #000); }
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
       /* active: the key stays down (darker body, inset shadow); the tone stripe is unchanged */
+      :host([size="small"]) .cell { --sz: 11px; }
+      :host([size="large"]) .cell { --sz: 16px; }
       .active { background: var(--_down); box-shadow: var(--_pressed); }
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .alert .small { color: inherit; opacity: 0.85; }
@@ -1039,7 +1054,7 @@ let RamsDisplay = class extends Piece {
             dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1307,7 +1322,7 @@ let RamsRuler = class extends Piece {
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1403,7 +1418,7 @@ let RamsArtwork = class extends Piece {
         { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
         { name: "controls", selector: { boolean: {} } },
-        layoutFields(),
+        ...layoutFields(),
         ...actionFields()
       ],
       computeLabel,
@@ -1495,7 +1510,7 @@ let RamsClock = class extends Piece {
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1602,7 +1617,7 @@ let RamsList = class extends Piece {
             { name: "empty_text", selector: { text: {} } }
           ]
         },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1751,7 +1766,7 @@ let RamsKeypad = class extends Piece {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
         { name: "modes", selector: { select: { multiple: true, mode: "list", options: Object.keys(MODE_LABEL).map((value) => ({ value, label: MODE_LABEL[value] })) } } },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1854,7 +1869,7 @@ let RamsShelf = class extends Piece {
             { name: "per_row", selector: { number: { min: 1, max: 8, mode: "box" } } }
           ]
         },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -1988,7 +2003,7 @@ let RamsDial = class extends Piece {
           ]
         },
         { name: "interactive", selector: { boolean: {} } },
-        layoutFields()
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper

@@ -27,12 +27,18 @@ export const dropdown = (name: string, options: Array<[string, string]>) => ({
 
 export const FRAMES: Array<[string, string]> = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
 
-/** Width, height and frame: on every piece. */
-export const layoutFields = () => ({
-  type: "grid",
-  name: "",
-  schema: [num("columns", 1, 12), num("rows", 1, 12), dropdown("frame", FRAMES)],
-});
+export const SIZES: Array<[string, string]> = [["small", "Small"], ["medium", "Medium"], ["large", "Large"]];
+
+/** Size in a panel (collapsed: a standalone card is sized in HA's Layout tab) and, where it has one, the frame. */
+export const layoutFields = (frame = true) => [
+  {
+    type: "expandable",
+    name: "",
+    title: "Size in panel",
+    schema: [{ type: "grid", name: "", schema: [num("columns", 1, 12), num("rows", 1, 12)] }],
+  },
+  ...(frame ? [dropdown("frame", FRAMES)] : []),
+];
 
 export const actionFields = () => [
   { name: "tap_action", selector: { ui_action: {} } },

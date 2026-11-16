@@ -73,7 +73,7 @@ export class RamsDial extends Piece<DialConfig> {
           ],
         },
         { name: "interactive", selector: { boolean: {} } },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

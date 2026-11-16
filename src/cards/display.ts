@@ -65,7 +65,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
         },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

@@ -45,7 +45,7 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
         { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
         { name: "controls", selector: { boolean: {} } },
-        layoutFields(),
+        ...layoutFields(),
         ...actionFields(),
       ],
       computeLabel,

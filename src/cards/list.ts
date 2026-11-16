@@ -85,7 +85,7 @@ export class RamsList extends Piece<ListConfig> {
             { name: "empty_text", selector: { text: {} } },
           ],
         },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

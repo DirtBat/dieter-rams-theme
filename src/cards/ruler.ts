@@ -68,7 +68,7 @@ export class RamsRuler extends Piece<RulerConfig> {
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

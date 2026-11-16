@@ -44,7 +44,7 @@ export class RamsClock extends Piece<ClockConfig> {
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

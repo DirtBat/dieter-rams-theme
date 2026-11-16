@@ -1,10 +1,10 @@
-import { css, html, nothing, type TemplateResult } from "lit";
+import { css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
 import { readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
-import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields, SIZES } from "../shared/form";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { PieceConfig } from "../shared/types";
 
@@ -20,8 +20,12 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   show_state?: boolean;
   label_position?: Position;
   shape?: "key" | "round";
-  /** Colour: a stripe on the key at rest, the key's fill while active. */
+  /** Colour of the key. */
   tone?: Tone;
+  /** How the colour shows: a stripe on a white key, or the whole key (cap). Neutral looks the same either way. */
+  tone_style?: "stripe" | "cap";
+  /** Text size. */
+  size?: "small" | "medium" | "large";
   /** Text alignment. The tone stripe sits on the opposite side. */
   align?: "start" | "center" | "end";
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
@@ -46,10 +50,10 @@ export class RamsButton extends Piece<ButtonConfig> {
     tokens,
     css`
       :host { display: block; }
-      .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
+      .cell { --sz: 13px; height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
-      .cell.above { flex-direction: column; }
-      .cell.below { flex-direction: column-reverse; }
+      .cell.above { flex-direction: column-reverse; }
+      .cell.below { flex-direction: column; }
       .txt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); text-align: center; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .beside .txt { text-align: left; font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--_ink); }
       .beside .txt small { display: block; font-size: 11px; color: var(--_muted); }
@@ -61,7 +65,7 @@ export class RamsButton extends Piece<ButtonConfig> {
         display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 2px; padding: 0 8px;
         background: var(--_cap); color: var(--_ink);
         border: var(--_border); border-radius: var(--_radius);
-        font: inherit; font-size: 13px; cursor: pointer; user-select: none;
+        font: inherit; font-size: var(--sz, 13px); cursor: pointer; user-select: none;
       }
       /* the key's room: the key fills it, a round key is the biggest circle that fits, never an oval */
       .keyarea { flex: 1; min-height: 0; min-width: 0; display: flex; align-items: center; justify-content: center; container-type: size; }
@@ -70,20 +74,23 @@ export class RamsButton extends Piece<ButtonConfig> {
 
       /* frame of the key itself */
       .f-raised { box-shadow: var(--_raised); }
-      .f-recessed { background: var(--_field); box-shadow: var(--_inset); }
-      .f-none { border-color: transparent; background: transparent; }
-      .btn:active { box-shadow: var(--_pressed); filter: brightness(0.96); }
+            .btn:active { box-shadow: var(--_pressed); filter: brightness(0.96); }
 
       .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
       /* tone stripe at rest, opposite the text alignment */
-      .toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
-      .a-center::before { left: 50%; transform: translateX(-50%); }
-      .a-start::before { right: 8px; }
-      .a-end::before { left: 8px; }
+      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
+      .stripe.a-center::before { left: 50%; transform: translateX(-50%); }
+      .stripe.a-start::before { right: 8px; }
+      .stripe.a-end::before { left: 8px; }
+      .cap { background: var(--t); color: var(--_ink-on); }
+      .cap .small { color: inherit; opacity: 0.85; }
+      .cap.active { background: color-mix(in srgb, var(--t) 78%, #000); }
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
       /* active: the key stays down (darker body, inset shadow); the tone stripe is unchanged */
+      :host([size="small"]) .cell { --sz: 11px; }
+      :host([size="large"]) .cell { --sz: 16px; }
       .active { background: var(--_down); box-shadow: var(--_pressed); }
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .alert .small { color: inherit; opacity: 0.85; }
@@ -115,10 +122,12 @@ export class RamsButton extends Piece<ButtonConfig> {
             { name: "show_state", selector: { boolean: {} } },
             dropdown("shape", [["key", "Key"], ["round", "Round"]]),
             dropdown("tone", TONES),
+            dropdown("tone_style", [["stripe", "Stripe"], ["cap", "Full colour"]]),
+            dropdown("size", SIZES),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
         },
-        layoutFields(),
+        ...layoutFields(false),
         ...actionFields(),
         {
           type: "expandable",
@@ -134,6 +143,11 @@ export class RamsButton extends Piece<ButtonConfig> {
       computeLabel,
       computeHelper,
     };
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed);
+    if (changed.has("config")) this.setAttribute("size", this.config?.size ?? "medium");
   }
 
   protected actionable(): boolean {
@@ -153,21 +167,21 @@ export class RamsButton extends Piece<ButtonConfig> {
     const c = this.config;
     if (!c) return nothing;
     const view = readState(this.hass, c.entity, c);
+    const label = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     const pos = c.label_position ?? "inside";
     const shape = c.shape ?? "key";
     const tone = c.tone ?? "neutral";
     const align = c.align ?? "center";
     const state = c.show_state ? readable(view.state, this.hass?.config?.time_zone) : "";
-    const frame = c.frame ?? "raised";
-    const cls = [
-      "btn", `f-${frame}`, shape === "round" ? "round" : "", tone !== "neutral" ? `${tone} toned` : "", `a-${align}`,
+        const cls = [
+      "btn", "f-raised", shape === "round" ? "round" : "", tone !== "neutral" ? `${tone} toned ${c.tone_style === "cap" ? "cap" : "stripe"}` : "", `a-${align}`,
       view.alert ? "alert" : view.active ? "active" : "",
     ].filter(Boolean).join(" ");
     const triangle = view.alert ? html`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : nothing;
     const inside = pos === "inside" ? (c.label ?? state) : "";
     const key = html`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${inside ? html`<span class="small">${inside}</span>` : nothing}
-      ${c.name || view.alert ? html`<span class="row">${triangle}${c.name ?? ""}</span>` : nothing}
+      ${label || view.alert ? html`<span class="row">${triangle}${label}</span>` : nothing}
     </button></div>`;
     if (pos === "inside") return html`<div class="cell">${key}</div>`;
     const text = c.label ?? (c.show_state ? state : "");

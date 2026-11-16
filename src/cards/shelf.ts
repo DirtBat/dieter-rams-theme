@@ -66,7 +66,7 @@ export class RamsShelf extends Piece<ShelfConfig> {
             { name: "per_row", selector: { number: { min: 1, max: 8, mode: "box" } } },
           ],
         },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,

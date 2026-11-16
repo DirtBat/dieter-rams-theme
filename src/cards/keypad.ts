@@ -50,7 +50,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
         { name: "modes", selector: { select: { multiple: true, mode: "list", options: (Object.keys(MODE_LABEL) as Mode[]).map((value) => ({ value, label: MODE_LABEL[value] })) } } },
-        layoutFields(),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,
