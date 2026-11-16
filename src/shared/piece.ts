@@ -27,13 +27,15 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     return [c?.tap_action, c?.hold_action].some((a) => a && a.action !== "none");
   }
 
-  /** Pieces that can warn override this; the look is defined once in the shared styles. */
-  protected warning(): boolean {
-    return false;
+  /** Pieces that can signal a state override this: a tone fills the piece (see the shared styles). */
+  protected signal(): string | undefined {
+    return undefined;
   }
 
   protected willUpdate(changed: PropertyValues): void {
-    this.toggleAttribute("warning", this.warning());
+    const signal = this.signal();
+    if (signal) this.setAttribute("signal", signal);
+    else this.removeAttribute("signal");
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? (this.config?.frame ?? this.defaultFrame) : "none");
     this.toggleAttribute("actionable", this.actionable());

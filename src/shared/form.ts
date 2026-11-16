@@ -4,6 +4,7 @@ const LABELS: Record<string, string> = {
   rows: "height in panel (grid units)",
   selected_when: "active when",
   alert_when: "warning when",
+  state_colours: "colour by state",
 };
 
 export const computeLabel = (s: { name: string }): string => LABELS[s.name] ?? s.name.replace(/_/g, " ");
@@ -12,6 +13,7 @@ const HELPERS: Record<string, string> = {
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
+  state_colours: "Optional. A colour for each state, instead of red for every warning. A state listed here wins over \"warning when\".",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
 };

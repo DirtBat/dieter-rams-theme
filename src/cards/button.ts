@@ -93,10 +93,9 @@ export class RamsButton extends Piece<ButtonConfig> {
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .alert .small { color: inherit; opacity: 0.85; }
 
-      /* warning: red key + triangle */
+      /* warning: red key, white text */
       .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_alert) 50%, transparent); }
       .alert::before { background: rgba(255, 255, 255, 0.7); }
-      .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }
 
     `,
@@ -175,14 +174,13 @@ export class RamsButton extends Piece<ButtonConfig> {
       "btn", "f-raised", shape === "round" ? "round" : "", tone !== "neutral" ? `${tone} toned ${c.tone_style === "cap" ? "cap" : "stripe"}` : "", `a-${align}`,
       view.alert ? "alert" : view.active ? "active" : "",
     ].filter(Boolean).join(" ");
-    const triangle = view.alert ? html`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : nothing;
     // Inside the key: the state when shown, otherwise the name (unless the name sits outside).
     const main = state || (pos === "inside" ? name : "");
     const small = state && pos === "inside" ? name : "";
     const caption = pos === "inside" ? "" : name;
     const key = html`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${small ? html`<span class="small">${small}</span>` : nothing}
-      ${main || view.alert ? html`<span class="row">${triangle}${main}</span>` : nothing}
+      ${main ? html`<span class="row">${main}</span>` : nothing}
     </button></div>`;
     return html`<div class="cell ${pos}">${key}${caption ? html`<div class="txt">${caption}</div>` : nothing}</div>`;
   }

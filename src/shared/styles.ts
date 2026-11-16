@@ -52,9 +52,20 @@ export const tokens = css`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
-  /* Warning, the same on every piece: red outline and a triangle in the corner. */
-  :host([warning]) { position: relative; outline: 2px solid var(--_alert); outline-offset: -2px; border-radius: var(--_radius); }
-  :host([warning])::after { content: ""; position: absolute; top: 5px; right: 6px; width: 10px; height: 9px; background: var(--_alert); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  /* A signalled piece (warning or colour for a state), the same on every piece: filled with the tone, white text. */
+  :host([signal="red"]) { --_sig: var(--_alert); }
+  :host([signal="orange"]) { --_sig: var(--_orange); }
+  :host([signal="blue"]) { --_sig: var(--_blue); }
+  :host([signal="green"]) { --_sig: var(--_green); }
+  :host([signal="grey"]) { --_sig: var(--_grey); }
+  :host([signal][frame]) {
+    background: var(--_sig);
+    color: var(--_ink-on);
+    --_ink: var(--_ink-on);
+    --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent);
+    border-radius: var(--_radius);
+    box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent);
+  }
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }

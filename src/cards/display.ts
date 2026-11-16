@@ -4,7 +4,7 @@ import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
 import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
 import { Press } from "../shared/press";
-import { readState } from "../shared/state-rules";
+import { readState, TONES, type Tone } from "../shared/state-rules";
 import type { PieceConfig } from "../shared/types";
 
 type Size = "small" | "medium" | "large";
@@ -20,6 +20,9 @@ export interface DisplayConfig extends PieceConfig {
   unit?: string;
   /** Warning (red outline and triangle) while the entity state is one of these. Default: automatic for problem-type binary sensors. */
   alert_when?: string[];
+  rules_entity?: string;
+  /** A colour per state, instead of red for every warning. */
+  state_colours?: Array<{ state: string; tone: Tone }>;
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -29,8 +32,8 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   protected defaultFrame = "recessed" as const;
   private press = new Press(this, () => (this.actionable() ? this.config : undefined));
 
-  protected warning(): boolean {
-    return readState(this.hass, this.config?.entity, this.config ?? {}).alert;
+  protected signal(): string | undefined {
+    return readState(this.hass, this.config?.entity, this.config ?? {}).signal;
   }
 
   static styles = [
@@ -85,6 +88,19 @@ export class RamsDisplay extends Piece<DisplayConfig> {
           schema: [
             { name: "rules_entity", selector: { entity: {} } },
             { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            {
+              name: "state_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "state",
+                  fields: {
+                    state: { label: "State", required: true, selector: { text: {} } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
+                  },
+                },
+              },
+            },
           ],
         },
       ],

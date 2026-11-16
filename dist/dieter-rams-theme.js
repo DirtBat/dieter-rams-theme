@@ -625,13 +625,15 @@ class Piece extends i {
     const c2 = this.config;
     return [c2 == null ? void 0 : c2.tap_action, c2 == null ? void 0 : c2.hold_action].some((a2) => a2 && a2.action !== "none");
   }
-  /** Pieces that can warn override this; the look is defined once in the shared styles. */
-  warning() {
-    return false;
+  /** Pieces that can signal a state override this: a tone fills the piece (see the shared styles). */
+  signal() {
+    return void 0;
   }
   willUpdate(changed) {
     var _a2, _b;
-    this.toggleAttribute("warning", this.warning());
+    const signal = this.signal();
+    if (signal) this.setAttribute("signal", signal);
+    else this.removeAttribute("signal");
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
     this.toggleAttribute("actionable", this.actionable());
@@ -712,17 +714,21 @@ const TONES = [
 ];
 const WARNING_CLASSES = ["problem", "safety", "smoke", "gas", "carbon_monoxide", "moisture", "tamper", "battery", "heat"];
 const ACTIVE_STATES = ["on", "open", "playing"];
+const same = (a2, b2) => (a2 ?? "").trim().toLowerCase() === b2.toLowerCase();
 function readState(hass, entity, rules) {
-  var _a2;
+  var _a2, _b, _c;
   const own = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
   const judged = rules.rules_entity ?? entity;
   const e2 = judged ? hass == null ? void 0 : hass.states[judged] : void 0;
   const state = (e2 == null ? void 0 : e2.state) ?? "";
   const auto = !rules.alert_when && !!e2 && judged.startsWith("binary_sensor.") && state === "on" && WARNING_CLASSES.includes(String(e2.attributes.device_class));
+  const alert = auto || !!((_a2 = rules.alert_when) == null ? void 0 : _a2.some((w2) => same(w2, state)));
+  const hit = state ? (_c = (_b = rules.state_colours) == null ? void 0 : _b.find((r2) => same(r2.state, state))) == null ? void 0 : _c.tone : void 0;
   return {
     state: (own == null ? void 0 : own.state) ?? "",
-    alert: auto || !!((_a2 = rules.alert_when) == null ? void 0 : _a2.includes(state)),
-    active: (rules.selected_when ?? ACTIVE_STATES).includes(state)
+    alert,
+    active: (rules.selected_when ?? ACTIVE_STATES).some((a2) => same(a2, state)),
+    signal: hit && hit !== "neutral" ? hit : alert ? "red" : void 0
   };
 }
 const tokens = i$3`
@@ -771,9 +777,20 @@ const tokens = i$3`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
-  /* Warning, the same on every piece: red outline and a triangle in the corner. */
-  :host([warning]) { position: relative; outline: 2px solid var(--_alert); outline-offset: -2px; border-radius: var(--_radius); }
-  :host([warning])::after { content: ""; position: absolute; top: 5px; right: 6px; width: 10px; height: 9px; background: var(--_alert); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+  /* A signalled piece (warning or colour for a state), the same on every piece: filled with the tone, white text. */
+  :host([signal="red"]) { --_sig: var(--_alert); }
+  :host([signal="orange"]) { --_sig: var(--_orange); }
+  :host([signal="blue"]) { --_sig: var(--_blue); }
+  :host([signal="green"]) { --_sig: var(--_green); }
+  :host([signal="grey"]) { --_sig: var(--_grey); }
+  :host([signal][frame]) {
+    background: var(--_sig);
+    color: var(--_ink-on);
+    --_ink: var(--_ink-on);
+    --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent);
+    border-radius: var(--_radius);
+    box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent);
+  }
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
@@ -782,13 +799,15 @@ const LABELS = {
   columns: "width in panel (grid units)",
   rows: "height in panel (grid units)",
   selected_when: "active when",
-  alert_when: "warning when"
+  alert_when: "warning when",
+  state_colours: "colour by state"
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
+  state_colours: 'Optional. A colour for each state, instead of red for every warning. A state listed here wins over "warning when".',
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab."
 };
@@ -965,13 +984,12 @@ let RamsButton = class extends Piece {
       `a-${align}`,
       view.alert ? "alert" : view.active ? "active" : ""
     ].filter(Boolean).join(" ");
-    const triangle = view.alert ? b`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : A;
     const main = state || (pos === "inside" ? name : "");
     const small = state && pos === "inside" ? name : "";
     const caption = pos === "inside" ? "" : name;
     const key = b`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
       ${small ? b`<span class="small">${small}</span>` : A}
-      ${main || view.alert ? b`<span class="row">${triangle}${main}</span>` : A}
+      ${main ? b`<span class="row">${main}</span>` : A}
     </button></div>`;
     return b`<div class="cell ${pos}">${key}${caption ? b`<div class="txt">${caption}</div>` : A}</div>`;
   }
@@ -1025,10 +1043,9 @@ RamsButton.styles = [
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .alert .small { color: inherit; opacity: 0.85; }
 
-      /* warning: red key + triangle */
+      /* warning: red key, white text */
       .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_alert) 50%, transparent); }
       .alert::before { background: rgba(255, 255, 255, 0.7); }
-      .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }
 
     `
@@ -1050,9 +1067,9 @@ let RamsDisplay = class extends Piece {
     this.defaultFrame = "recessed";
     this.press = new Press(this, () => this.actionable() ? this.config : void 0);
   }
-  warning() {
+  signal() {
     var _a2;
-    return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).alert;
+    return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).signal;
   }
   static getStubConfig() {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
@@ -1085,7 +1102,20 @@ let RamsDisplay = class extends Piece {
           title: "State rules",
           schema: [
             { name: "rules_entity", selector: { entity: {} } },
-            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            {
+              name: "state_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "state",
+                  fields: {
+                    state: { label: "State", required: true, selector: { text: {} } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
+                  }
+                }
+              }
+            }
           ]
         }
       ],
