@@ -24,8 +24,6 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   tone?: Tone;
   /** Text alignment. The tone stripe sits on the opposite side. */
   align?: "start" | "center" | "end";
-  /** Show the active state as a lit lamp instead of filling the key. */
-  lamp?: boolean;
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
   adjust_by?: number;
 }
@@ -48,7 +46,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     tokens,
     css`
       :host { display: block; }
-      .cell { height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
+      .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
       .cell.above { flex-direction: column; }
       .cell.below { flex-direction: column-reverse; }
@@ -85,11 +83,10 @@ export class RamsButton extends Piece<ButtonConfig> {
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
-      /* active: filled in the tone (neutral fills with ink) */
-      .active:not(.lamp) { background: var(--t); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: var(--_pressed); }
-      .active:not(.lamp)::before { background: rgba(255, 255, 255, 0.7); }
+      /* active: the key stays down (darker body, inset shadow); the tone stripe is unchanged */
+      .active { background: var(--_down); box-shadow: var(--_pressed); }
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-      .active:not(.lamp) .small, .alert .small { color: inherit; opacity: 0.85; }
+      .alert .small { color: inherit; opacity: 0.85; }
 
       /* warning: red key + triangle */
       .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); }
@@ -97,10 +94,6 @@ export class RamsButton extends Piece<ButtonConfig> {
       .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }
 
-      /* lamp: a lit dot in the corner */
-      .lampdot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: rgba(38, 18, 1, 0.16); }
-      .lamp.active .lampdot { background: var(--t); box-shadow: 0 0 6px 2px color-mix(in srgb, var(--t) 55%, transparent); }
-      .alert .lampdot { background: #fff; box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.55); }
     `,
   ];
 
@@ -123,7 +116,6 @@ export class RamsButton extends Piece<ButtonConfig> {
             dropdown("shape", [["key", "Key"], ["round", "Round"]]),
             dropdown("tone", TONES),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
-            { name: "lamp", selector: { boolean: {} } },
           ],
         },
         layoutFields(),
@@ -133,8 +125,8 @@ export class RamsButton extends Piece<ButtonConfig> {
           name: "",
           title: "State rules",
           schema: [
-            { name: "selected_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
-            { name: "alert_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
+            { name: "selected_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } },
           ],
         },
@@ -169,12 +161,11 @@ export class RamsButton extends Piece<ButtonConfig> {
     const frame = c.frame ?? "raised";
     const cls = [
       "btn", `f-${frame}`, shape === "round" ? "round" : "", tone !== "neutral" ? `${tone} toned` : "", `a-${align}`,
-      view.alert ? "alert" : view.active ? "active" : "", c.lamp ? "lamp" : "",
+      view.alert ? "alert" : view.active ? "active" : "",
     ].filter(Boolean).join(" ");
     const triangle = view.alert ? html`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : nothing;
     const inside = pos === "inside" ? (c.label ?? state) : "";
     const key = html`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${c.lamp || view.alert ? html`<span class="lampdot"></span>` : nothing}
       ${inside ? html`<span class="small">${inside}</span>` : nothing}
       ${c.name || view.alert ? html`<span class="row">${triangle}${c.name ?? ""}</span>` : nothing}
     </button></div>`;

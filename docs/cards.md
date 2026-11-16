@@ -38,7 +38,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 - Light plate (#F5F4F0, caps white, fields #EAE9E3), outline on the panel plate, one base radius (6) with plate radius = radius + gap, `spacing` option on the panel (default 8).
 - `frame: none | outline | recessed | raised` on every piece and on the panel plate. Defaults: panel raised, display recessed, artwork raised, others none.
-- Tones: neutral, red, orange, blue, green, grey. Stripe at rest (opposite the text alignment), key filled when active; `lamp: true` lights a corner lamp instead of filling.
+- Tones: neutral, red, orange, blue, green, grey. Stripe at rest (opposite the text alignment), the key stays down (darker body, inset shadow) while active; the stripe does not change. Active is decided by `selected_when` (a state list, offered from the entity's own states).
 - Warnings: red key + triangle. Automatic for binary sensors with problem-type device classes; `alert_when` overrides.
 - Button label position: inside / above / below / beside. `show_state` formats timestamps (scene date stamp).
 - Actions: tap and hold on every piece and on the panel (panel action fires only where no piece handles the press). Default tap toggles toggleable domains, otherwise opens more-info.

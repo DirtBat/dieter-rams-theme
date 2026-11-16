@@ -648,6 +648,10 @@ class Piece extends i {
     const gap = parseFloat(style.getPropertyValue("--_gap")) || 8;
     return Math.max(1, Math.ceil((px + gap) / (row + gap)));
   }
+  /** Tells HA's Layout tab this card can be resized, and its smallest size. Defaults apply until the user sets a size. */
+  getGridOptions() {
+    return { columns: 6, rows: this.minRows ? 1 : "auto", min_columns: 1, min_rows: 1 };
+  }
   getCardSize() {
     var _a2;
     return ((_a2 = this.config) == null ? void 0 : _a2.rows) ?? 1;
@@ -736,6 +740,7 @@ const tokens = i$3`
     --_inset: var(--rams-inset, inset 0 2px 3px rgba(38, 18, 1, 0.12));
     --_radius: var(--rams-radius, 6px);
     --_row: var(--rams-row, 56px);
+    --_down: var(--rams-down, #d2cec5);
     --_gap: var(--rams-gap, 8px);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
@@ -875,8 +880,7 @@ let RamsButton = class extends Piece {
             { name: "show_state", selector: { boolean: {} } },
             dropdown("shape", [["key", "Key"], ["round", "Round"]]),
             dropdown("tone", TONES),
-            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
-            { name: "lamp", selector: { boolean: {} } }
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
         layoutFields(),
@@ -886,8 +890,8 @@ let RamsButton = class extends Piece {
           name: "",
           title: "State rules",
           schema: [
-            { name: "selected_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
-            { name: "alert_when", selector: { select: { multiple: true, custom_value: true, options: [] } } },
+            { name: "selected_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } }
           ]
         }
@@ -926,13 +930,11 @@ let RamsButton = class extends Piece {
       shape === "round" ? "round" : "",
       tone !== "neutral" ? `${tone} toned` : "",
       `a-${align}`,
-      view.alert ? "alert" : view.active ? "active" : "",
-      c2.lamp ? "lamp" : ""
+      view.alert ? "alert" : view.active ? "active" : ""
     ].filter(Boolean).join(" ");
     const triangle = view.alert ? b`<svg class="warn" viewBox="0 0 12 11"><path d="M6 0l6 11H0z" fill="currentColor" /></svg>` : A;
     const inside = pos === "inside" ? c2.label ?? state : "";
     const key = b`<div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${c2.lamp || view.alert ? b`<span class="lampdot"></span>` : A}
       ${inside ? b`<span class="small">${inside}</span>` : A}
       ${c2.name || view.alert ? b`<span class="row">${triangle}${c2.name ?? ""}</span>` : A}
     </button></div>`;
@@ -948,7 +950,7 @@ RamsButton.styles = [
   tokens,
   i$3`
       :host { display: block; }
-      .cell { height: 100%; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
+      .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px; min-width: 0; }
       .cell.beside { flex-direction: row; align-items: center; gap: var(--_gap); }
       .cell.above { flex-direction: column; }
       .cell.below { flex-direction: column-reverse; }
@@ -985,11 +987,10 @@ RamsButton.styles = [
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
-      /* active: filled in the tone (neutral fills with ink) */
-      .active:not(.lamp) { background: var(--t); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: var(--_pressed); }
-      .active:not(.lamp)::before { background: rgba(255, 255, 255, 0.7); }
+      /* active: the key stays down (darker body, inset shadow); the tone stripe is unchanged */
+      .active { background: var(--_down); box-shadow: var(--_pressed); }
       .small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-      .active:not(.lamp) .small, .alert .small { color: inherit; opacity: 0.85; }
+      .alert .small { color: inherit; opacity: 0.85; }
 
       /* warning: red key + triangle */
       .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); }
@@ -997,10 +998,6 @@ RamsButton.styles = [
       .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }
 
-      /* lamp: a lit dot in the corner */
-      .lampdot { position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: rgba(38, 18, 1, 0.16); }
-      .lamp.active .lampdot { background: var(--t); box-shadow: 0 0 6px 2px color-mix(in srgb, var(--t) 55%, transparent); }
-      .alert .lampdot { background: #fff; box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.55); }
     `
 ];
 RamsButton = __decorateClass$a([

@@ -28,6 +28,7 @@ export const tokens = css`
     --_inset: var(--rams-inset, inset 0 2px 3px rgba(38, 18, 1, 0.12));
     --_radius: var(--rams-radius, 6px);
     --_row: var(--rams-row, 56px);
+    --_down: var(--rams-down, #d2cec5);
     --_gap: var(--rams-gap, 8px);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);

@@ -54,6 +54,11 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     return Math.max(1, Math.ceil((px + gap) / (row + gap)));
   }
 
+  /** Tells HA's Layout tab this card can be resized, and its smallest size. Defaults apply until the user sets a size. */
+  getGridOptions(): Record<string, unknown> {
+    return { columns: 6, rows: this.minRows ? 1 : "auto", min_columns: 1, min_rows: 1 };
+  }
+
   getCardSize(): number {
     return this.config?.rows ?? 1;
   }
