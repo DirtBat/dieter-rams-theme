@@ -30,6 +30,13 @@ export const tokens = css`
     --_row: var(--rams-row, 56px);
     --_down: var(--rams-down, #d2cec5);
     --_gap: var(--rams-gap, 8px);
+    /* night roles: day values make them invisible */
+    --_glow: var(--rams-glow, 0px);
+    --_cap-rest: var(--rams-cap-rest, 100%);
+    --_cap-on: var(--rams-cap-on, 78%);
+    --_cap-on-mix: var(--rams-cap-on-mix, #000);
+    --_lcd-bg: var(--rams-lcd-bg, var(--_field));
+    --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;

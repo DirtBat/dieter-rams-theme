@@ -78,13 +78,13 @@ export class RamsButton extends Piece<ButtonConfig> {
 
       .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
       /* tone stripe at rest, opposite the text alignment */
-      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
+      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); box-shadow: 0 0 var(--_glow) calc(var(--_glow) / 4) color-mix(in srgb, var(--t) 80%, transparent); }
       .stripe.a-center::before { left: 50%; transform: translateX(-50%); }
       .stripe.a-start::before { right: 8px; }
       .stripe.a-end::before { left: 8px; }
-      .cap { background: var(--t); color: var(--_ink-on); }
+      .cap { background: color-mix(in srgb, var(--t) var(--_cap-rest), var(--_cap)); color: var(--_ink-on); box-shadow: var(--_raised), 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--t) 35%, transparent); }
       .cap .small { color: inherit; opacity: 0.85; }
-      .cap.active { background: color-mix(in srgb, var(--t) 78%, #000); }
+      .cap.active { background: color-mix(in srgb, var(--t) var(--_cap-on), var(--_cap-on-mix)); box-shadow: var(--_pressed), 0 0 calc(var(--_glow) * 2) color-mix(in srgb, var(--t) 55%, transparent); }
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
@@ -96,7 +96,7 @@ export class RamsButton extends Piece<ButtonConfig> {
       .alert .small { color: inherit; opacity: 0.85; }
 
       /* warning: red key + triangle */
-      .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); }
+      .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_alert) 50%, transparent); }
       .alert::before { background: rgba(255, 255, 255, 0.7); }
       .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }

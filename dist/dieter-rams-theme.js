@@ -742,6 +742,13 @@ const tokens = i$3`
     --_row: var(--rams-row, 56px);
     --_down: var(--rams-down, #d2cec5);
     --_gap: var(--rams-gap, 8px);
+    /* night roles: day values make them invisible */
+    --_glow: var(--rams-glow, 0px);
+    --_cap-rest: var(--rams-cap-rest, 100%);
+    --_cap-on: var(--rams-cap-on, 78%);
+    --_cap-on-mix: var(--rams-cap-on-mix, #000);
+    --_lcd-bg: var(--rams-lcd-bg, var(--_field));
+    --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;
@@ -990,13 +997,13 @@ RamsButton.styles = [
 
       .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
       /* tone stripe at rest, opposite the text alignment */
-      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); }
+      .stripe.toned::before { content: ""; position: absolute; top: 6px; width: 16px; height: 3px; border-radius: 2px; background: var(--t); box-shadow: 0 0 var(--_glow) calc(var(--_glow) / 4) color-mix(in srgb, var(--t) 80%, transparent); }
       .stripe.a-center::before { left: 50%; transform: translateX(-50%); }
       .stripe.a-start::before { right: 8px; }
       .stripe.a-end::before { left: 8px; }
-      .cap { background: var(--t); color: var(--_ink-on); }
+      .cap { background: color-mix(in srgb, var(--t) var(--_cap-rest), var(--_cap)); color: var(--_ink-on); box-shadow: var(--_raised), 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--t) 35%, transparent); }
       .cap .small { color: inherit; opacity: 0.85; }
-      .cap.active { background: color-mix(in srgb, var(--t) 78%, #000); }
+      .cap.active { background: color-mix(in srgb, var(--t) var(--_cap-on), var(--_cap-on-mix)); box-shadow: var(--_pressed), 0 0 calc(var(--_glow) * 2) color-mix(in srgb, var(--t) 55%, transparent); }
       .a-start { align-items: flex-start; text-align: left; }
       .a-end { align-items: flex-end; text-align: right; }
 
@@ -1008,7 +1015,7 @@ RamsButton.styles = [
       .alert .small { color: inherit; opacity: 0.85; }
 
       /* warning: red key + triangle */
-      .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); }
+      .alert { background: var(--_alert); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_alert) 50%, transparent); }
       .alert::before { background: rgba(255, 255, 255, 0.7); }
       .warn { width: 11px; height: 10px; flex: none; }
       .row { display: flex; align-items: center; gap: 5px; }
@@ -1081,6 +1088,7 @@ let RamsDisplay = class extends Piece {
 RamsDisplay.styles = [
   tokens,
   i$3`
+      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
             .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
       .start { align-items: flex-start; text-align: left; }
       .center { align-items: center; text-align: center; }
@@ -1219,7 +1227,16 @@ let RamsPanel = class extends Piece {
     };
   }
   static getStubConfig() {
-    return { type: "custom:rams-panel", columns: 12, cards: [] };
+    const key = (name, tone, style = "stripe") => ({ type: "custom:rams-button", name, tone, tone_style: style, columns: 2, rows: 1 });
+    const cards = [
+      { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "°C", size: "large", columns: 8, rows: 2 },
+      { type: "custom:rams-dial", value: 40, min: 0, max: 100, interval: 10, label: "Level", columns: 4, rows: 3 },
+      key("Lamp", "orange"),
+      key("Fan", "blue"),
+      key("Scene", "green", "cap"),
+      key("Alarm", "red", "cap")
+    ];
+    return { type: "custom:rams-panel", columns: 12, cards };
   }
   static async getConfigElement() {
     return loadPanelEditor();
@@ -1474,7 +1491,7 @@ RamsArtwork.styles = [
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
       .ctl { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
       .ctl button { flex: 1; max-width: 56px; height: 28px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); color: var(--_ink); box-shadow: var(--_raised); font: inherit; font-size: 10px; cursor: pointer; }
-      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
     `
 ];
 RamsArtwork = __decorateClass$5([
@@ -1942,7 +1959,7 @@ RamsShelf.styles = [
       .grid { display: grid; gap: var(--_gap); }
       /* square covers: the picture is the object, a rounded corner would show the picture behind its edge */
       .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 0; box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
-      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
       .empty { font-size: 12px; color: var(--_muted); }
     `
 ];
@@ -2087,6 +2104,7 @@ let RamsDial = class extends Piece {
 RamsDial.styles = [
   tokens,
   i$3`
+      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
       svg { display: block; width: 100%; height: 100%; touch-action: none; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
       .tick { stroke: var(--_muted); stroke-width: 1; }
@@ -2106,14 +2124,14 @@ RamsDial = __decorateClass([
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
-  { type: "rams-panel", name: "Rams panel", description: "Container: a plate with pieces on an N-column grid", preview: true },
-  { type: "rams-display", name: "Rams display", description: "Text block: one or two lines, optional frame", preview: true },
-  { type: "rams-ruler", name: "Rams ruler", description: "Scale with pointer or centre bar; optional touch to set", preview: true },
-  { type: "rams-artwork", name: "Rams artwork", description: "Picture with playing LED and optional media keys", preview: true },
-  { type: "rams-clock", name: "Rams clock", description: "Analog or digital clock", preview: true },
-  { type: "rams-list", name: "Rams list", description: "List of entities with state and optional keys", preview: true },
-  { type: "rams-keypad", name: "Rams keypad", description: "Alarm code entry and mode keys", preview: true },
-  { type: "rams-shelf", name: "Rams shelf", description: "Artwork tiles generated from a list", preview: true },
-  { type: "rams-button", name: "Rams button", description: "Key or round button", preview: true },
-  { type: "rams-dial", name: "Rams dial", description: "Half-round scale with a needle, value from an entity or fixed", preview: true }
+  { type: "rams-panel", name: "Dieter Rams Panel", description: "Container: a plate with pieces on an N-column grid", preview: true },
+  { type: "rams-display", name: "Dieter Rams Display", description: "Text block: one or two lines, optional frame", preview: true },
+  { type: "rams-ruler", name: "Dieter Rams Ruler", description: "Scale with pointer or centre bar; optional touch to set", preview: true },
+  { type: "rams-artwork", name: "Dieter Rams Artwork", description: "Picture with playing LED and optional media keys", preview: true },
+  { type: "rams-clock", name: "Dieter Rams Clock", description: "Analog or digital clock", preview: true },
+  { type: "rams-list", name: "Dieter Rams List", description: "List of entities with state and optional keys", preview: true },
+  { type: "rams-keypad", name: "Dieter Rams Keypad", description: "Alarm code entry and mode keys", preview: true },
+  { type: "rams-shelf", name: "Dieter Rams Shelf", description: "Artwork tiles generated from a list", preview: true },
+  { type: "rams-button", name: "Dieter Rams Button", description: "Key or round button", preview: true },
+  { type: "rams-dial", name: "Dieter Rams Dial", description: "Half-round scale with a needle, value from an entity or fixed", preview: true }
 );

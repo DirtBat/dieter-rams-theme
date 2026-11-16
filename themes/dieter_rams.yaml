@@ -1,0 +1,56 @@
+# Dieter Rams: day (light mode) and night (dark mode) in one theme.
+# Copy this file to /config/themes/ and reload themes. Choose "Dieter Rams" in your profile;
+# light/dark follows your Dark mode setting (Auto, Light or Dark) or the frontend.set_theme action.
+# Only rams-* variables are set here: the cards fall back to the day values when no theme is chosen.
+Dieter Rams:
+  modes:
+    light:
+      rams-plate: "#f5f4f0"
+      rams-cap: "#ffffff"
+      rams-field: "#eae9e3"
+      rams-ink: "#261201"
+      rams-ink-on: "#ffffff"
+      rams-muted: "#736356"
+      rams-down: "#d2cec5"            # a key that is down: darker than the cap, lighter than the shadow
+      rams-red: "#c8362b"
+      rams-orange: "#e8801a"
+      rams-blue: "#2f5fa8"
+      rams-green: "#3e8e5a"
+      rams-grey: "#8a8a86"
+      rams-border: "1px solid rgba(38, 18, 1, 0.18)"
+      rams-raised: "0 2px 3px rgba(38, 18, 1, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.8)"
+      rams-pressed: "inset 0 2px 3px rgba(38, 18, 1, 0.25)"
+      rams-inset: "inset 0 2px 3px rgba(38, 18, 1, 0.12)"
+      # Night roles, off by day
+      rams-glow: "0px"
+      rams-cap-rest: "100%"           # how much of its colour a full-colour key shows at rest
+      rams-cap-on: "78%"              # ... and when active (mixed with the next value)
+      rams-cap-on-mix: "#000000"
+      # LCD (recessed display and dial): green, reflective
+      rams-lcd-bg: "linear-gradient(180deg, #cfd8b0 0%, #c4cea3 100%)"
+      rams-lcd-ink: "#2a3320"
+    dark:
+      rams-plate: "#1c1b19"
+      rams-cap: "#2a2825"
+      rams-field: "#141311"
+      rams-ink: "#ece6d9"
+      rams-ink-on: "#fff6e8"
+      rams-muted: "#9b9285"
+      rams-down: "#4d463a"            # a key that is down is lit
+      rams-red: "#e0483a"
+      rams-orange: "#f09a2e"
+      rams-blue: "#5c8fe0"
+      rams-green: "#52b576"
+      rams-grey: "#8f8d86"
+      rams-border: "1px solid rgba(255, 235, 200, 0.10)"
+      rams-raised: "inset 0 1px 0 rgba(255, 235, 200, 0.07)"      # no drop shadows in the dark
+      rams-pressed: "inset 0 0 0 1px rgba(0, 0, 0, 0.35)"
+      rams-inset: "inset 0 0 0 1px rgba(0, 0, 0, 0.45)"
+      # Night roles: stripes become LEDs, full-colour keys are backlit, glow reaches beyond the key
+      rams-glow: "10px"
+      rams-cap-rest: "42%"
+      rams-cap-on: "100%"
+      rams-cap-on-mix: "#ffffff"
+      # LCD: amber, lit from the top
+      rams-lcd-bg: "linear-gradient(180deg, #f2b843 0%, #dc9d2c 45%, #a96f1a 100%)"
+      rams-lcd-ink: "#2a1b05"

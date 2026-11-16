@@ -40,7 +40,17 @@ export class RamsPanel extends Piece<PanelConfig> {
   ];
 
   static getStubConfig(): PanelConfig {
-    return { type: "custom:rams-panel", columns: 12, cards: [] };
+    // A small example that shows the pieces working together; delete what you do not need.
+    const key = (name: string, tone: string, style = "stripe") => ({ type: "custom:rams-button", name, tone, tone_style: style, columns: 2, rows: 1 });
+    const cards: unknown[] = [
+        { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "\u00b0C", size: "large", columns: 8, rows: 2 },
+        { type: "custom:rams-dial", value: 40, min: 0, max: 100, interval: 10, label: "Level", columns: 4, rows: 3 },
+        key("Lamp", "orange"),
+        key("Fan", "blue"),
+        key("Scene", "green", "cap"),
+        key("Alarm", "red", "cap"),
+    ];
+    return { type: "custom:rams-panel", columns: 12, cards: cards as PieceConfig[] };
   }
 
   static async getConfigElement(): Promise<HTMLElement> {

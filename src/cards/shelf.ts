@@ -39,7 +39,7 @@ export class RamsShelf extends Piece<ShelfConfig> {
       .grid { display: grid; gap: var(--_gap); }
       /* square covers: the picture is the object, a rounded corner would show the picture behind its edge */
       .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 0; box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
-      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); }
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
       .empty { font-size: 12px; color: var(--_muted); }
     `,
   ];

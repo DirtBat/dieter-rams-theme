@@ -38,6 +38,7 @@ export class RamsDial extends Piece<DialConfig> {
   static styles = [
     tokens,
     css`
+      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
       svg { display: block; width: 100%; height: 100%; touch-action: none; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
       .tick { stroke: var(--_muted); stroke-width: 1; }
