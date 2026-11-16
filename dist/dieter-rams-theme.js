@@ -714,11 +714,13 @@ const WARNING_CLASSES = ["problem", "safety", "smoke", "gas", "carbon_monoxide",
 const ACTIVE_STATES = ["on", "open", "playing"];
 function readState(hass, entity, rules) {
   var _a2;
-  const e2 = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
+  const own = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
+  const judged = rules.rules_entity ?? entity;
+  const e2 = judged ? hass == null ? void 0 : hass.states[judged] : void 0;
   const state = (e2 == null ? void 0 : e2.state) ?? "";
-  const auto = !rules.alert_when && !!e2 && entity.startsWith("binary_sensor.") && state === "on" && WARNING_CLASSES.includes(String(e2.attributes.device_class));
+  const auto = !rules.alert_when && !!e2 && judged.startsWith("binary_sensor.") && state === "on" && WARNING_CLASSES.includes(String(e2.attributes.device_class));
   return {
-    state,
+    state: (own == null ? void 0 : own.state) ?? "",
     alert: auto || !!((_a2 = rules.alert_when) == null ? void 0 : _a2.includes(state)),
     active: (rules.selected_when ?? ACTIVE_STATES).includes(state)
   };
@@ -784,6 +786,9 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
+  selected_when: "Type a state if it is not listed.",
+  alert_when: "Type a state if it is not listed.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab."
 };
@@ -912,6 +917,7 @@ let RamsButton = class extends Piece {
           name: "",
           title: "State rules",
           schema: [
+            { name: "rules_entity", selector: { entity: {} } },
             { name: "selected_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } }
@@ -1077,7 +1083,10 @@ let RamsDisplay = class extends Piece {
           type: "expandable",
           name: "",
           title: "State rules",
-          schema: [{ name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }]
+          schema: [
+            { name: "rules_entity", selector: { entity: {} } },
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }
+          ]
         }
       ],
       computeLabel,

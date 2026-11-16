@@ -82,7 +82,10 @@ export class RamsDisplay extends Piece<DisplayConfig> {
           type: "expandable",
           name: "",
           title: "State rules",
-          schema: [{ name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }],
+          schema: [
+            { name: "rules_entity", selector: { entity: {} } },
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+          ],
         },
       ],
       computeLabel,

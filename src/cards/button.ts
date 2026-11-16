@@ -131,6 +131,7 @@ export class RamsButton extends Piece<ButtonConfig> {
           name: "",
           title: "State rules",
           schema: [
+            { name: "rules_entity", selector: { entity: {} } },
             { name: "selected_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
             { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } },
