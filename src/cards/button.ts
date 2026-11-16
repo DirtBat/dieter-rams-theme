@@ -4,7 +4,7 @@ import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
 import { readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
-import { actionFields, computeLabel, dropdown, layoutFields } from "../shared/form";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { PieceConfig } from "../shared/types";
 
@@ -140,6 +140,7 @@ export class RamsButton extends Piece<ButtonConfig> {
         },
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

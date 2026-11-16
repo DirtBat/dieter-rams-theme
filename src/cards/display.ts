@@ -2,7 +2,7 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
-import { computeLabel, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 type Size = "small" | "medium" | "large";
@@ -68,6 +68,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

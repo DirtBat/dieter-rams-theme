@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface RulerConfig extends PieceConfig {
@@ -71,6 +71,7 @@ export class RamsRuler extends Piece<RulerConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

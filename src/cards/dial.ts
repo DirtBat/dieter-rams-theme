@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, layoutFields, num } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields, num } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface DialConfig extends PieceConfig {
@@ -76,6 +76,7 @@ export class RamsDial extends Piece<DialConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

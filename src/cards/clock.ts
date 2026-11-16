@@ -3,7 +3,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
-import { computeLabel, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface ClockConfig extends PieceConfig {
@@ -47,6 +47,7 @@ export class RamsClock extends Piece<ClockConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

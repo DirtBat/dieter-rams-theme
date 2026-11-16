@@ -2,7 +2,7 @@ import { css, html, nothing, type PropertyValues, type TemplateResult } from "li
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { tokens } from "../shared/styles";
-import { computeLabel, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 import "./button";
 
@@ -53,6 +53,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

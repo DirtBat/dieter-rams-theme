@@ -3,7 +3,7 @@ import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
-import { actionFields, computeLabel, layoutFields } from "../shared/form";
+import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface ArtworkConfig extends PieceConfig {
@@ -49,6 +49,7 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
         ...actionFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

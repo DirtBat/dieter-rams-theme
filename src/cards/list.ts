@@ -4,7 +4,7 @@ import { readState, TONES, type Tone } from "../shared/state-rules";
 import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
-import { computeLabel, dropdown, layoutFields, num } from "../shared/form";
+import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { Hass, HassEntity, PieceConfig } from "../shared/types";
 
 /** A row: just an entity id, or an entity with its own name and a category (shown as a coloured dot). */
@@ -88,6 +88,7 @@ export class RamsList extends Piece<ListConfig> {
         layoutFields(),
       ],
       computeLabel,
+      computeHelper,
     };
   }
 

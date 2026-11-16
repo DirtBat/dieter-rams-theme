@@ -756,12 +756,17 @@ const tokens = i$3`
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
 const LABELS = {
-  columns: "width (grid units)",
-  rows: "height (grid units)",
+  columns: "width in panel (grid units)",
+  rows: "height in panel (grid units)",
   selected_when: "active when",
   alert_when: "warning when"
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
+const HELPERS = {
+  columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
+  rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab."
+};
+const computeHelper = (s2) => HELPERS[s2.name];
 const num$1 = (name, min, max, extra = {}) => ({
   name,
   selector: { number: { min, max, mode: "box", ...extra } }
@@ -887,7 +892,8 @@ let RamsButton = class extends Piece {
           ]
         }
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   actionable() {
@@ -1038,7 +1044,8 @@ let RamsDisplay = class extends Piece {
         },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   value() {
@@ -1305,7 +1312,8 @@ let RamsRuler = class extends Piece {
         { name: "interactive", selector: { boolean: {} } },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   range() {
@@ -1401,7 +1409,8 @@ let RamsArtwork = class extends Piece {
         layoutFields(),
         ...actionFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   actionable() {
@@ -1491,7 +1500,8 @@ let RamsClock = class extends Piece {
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   connectedCallback() {
@@ -1597,7 +1607,8 @@ let RamsList = class extends Piece {
         },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   actionable() {
@@ -1745,7 +1756,8 @@ let RamsKeypad = class extends Piece {
         { name: "modes", selector: { select: { multiple: true, mode: "list", options: Object.keys(MODE_LABEL).map((value) => ({ value, label: MODE_LABEL[value] })) } } },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   touch() {
@@ -1847,7 +1859,8 @@ let RamsShelf = class extends Piece {
         },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   items() {
@@ -1980,7 +1993,8 @@ let RamsDial = class extends Piece {
         { name: "interactive", selector: { boolean: {} } },
         layoutFields()
       ],
-      computeLabel
+      computeLabel,
+      computeHelper
     };
   }
   range() {
