@@ -30,6 +30,8 @@ export interface DisplayConfig extends PieceConfig {
   value_colours?: Array<{ when: "above" | "below"; value: number; tone: Tone }>;
   /** Where the title goes: inside the box (default), or printed outside it. */
   title_position?: "inside" | "above" | "below" | "left" | "right";
+  /** A status lamp in the display: left or right of the text, or alone. It lights in the colour the state rules give, and the display then stays unfilled. */
+  light?: "none" | "left" | "right" | "only";
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -42,19 +44,31 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   private press = new Press(this, () => (this.actionable() ? this.config : undefined));
 
   protected signal(): string | undefined {
+    if (this.lamp()) return undefined;
     return readState(this.hass, this.config?.entity, this.config ?? {}).signal;
+  }
+
+  private lamp(): boolean {
+    return !!this.config?.light && this.config.light !== "none";
   }
 
   static styles = [
     tokens,
     faceStyles,
     css`
-      .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
-      .start { align-items: flex-start; text-align: left; }
-      .center { align-items: center; text-align: center; }
-      .end { align-items: flex-end; text-align: right; }
-      .box.has-title { justify-content: flex-start; padding: 8px 0; }
-      .has-title .value { flex: 1; display: flex; align-items: center; }
+      /* the lamp and the text are one group, centred; spare room goes outside it */
+      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+      .box.lamp-right { flex-direction: row-reverse; }
+      .box.lamp-only { justify-content: center; }
+      .block { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+      .start .block { align-items: flex-start; text-align: left; }
+      .center .block { align-items: center; text-align: center; }
+      .end .block { align-items: flex-end; text-align: right; }
+      .has-title { padding: 8px 0; }
+      .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
+      .lamp-only .lamp { width: 16px; height: 16px; }
+      .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
+      .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .value { line-height: 1.1; }
       .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }
@@ -87,6 +101,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
             { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
@@ -149,14 +164,19 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     if (!c) return nothing;
     const outside = c.title_position && c.title_position !== "inside" && !!c.title;
     const inside = !!c.title && !outside;
-    const cls = [c.align ?? "start", c.size ?? "medium", inside ? "has-title" : ""].filter(Boolean).join(" ");
+    const light = this.lamp() ? c.light! : "none";
+    const cls = [c.align ?? "start", c.size ?? "medium", inside && light !== "only" ? "has-title" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
+    const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
     return html`<div class="wrap ${outside ? c.title_position : ""}">
       ${outside ? html`<span class="outer">${c.title}</span>` : nothing}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
-          ${inside ? html`<span class="title">${c.title}</span>` : nothing}
-          <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+          ${light !== "none" ? html`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : nothing}
+          ${light === "only" ? nothing : html`<div class="block">
+            ${inside ? html`<span class="title">${c.title}</span>` : nothing}
+            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+          </div>`}
         </div>
       </div>
     </div>`;

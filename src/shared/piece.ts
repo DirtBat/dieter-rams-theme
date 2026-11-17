@@ -41,7 +41,9 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     this.toggleAttribute("actionable", this.actionable());
     if (this.minRows) {
       const n = typeof this.config?.rows === "number" ? this.config.rows : 1;
-      this.style.minHeight = `calc(var(--_row) * ${n} + var(--_gap) * ${n - 1})`;
+      const min = `calc(var(--_row) * ${n} + var(--_gap) * ${n - 1})`;
+      this.style.minHeight = min;
+      this.style.setProperty("--_min", min);
     }
   }
 

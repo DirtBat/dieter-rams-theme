@@ -37,16 +37,34 @@ export class RamsButton extends Piece<ButtonConfig> {
   @state() private fit = { n: 1, m: 1, u: 0 };
   private ro?: ResizeObserver;
 
-  /** Measure the key's room, so the key is a square or a whole number of squares whatever the grid gives it. */
+  /**
+   * Measure the room left for the key (the card minus the LED and the name), so the key is a square or a whole
+   * number of squares whatever the grid gives it, and the key, LED and name stay one compact group.
+   */
   protected firstUpdated(): void {
-    const area = this.renderRoot.querySelector(".keyarea");
-    if (!area) return;
-    this.ro = new ResizeObserver(([e]) => {
-      const { width, height } = e.contentRect;
-      const f = fitKey(width, height);
-      if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
-    });
-    this.ro.observe(area);
+    const cell = this.renderRoot.querySelector(".cell");
+    if (!cell) return;
+    this.ro = new ResizeObserver(() => this.measure());
+    this.ro.observe(cell);
+  }
+
+  protected updated(): void {
+    this.measure();
+  }
+
+  private measure(): void {
+    const cell = this.renderRoot.querySelector<HTMLElement>(".cell");
+    if (!cell) return;
+    const side = cell.classList.contains("left") || cell.classList.contains("right");
+    const led = cell.querySelector<HTMLElement>(".led");
+    const txt = cell.querySelector<HTMLElement>(".txt");
+    const gap = 5;
+    const aw = cell.clientWidth - (side && txt ? txt.offsetWidth + gap : 0);
+    const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
+    const w = Math.max(aw, 24), h = Math.max(ah, 24);
+    // a round key is always a circle: its room is the biggest square
+    const f = this.config?.shape === "round" ? { n: 1, m: 1, u: Math.min(w, h) } : fitKey(w, h);
+    if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
   }
 
   disconnectedCallback(): void {
@@ -120,6 +138,11 @@ export class RamsButton extends Piece<ButtonConfig> {
     return true;
   }
 
+  private areaSize(): string {
+    const { n, m, u } = this.fit;
+    return u ? `width:${n * u}px; height:${m * u}px` : "width:0; height:0";
+  }
+
   private keySize(shape?: string): string {
     const { n, m, u } = this.fit;
     if (shape === "round" || !u) return "";
@@ -137,13 +160,13 @@ export class RamsButton extends Piece<ButtonConfig> {
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
-        <div class="keyarea"><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
         </button></div>
       </div>
-      ${pos === "inside" ? html`<div class="txt"></div>` : html`<div class="txt">${name}</div>`}
+      ${pos === "inside" ? nothing : html`<div class="txt">${name}</div>`}
     </div>`;
   }
 }

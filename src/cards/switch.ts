@@ -26,7 +26,7 @@ export class RamsSwitch extends Piece<SwitchConfig> {
     keyStyles,
     css`
       :host { display: block; }
-      .well { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+      .well { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
       .slot { position: relative; box-sizing: border-box; width: 52px; height: 26px; padding: 0; border: 0; border-radius: 4px; background: var(--_slot, #2b2118); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6); cursor: pointer; -webkit-tap-highlight-color: transparent; }
       .lever { position: absolute; top: 3px; left: 3px; width: 24px; height: 20px; border-radius: 3px; background: linear-gradient(180deg, var(--_lever, #efece4), color-mix(in srgb, var(--_lever, #efece4) 80%, #000)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); transition: left 0.12s ease-out; }
       .on .lever { left: 25px; }

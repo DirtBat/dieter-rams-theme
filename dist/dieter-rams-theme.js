@@ -639,7 +639,9 @@ class Piece extends i {
     this.toggleAttribute("actionable", this.actionable());
     if (this.minRows) {
       const n3 = typeof ((_b = this.config) == null ? void 0 : _b.rows) === "number" ? this.config.rows : 1;
-      this.style.minHeight = `calc(var(--_row) * ${n3} + var(--_gap) * ${n3 - 1})`;
+      const min = `calc(var(--_row) * ${n3} + var(--_gap) * ${n3 - 1})`;
+      this.style.minHeight = min;
+      this.style.setProperty("--_min", min);
     }
   }
   /** Tell the enclosing panel how many grid rows this piece needs (data-driven height). */
@@ -817,23 +819,22 @@ function fitKey(w2, h2) {
   return { n: n3, m: m2, u: Math.min(w2 / n3, h2 / m2) };
 }
 const keyStyles = i$3`
-  .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+  /* The key, its LED and its name are one group, centred in whatever room the card has: spare room goes
+     outside the group, never between the key and its name. One gap (5px) everywhere. */
+  .cell { height: 100%; min-height: var(--_min, var(--_row)); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
   .cell.above { flex-direction: column-reverse; }
   .cell.left { flex-direction: row-reverse; }
   .cell.right { flex-direction: row; }
-  /* the LED and the key, together; the name sits beside or above it */
-  .stack { flex: 1; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-  .cell.left .stack, .cell.right .stack { width: auto; align-self: stretch; }
-  .cell.left .txt, .cell.right .txt { max-width: 45%; }
-  /* name beside the key: key and LED sit next to it, not in the middle of the leftover room */
-  .cell.right .stack { align-items: flex-end; } .cell.right .keyarea { justify-content: flex-end; }
-  .cell.left .stack { align-items: flex-start; } .cell.left .keyarea { justify-content: flex-start; }
+  .stack { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cell.left .txt, .cell.right .txt { max-width: 45%; margin-top: 13px; }
+  .cell.left .txt { text-align: right; } .cell.right .txt { text-align: left; }
   .led.off { visibility: hidden; }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* the key's room: the key fills it */
+  /* the key's room. In a card (.cell) its size is set from the fit, so the group stays compact; in the keypad it fills its grid cell. */
+  .cell .keyarea { flex: none; min-height: 0; width: auto; }
   .keyarea { flex: 1; min-height: 24px; min-width: 0; width: 100%; display: flex; justify-content: center; container-type: size; }
   .key {
     position: relative; box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 0;
@@ -997,16 +998,32 @@ let RamsButton = class extends Piece {
     this.press = new Press(this, () => this.config, () => this.step());
     this.fit = { n: 1, m: 1, u: 0 };
   }
-  /** Measure the key's room, so the key is a square or a whole number of squares whatever the grid gives it. */
+  /**
+   * Measure the room left for the key (the card minus the LED and the name), so the key is a square or a whole
+   * number of squares whatever the grid gives it, and the key, LED and name stay one compact group.
+   */
   firstUpdated() {
-    const area = this.renderRoot.querySelector(".keyarea");
-    if (!area) return;
-    this.ro = new ResizeObserver(([e2]) => {
-      const { width, height } = e2.contentRect;
-      const f2 = fitKey(width, height);
-      if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
-    });
-    this.ro.observe(area);
+    const cell = this.renderRoot.querySelector(".cell");
+    if (!cell) return;
+    this.ro = new ResizeObserver(() => this.measure());
+    this.ro.observe(cell);
+  }
+  updated() {
+    this.measure();
+  }
+  measure() {
+    var _a2;
+    const cell = this.renderRoot.querySelector(".cell");
+    if (!cell) return;
+    const side = cell.classList.contains("left") || cell.classList.contains("right");
+    const led = cell.querySelector(".led");
+    const txt = cell.querySelector(".txt");
+    const gap = 5;
+    const aw = cell.clientWidth - (side && txt ? txt.offsetWidth + gap : 0);
+    const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
+    const w2 = Math.max(aw, 24), h2 = Math.max(ah, 24);
+    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "round" ? { n: 1, m: 1, u: Math.min(w2, h2) } : fitKey(w2, h2);
+    if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
   }
   disconnectedCallback() {
     var _a2;
@@ -1075,6 +1092,10 @@ let RamsButton = class extends Piece {
     if (now !== void 0) void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, defaultRange(this.hass, c2.entity)));
     return true;
   }
+  areaSize() {
+    const { n: n3, m: m2, u: u2 } = this.fit;
+    return u2 ? `width:${n3 * u2}px; height:${m2 * u2}px` : "width:0; height:0";
+  }
   keySize(shape) {
     const { n: n3, m: m2, u: u2 } = this.fit;
     if (shape === "round" || !u2) return "";
@@ -1092,13 +1113,13 @@ let RamsButton = class extends Piece {
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
-        <div class="keyarea"><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
           ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
         </button></div>
       </div>
-      ${pos === "inside" ? b`<div class="txt"></div>` : b`<div class="txt">${name}</div>`}
+      ${pos === "inside" ? A : b`<div class="txt">${name}</div>`}
     </div>`;
   }
 };
@@ -1174,7 +1195,7 @@ RamsSwitch.styles = [
   keyStyles,
   i$3`
       :host { display: block; }
-      .well { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+      .well { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
       .slot { position: relative; box-sizing: border-box; width: 52px; height: 26px; padding: 0; border: 0; border-radius: 4px; background: var(--_slot, #2b2118); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6); cursor: pointer; -webkit-tap-highlight-color: transparent; }
       .lever { position: absolute; top: 3px; left: 3px; width: 24px; height: 20px; border-radius: 3px; background: linear-gradient(180deg, var(--_lever, #efece4), color-mix(in srgb, var(--_lever, #efece4) 80%, #000)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); transition: left 0.12s ease-out; }
       .on .lever { left: 25px; }
@@ -1217,7 +1238,12 @@ let RamsDisplay = class extends Piece {
   }
   signal() {
     var _a2;
+    if (this.lamp()) return void 0;
     return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).signal;
+  }
+  lamp() {
+    var _a2;
+    return !!((_a2 = this.config) == null ? void 0 : _a2.light) && this.config.light !== "none";
   }
   static getStubConfig() {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
@@ -1240,6 +1266,7 @@ let RamsDisplay = class extends Piece {
             { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown2("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown2("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown2("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
@@ -1301,14 +1328,19 @@ let RamsDisplay = class extends Piece {
     if (!c2) return A;
     const outside = c2.title_position && c2.title_position !== "inside" && !!c2.title;
     const inside = !!c2.title && !outside;
-    const cls = [c2.align ?? "start", c2.size ?? "medium", inside ? "has-title" : ""].filter(Boolean).join(" ");
+    const light = this.lamp() ? c2.light : "none";
+    const cls = [c2.align ?? "start", c2.size ?? "medium", inside && light !== "only" ? "has-title" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
+    const tone = light !== "none" ? readState(this.hass, c2.entity, c2).signal : void 0;
     const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
     return b`<div class="wrap ${outside ? c2.title_position : ""}">
       ${outside ? b`<span class="outer">${c2.title}</span>` : A}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
-          ${inside ? b`<span class="title">${c2.title}</span>` : A}
-          <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+          ${light !== "none" ? b`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : A}
+          ${light === "only" ? A : b`<div class="block">
+            ${inside ? b`<span class="title">${c2.title}</span>` : A}
+            <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+          </div>`}
         </div>
       </div>
     </div>`;
@@ -1318,12 +1350,19 @@ RamsDisplay.styles = [
   tokens,
   faceStyles,
   i$3`
-      .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
-      .start { align-items: flex-start; text-align: left; }
-      .center { align-items: center; text-align: center; }
-      .end { align-items: flex-end; text-align: right; }
-      .box.has-title { justify-content: flex-start; padding: 8px 0; }
-      .has-title .value { flex: 1; display: flex; align-items: center; }
+      /* the lamp and the text are one group, centred; spare room goes outside it */
+      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+      .box.lamp-right { flex-direction: row-reverse; }
+      .box.lamp-only { justify-content: center; }
+      .block { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+      .start .block { align-items: flex-start; text-align: left; }
+      .center .block { align-items: center; text-align: center; }
+      .end .block { align-items: flex-end; text-align: right; }
+      .has-title { padding: 8px 0; }
+      .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
+      .lamp-only .lamp { width: 16px; height: 16px; }
+      .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
+      .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .value { line-height: 1.1; }
       .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }

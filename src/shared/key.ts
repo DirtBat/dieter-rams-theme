@@ -16,23 +16,22 @@ export function fitKey(w: number, h: number): { n: number; m: number; u: number 
  * key never stretches off-square. The dish is a circle on a square key and a pill on a long or tall one.
  */
 export const keyStyles = css`
-  .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+  /* The key, its LED and its name are one group, centred in whatever room the card has: spare room goes
+     outside the group, never between the key and its name. One gap (5px) everywhere. */
+  .cell { height: 100%; min-height: var(--_min, var(--_row)); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
   .cell.above { flex-direction: column-reverse; }
   .cell.left { flex-direction: row-reverse; }
   .cell.right { flex-direction: row; }
-  /* the LED and the key, together; the name sits beside or above it */
-  .stack { flex: 1; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-  .cell.left .stack, .cell.right .stack { width: auto; align-self: stretch; }
-  .cell.left .txt, .cell.right .txt { max-width: 45%; }
-  /* name beside the key: key and LED sit next to it, not in the middle of the leftover room */
-  .cell.right .stack { align-items: flex-end; } .cell.right .keyarea { justify-content: flex-end; }
-  .cell.left .stack { align-items: flex-start; } .cell.left .keyarea { justify-content: flex-start; }
+  .stack { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cell.left .txt, .cell.right .txt { max-width: 45%; margin-top: 13px; }
+  .cell.left .txt { text-align: right; } .cell.right .txt { text-align: left; }
   .led.off { visibility: hidden; }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* the key's room: the key fills it */
+  /* the key's room. In a card (.cell) its size is set from the fit, so the group stays compact; in the keypad it fills its grid cell. */
+  .cell .keyarea { flex: none; min-height: 0; width: auto; }
   .keyarea { flex: 1; min-height: 24px; min-width: 0; width: 100%; display: flex; justify-content: center; container-type: size; }
   .key {
     position: relative; box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 0;

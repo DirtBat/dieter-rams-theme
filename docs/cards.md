@@ -48,5 +48,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Artwork: square from its width when no height is set; optional media keys.
 - Panel: working title; stray stack-editor title hidden; pieces default to full panel width; editor says "width / height (grid units)".
 
+- Spacing (2026-11-17): a key, its LED and its name are one group, centred in the card's room with one 5px gap; spare room goes outside the group. Applies to button and switch; the display centres its title and value the same way. Round keys are always a circle.
+- Display `light`: none (default), left, right or only the light. A status lamp that lights in the colour the state rules give (red for a warning); the display then stays unfilled. With `only` it is a standalone warning light; an outside title labels it.
 - Display (2026-11-17): `title_position` inside, above, below, left or right; optional `icon`. The LCD is grey-green by day and a backlit grey-green by night. An optional amber display is for a later iteration. Attribute pickers (display, dial, ruler, shelf) now get the entity as context; before, they stayed greyed out.
 - Clock (2026-11-17): thinner hands and dots; optional title printed outside (above, below, left, right); the digital clock is a recessed LCD like the display; the alarm is a small LED on the clock (tap to switch). Ruler: orientation horizontal or vertical (lowest value at the bottom); min, max and a target mark were already there.
