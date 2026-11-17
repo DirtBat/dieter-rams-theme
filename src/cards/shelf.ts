@@ -56,7 +56,7 @@ export class RamsShelf extends Piece<ShelfConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "player", selector: { entity: { domain: "media_player" } } },
         {
           type: "grid",

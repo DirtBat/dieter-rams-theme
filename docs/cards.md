@@ -20,7 +20,7 @@ Principle: as few card types as possible. Anything that is only a combination of
 ## Dynamic and stateful cards (decided 13 Nov: all three are in; all built 13 Nov)
 | Card | Role | Design notes | Open |
 |---|---|---|---|
-| `rams-keypad` | Alarm code entry | One piece: code dots, digit keys (round, 3 x 4), and mode keys (disarm / arm home / arm away / arm night, chosen in the form). Digits are collected inside the piece; the code is never stored in the config (it is typed each time) and goes only to the alarm service call. Fills the panel width: digits in one half, mode keys in the other. | Entities with no code required: show only mode keys |
+| `rams-keypad` | Code entry after the default Alarmo keypad: code field with the alarm state, round keys 1-9, clear, 0, confirm | entity, arm_mode, colour by state | alarm panel | rebuilt 2026-11-17, in lab only. Confirm disarms an armed alarm and arms a disarmed one; the code is sent only when typed. Triggered, pending and armed away are red by default. |
 | `rams-shelf` | Radio / album / podcast / playlist tiles from data | Reads items from an entity (state or attribute, JSON list). Each item becomes an artwork tile. Options: source entity and attribute, kind filter, tiles per row, target media player, tap action (play item on the player). Outlined / LED while that item plays. | Needs the real format of `input_select.music_favourites_data` (see below) |
 | `rams-list` | Dynamic text list | Reads a list from an entity attribute (e.g. `sensor.health_offline_list`, attribute `devices` = list of name / area). Options: entity, attribute, which keys give the main and second line, empty text, max items ("+n more"), optional tap action. Item height is half a grid row (two items per row unit). | none |
 
@@ -39,7 +39,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 - Light plate (#F5F4F0, caps white, fields #EAE9E3), outline on the panel plate, one base radius (6) with plate radius = radius + gap, `spacing` option on the panel (default 8).
 - `frame: none | outline | recessed | raised` on every piece and on the panel plate. Defaults: panel raised, display recessed, artwork raised, others none.
-- Key (2026-11-17): size follows the Layout tab (or columns/rows in a panel); a 1x2, 4x1 or 2x1 key is just a bigger key, the dish becomes a pill when the key is long or tall. `shape: tall` is half as wide in the same box. The dot appears only when a state rule (colour by state or value) gives the key a colour; the LED above lights on a warning (`alert_when` or an automatic warning); active (`selected_when`) keeps the key pressed in. Removed: show_state, label_position, round shape, tone, tone_style, size, align (old configs ignore them).
+- Key: size follows the Layout tab (or columns/rows in a panel); a 1x2, 4x1 or 2x1 key is just a bigger key, the dish becomes a pill when the key is long, tall or carries text. `shape`: square, tall (half as wide, same box) or round (a dome on a dark ring, always a circle). `label_position`: below (default), above, left, right or inside. `tone` colours the whole key; a colour from the state rules shows as a dot. The LED above lights on a warning (`alert_when` or an automatic warning); active (`selected_when`) keeps the key pressed in. `icon` is optional, with the standard HA icon picker. Removed: show_state, tone_style, size, align (old configs ignore them).
 - Warnings: red key + triangle. Automatic for binary sensors with problem-type device classes; `alert_when` overrides.
 - Actions: tap and hold on every piece and on the panel (panel action fires only where no piece handles the press). Default tap toggles toggleable domains, otherwise opens more-info.
 - `adjust_by` only for climate entities; elsewhere use a perform-action tap action (e.g. `input_number.decrement`).
@@ -47,3 +47,5 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Dial (new): half-round scale, needle, no centre knob; value from entity or fixed; min, max, interval; optional touch to set.
 - Artwork: square from its width when no height is set; optional media keys.
 - Panel: working title; stray stack-editor title hidden; pieces default to full panel width; editor says "width / height (grid units)".
+
+- Display (2026-11-17): `title_position` inside, above, below, left or right; optional `icon`. The LCD is grey-green by day and a backlit grey-green by night. An optional amber display is for a later iteration. Attribute pickers (display, dial, ruler, shelf) now get the entity as context; before, they stayed greyed out.

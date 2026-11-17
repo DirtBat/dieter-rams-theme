@@ -766,6 +766,7 @@ const tokens = i$3`
     --_down: var(--rams-down, #cfcbc1);
     --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
     --_lens: var(--rams-lens, #b9b3a6);
+    --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
@@ -792,26 +793,28 @@ const tokens = i$3`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
-  /* A signalled piece (warning or colour for a state), the same on every piece: filled with the tone, white text. */
+  /* A signalled piece takes the tone as --_sig; the piece itself decides what to fill (the display fills its face). */
   :host([signal="red"]) { --_sig: var(--_alert); }
   :host([signal="orange"]) { --_sig: var(--_orange); }
   :host([signal="blue"]) { --_sig: var(--_blue); }
   :host([signal="green"]) { --_sig: var(--_green); }
   :host([signal="grey"]) { --_sig: var(--_grey); }
-  :host([signal][frame]) {
-    background: var(--_sig);
-    color: var(--_ink-on);
-    --_ink: var(--_ink-on);
-    --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent);
-    border-radius: var(--_radius);
-    box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent);
-  }
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
 const keyStyles = i$3`
   .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
+  .cell.above { flex-direction: column-reverse; }
+  .cell.left { flex-direction: row-reverse; }
+  .cell.right { flex-direction: row; }
+  /* the LED and the key, together; the name sits beside or above it */
+  .stack { flex: 1; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cell.left .stack, .cell.right .stack { width: auto; align-self: stretch; }
+  .cell.left .txt, .cell.right .txt { max-width: 45%; }
+  /* name beside the key: key and LED sit next to it, not in the middle of the leftover room */
+  .cell.right .stack { align-items: flex-end; } .cell.right .keyarea { justify-content: flex-end; }
+  .cell.left .stack { align-items: flex-start; } .cell.left .keyarea { justify-content: flex-start; }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -844,7 +847,30 @@ const keyStyles = i$3`
   @container (max-aspect-ratio: 10/13) {
     .key:not(.tall)::before { height: calc(100% - 20px); width: 62%; aspect-ratio: auto; border-radius: 999px; }
   }
+  /* text printed on the key sits on a pill-shaped dish */
+  .key:has(.legend):not(.round)::before { height: 62%; width: calc(100% - 20px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
+  .ico { --mdc-icon-size: 22px; flex: none; }
+  .key.round .ico { --mdc-icon-size: 18px; }
+  .key:has(.legend) { flex-direction: column; gap: 2px; }
+  .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+
+  /* a toned key: the whole key takes the colour */
+  .key.filled { --c: var(--t); color: var(--_ink-on); }
+  .key.filled:not(.round) { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff), var(--c)); box-shadow: var(--_raised), 0 0 var(--_glow) 1px color-mix(in srgb, var(--c) 45%, transparent); }
+  .key.filled:not(.round)::before { background: radial-gradient(120% 140% at 50% 15%, color-mix(in srgb, var(--c) 90%, #fff) 0%, color-mix(in srgb, var(--c) 80%, #000) 100%); }
+
+  /* round: a dome on a dark ring, as on the Braun calculator. Always a circle: the biggest that fits. */
+  .key.round {
+    --dome: radial-gradient(circle at 38% 28%, color-mix(in srgb, var(--c, var(--_cap)) 78%, #fff) 0%, var(--c, var(--_cap)) 52%, color-mix(in srgb, var(--c, var(--_cap)) 78%, #000) 100%);
+    flex: none; align-self: center; width: calc(min(100cqw, 100cqh) - 6px); height: calc(min(100cqw, 100cqh) - 6px); border: 0; border-radius: 50%;
+    background: var(--dome);
+    box-shadow: 0 0 0 3px var(--_ring), 0 2px 4px rgba(0, 0, 0, 0.35), inset 0 -2px 3px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+  }
+  .key.round.filled { box-shadow: 0 0 0 3px var(--_ring), 0 2px 4px rgba(0, 0, 0, 0.35), 0 0 var(--_glow) 1px color-mix(in srgb, var(--c) 55%, transparent), inset 0 -2px 3px rgba(0, 0, 0, 0.25), inset 0 1px 1px rgba(255, 255, 255, 0.5); }
+  .key.round::before { display: none; }
+  .key.round .legend { text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: 500; }
+  .key.round.down, .key.round:active { background: var(--dome); filter: brightness(0.88); transform: translateY(1px); }
 
   /* the dot: only where a state rule (or a keypad mode) gives the key a colour */
   .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--t); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25), 0 0 var(--_glow) 1px color-mix(in srgb, var(--t) 70%, transparent); }
@@ -966,7 +992,16 @@ let RamsButton = class extends Piece {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "name", selector: { text: {} } },
-        dropdown("shape", [["square", "Square"], ["tall", "Tall"]]),
+        { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
+            dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
+            dropdown("tone", TONES)
+          ]
+        },
         ...layoutFields(false),
         ...actionFields(),
         {
@@ -1017,13 +1052,19 @@ let RamsButton = class extends Piece {
     if (!c2) return A;
     const view = readState(this.hass, c2.entity, c2);
     const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
-    const cls = ["key", c2.shape === "tall" ? "tall" : "", view.active ? "down" : "", view.tone ?? ""].filter(Boolean).join(" ");
-    return b`<div class="cell">
-      <i class="led ${view.alert ? "on" : ""}"></i>
-      <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-        ${view.tone ? b`<i class="dot"></i>` : A}
-      </button></div>
-      <div class="txt">${name}</div>
+    const pos = c2.label_position ?? "below";
+    const tone = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
+    const cls = ["key", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    return b`<div class="cell ${pos === "inside" ? "below" : pos}">
+      <div class="stack">
+        <i class="led ${view.alert ? "on" : ""}"></i>
+        <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+          ${view.tone ? b`<i class="dot ${view.tone}"></i>` : A}
+          ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
+          ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
+        </button></div>
+      </div>
+      ${pos === "inside" ? b`<div class="txt"></div>` : b`<div class="txt">${name}</div>`}
     </div>`;
   }
 };
@@ -1118,6 +1159,7 @@ let RamsDisplay = class extends Piece {
   constructor() {
     super(...arguments);
     this.defaultFrame = "recessed";
+    this.hostFrame = false;
     this.press = new Press(this, () => this.actionable() ? this.config : void 0);
   }
   signal() {
@@ -1137,12 +1179,14 @@ let RamsDisplay = class extends Piece {
         { name: "title", selector: { text: {} } },
         { name: "text", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
+        { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "attribute", selector: { attribute: {} } },
+            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
+            dropdown2("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown2("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
@@ -1202,18 +1246,42 @@ let RamsDisplay = class extends Piece {
   render() {
     const c2 = this.config;
     if (!c2) return A;
-    const cls = [c2.align ?? "start", c2.size ?? "medium", c2.title ? "has-title" : ""].filter(Boolean).join(" ");
-    return b`<div class="box ${cls}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${c2.title ? b`<span class="title">${c2.title}</span>` : A}
-      <span class="value">${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+    const outside = c2.title_position && c2.title_position !== "inside" && !!c2.title;
+    const inside = !!c2.title && !outside;
+    const cls = [c2.align ?? "start", c2.size ?? "medium", inside ? "has-title" : ""].filter(Boolean).join(" ");
+    const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
+    return b`<div class="wrap ${outside ? c2.title_position : ""}">
+      ${outside ? b`<span class="outer">${c2.title}</span>` : A}
+      <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="box ${cls}">
+          ${inside ? b`<span class="title">${c2.title}</span>` : A}
+          <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+        </div>
+      </div>
     </div>`;
   }
 };
 RamsDisplay.styles = [
   tokens,
   i$3`
-      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
-            .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
+      :host { display: block; }
+      .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+      .wrap.above { flex-direction: column-reverse; }
+      .wrap.left { flex-direction: row-reverse; align-items: center; }
+      .wrap.right { flex-direction: row; align-items: center; }
+      /* the title printed outside the box */
+      .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .left .outer, .right .outer { max-width: 40%; }
+      /* the face: the box itself */
+      .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
+      .left .face, .right .face { align-self: stretch; }
+      .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
+      .face.outline { background: transparent; }
+      .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
+      .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+      /* a signalled display (warning or colour for a state): filled with the tone, white text */
+      .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
+      .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
       .start { align-items: flex-start; text-align: left; }
       .center { align-items: center; text-align: center; }
       .end { align-items: flex-end; text-align: right; }
@@ -1221,6 +1289,7 @@ RamsDisplay.styles = [
       .has-title .value { flex: 1; display: flex; align-items: center; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .value { line-height: 1.1; }
+      .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }
       .small .value { font-size: 12px; }
       .medium .value { font-size: 20px; }
       .large .value { font-size: 44px; letter-spacing: -0.02em; }
@@ -1480,7 +1549,7 @@ let RamsRuler = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
         {
           type: "grid",
@@ -1922,39 +1991,20 @@ var __decorateClass$2 = (decorators, target, key, kind) => {
   if (kind && result) __defProp$1(target, key, result);
   return result;
 };
-const MODE_LABEL = { disarm: "Disarm", arm_home: "Arm home", arm_away: "Arm away", arm_night: "Night mode" };
-const MODE_SERVICE = { disarm: "alarm_disarm", arm_home: "alarm_arm_home", arm_away: "alarm_arm_away", arm_night: "alarm_arm_night" };
-const MODE_STATE = { disarm: "disarmed", arm_home: "armed_home", arm_away: "armed_away", arm_night: "armed_night" };
-const DEFAULT_TONE = { disarm: void 0, arm_home: void 0, arm_away: "red", arm_night: "blue" };
 const IDLE_MS = 3e4;
-const DEFAULT_MODES = ["disarm", "arm_home", "arm_away", "arm_night"];
-const parseModes = (modes) => ((modes == null ? void 0 : modes.length) ? modes : DEFAULT_MODES).map((m2) => typeof m2 === "string" ? { mode: m2 } : m2).filter((m2) => m2.mode in MODE_LABEL);
 let RamsKeypad = class extends Piece {
   constructor() {
     super(...arguments);
     this.code = "";
   }
   static getStubConfig() {
-    return { type: "custom:rams-keypad", columns: 12, modes: DEFAULT_MODES.map((mode) => ({ mode })) };
+    return { type: "custom:rams-keypad", columns: 12 };
   }
   static getConfigForm() {
     return {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
-        {
-          name: "modes",
-          selector: {
-            object: {
-              multiple: true,
-              label_field: "mode",
-              fields: {
-                mode: { selector: { select: { mode: "dropdown", options: Object.keys(MODE_LABEL).map((value) => ({ value, label: MODE_LABEL[value] })) } }, required: true },
-                name: { selector: { text: {} } },
-                tone: { selector: { select: { mode: "dropdown", options: ["red", "orange", "blue", "green", "grey"] } } }
-              }
-            }
-          }
-        },
+        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"]]),
         {
           name: "state_colours",
           selector: {
@@ -1962,8 +2012,8 @@ let RamsKeypad = class extends Piece {
               multiple: true,
               label_field: "state",
               fields: {
-                state: { selector: { text: {} }, required: true },
-                tone: { selector: { select: { mode: "dropdown", options: ["red", "orange", "blue", "green", "grey"] } }, required: true }
+                state: { label: "State", required: true, selector: { text: {} } },
+                tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
               }
             }
           }
@@ -1982,43 +2032,39 @@ let RamsKeypad = class extends Piece {
     this.code = (this.code + d2).slice(0, 8);
     this.touch();
   }
-  runMode(mode) {
+  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The code is sent only when one was typed. */
+  confirm() {
+    var _a2;
     const c2 = this.config;
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
+    const disarmed = ((_a2 = this.hass.states[c2.entity]) == null ? void 0 : _a2.state) === "disarmed";
     const data = { entity_id: c2.entity };
     if (this.code) data.code = this.code;
-    void this.hass.callService("alarm_control_panel", MODE_SERVICE[mode], data);
+    void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c2.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
     this.code = "";
   }
   updated(_c) {
     this.reportRows(5);
   }
-  /** A key with its legend on the cap, placed on a fixed grid cell. */
-  cap(legend, col, row, onTap, opts = {}) {
-    return b`<div class="keyarea ${opts.cls ?? ""}" style="grid-column: ${col}; grid-row: ${row}">
-      <button class="key ${opts.down ? "down" : ""} ${opts.tone ?? ""}" @click=${onTap}>
-        ${opts.tone ? b`<i class="dot"></i>` : A}<span class="legend">${legend}</span>
-      </button>
-    </div>`;
+  cap(legend, onTap, tone = "") {
+    return b`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" @click=${onTap}><span class="legend">${legend}</span></button></div>`;
   }
   render() {
     var _a2, _b;
     const c2 = this.config;
     if (!c2) return A;
     const alarm = c2.entity && ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity]) == null ? void 0 : _b.state) || "";
-    const view = readState(this.hass, c2.entity, { state_colours: c2.state_colours, alert_when: ["triggered", "pending"] });
-    const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-    const modes = parseModes(c2.modes);
+    const rows = [...c2.state_colours ?? [], ...["triggered", "pending", "armed_away"].map((state2) => ({ state: state2, tone: "red" }))];
+    const view = readState(this.hass, c2.entity, { state_colours: rows });
     return b`<div class="pad">
       <div class="screen ${view.signal ? `sig ${view.signal}` : ""}">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_2, i2) => b`<b class=${i2 < this.code.length ? "f" : ""}></b>`)}</div>
         <span class="state">${alarm.replace(/_/g, " ")}</span>
       </div>
-      ${digits.map((d2, i2) => this.cap(d2, `${i2 % 3 * 2 + 1} / span 2`, 2 + Math.floor(i2 / 3), () => this.press(d2)))}
-      ${this.cap("clr", "1 / span 2", 5, () => this.code = "")}
-      ${this.cap("0", "3 / span 2", 5, () => this.press("0"))}
-      ${this.cap("⌫", "5 / span 2", 5, () => this.code = this.code.slice(0, -1))}
-      ${modes.map((m2, i2) => this.cap(m2.name || MODE_LABEL[m2.mode], "8 / -1", 2 + i2, () => this.runMode(m2.mode), { cls: "mode", tone: m2.tone ?? DEFAULT_TONE[m2.mode], down: alarm === MODE_STATE[m2.mode] }))}
+      ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d2) => this.cap(d2, () => this.press(d2)))}
+      ${this.cap("✕", () => this.code = "")}
+      ${this.cap("0", () => this.press("0"))}
+      ${this.cap("✓", () => this.confirm(), "green")}
     </div>`;
   }
 };
@@ -2027,22 +2073,18 @@ RamsKeypad.styles = [
   keyStyles,
   i$3`
       :host { display: block; min-width: 0; }
-      .pad { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); }
-      .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_field); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
+      .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); }
+      /* the screen is the display: the same recessed LCD, filled with a tone for a state */
+      .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
-      .screen.sig .state { color: inherit; }
-      .screen.sig .dots b { border-color: var(--_ink-on); }
-      .screen.sig .dots b.f { background: var(--_ink-on); }
       .sig.red { --_sig: var(--_alert); } .sig.orange { --_sig: var(--_orange); } .sig.blue { --_sig: var(--_blue); } .sig.green { --_sig: var(--_green); } .sig.grey { --_sig: var(--_grey); }
       .dots { display: flex; gap: 10px; }
-      .dots b { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--_ink); box-sizing: border-box; }
-      .dots b.f { background: var(--_ink); }
-      .state { color: var(--_muted); text-transform: lowercase; }
-      /* every key sits in its own cell of the pad, on a fixed place, so the digits never move when modes come and go */
+      .dots b { width: 10px; height: 10px; border-radius: 50%; border: 2px solid currentColor; box-sizing: border-box; }
+      .dots b.f { background: currentColor; }
+      .state { text-transform: lowercase; opacity: 0.8; }
+      /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
-      .legend { font-size: 15px; line-height: 1; }
-      .mode .legend { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
-      .mode .dot { margin-right: 8px; }
+      .legend { font-size: 18px; font-weight: 400; }
     `
 ];
 __decorateClass$2([
@@ -2074,7 +2116,7 @@ let RamsShelf = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "player", selector: { entity: { domain: "media_player" } } },
         {
           type: "grid",
@@ -2202,7 +2244,7 @@ let RamsDial = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         {
           type: "grid",
           name: "",

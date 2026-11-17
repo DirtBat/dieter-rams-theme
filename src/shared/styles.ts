@@ -31,6 +31,7 @@ export const tokens = css`
     --_down: var(--rams-down, #cfcbc1);
     --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
     --_lens: var(--rams-lens, #b9b3a6);
+    --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
@@ -57,20 +58,12 @@ export const tokens = css`
     border-radius: var(--_radius);
     padding: 0 var(--_fpad, var(--_gap));
   }
-  /* A signalled piece (warning or colour for a state), the same on every piece: filled with the tone, white text. */
+  /* A signalled piece takes the tone as --_sig; the piece itself decides what to fill (the display fills its face). */
   :host([signal="red"]) { --_sig: var(--_alert); }
   :host([signal="orange"]) { --_sig: var(--_orange); }
   :host([signal="blue"]) { --_sig: var(--_blue); }
   :host([signal="green"]) { --_sig: var(--_green); }
   :host([signal="grey"]) { --_sig: var(--_grey); }
-  :host([signal][frame]) {
-    background: var(--_sig);
-    color: var(--_ink-on);
-    --_ink: var(--_ink-on);
-    --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent);
-    border-radius: var(--_radius);
-    box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent);
-  }
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }

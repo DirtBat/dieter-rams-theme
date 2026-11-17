@@ -32,8 +32,8 @@ Dieter Rams:
       rams-cap-on: "78%"              # ... and when active (mixed with the next value)
       rams-cap-on-mix: "#000000"
       # LCD (recessed display and dial): green, reflective
-      rams-lcd-bg: "linear-gradient(180deg, #cfd8b0 0%, #c4cea3 100%)"
-      rams-lcd-ink: "#2a3320"
+      rams-lcd-bg: "linear-gradient(180deg, #d6dac9 0%, #cbd0bd 100%)"
+      rams-lcd-ink: "#2b3026"
     dark:
       primary-background-color: "#0b0b0a"   # the page: black by night
       rams-plate: "#1c1b19"
@@ -44,6 +44,7 @@ Dieter Rams:
       rams-muted: "#9b9285"
       rams-down: "#4d463a"            # a key that is down is lit
       rams-key-edge: "rgba(0, 0, 0, 0.7)"
+      rams-ring: "#0b0b0a"
       rams-lens: "#3a1512"
       rams-slot: "#0e0d0c"
       rams-lever: "#8d887c"
@@ -61,6 +62,6 @@ Dieter Rams:
       rams-cap-rest: "42%"
       rams-cap-on: "100%"
       rams-cap-on-mix: "#ffffff"
-      # LCD: amber, lit from the top
-      rams-lcd-bg: "linear-gradient(180deg, #f2b843 0%, #dc9d2c 45%, #a96f1a 100%)"
-      rams-lcd-ink: "#2a1b05"
+      # LCD: green-grey, backlit
+      rams-lcd-bg: "linear-gradient(180deg, #b9c9a8 0%, #a1b490 50%, #84997a 100%)"
+      rams-lcd-ink: "#141d10"

@@ -58,7 +58,7 @@ export class RamsDial extends Piece<DialConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         {
           type: "grid",
           name: "",

@@ -53,7 +53,7 @@ export class RamsRuler extends Piece<RulerConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
-        { name: "attribute", selector: { attribute: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
         {
           type: "grid",

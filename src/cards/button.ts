@@ -2,7 +2,7 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
-import { readState, type StateRules } from "../shared/state-rules";
+import { readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
 import { keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
@@ -11,17 +11,23 @@ import type { PieceConfig } from "../shared/types";
 
 export interface ButtonConfig extends PieceConfig, StateRules {
   entity?: string;
-  /** Printed below the key. Defaults to the entity name. */
+  /** The key's text. Defaults to the entity name. */
   name?: string;
-  /** Square (default) fills the size it is given; tall is half as wide, in the same box. */
-  shape?: "square" | "tall";
+  /** Icon printed on the key (the standard HA icon picker; the entity's own icon is offered as a hint). */
+  icon?: string;
+  /** Where the text goes: below (default), above, left, right, or printed on the key. */
+  label_position?: "below" | "above" | "left" | "right" | "inside";
+  /** Square (default) fills the size it is given; tall is half as wide, in the same box; round is a dome, always a circle. */
+  shape?: "square" | "tall" | "round";
+  /** Colours the whole key. A state rule's colour shows as a dot instead. */
+  tone?: Tone;
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
   adjust_by?: number;
 }
 
 /**
- * A key. The cap is blank; the dot shows the colour a state rule gives it, the LED above lights on a warning,
- * and the name is printed below. Size it with the Layout tab (or columns and rows in a panel).
+ * A key. The dot shows the colour a state rule gives it, the LED above lights on a warning, and the name is
+ * printed below (or above, left, right, or on the key). Size it with the Layout tab (or columns and rows in a panel).
  */
 @customElement("rams-button")
 export class RamsButton extends Piece<ButtonConfig> {
@@ -40,7 +46,16 @@ export class RamsButton extends Piece<ButtonConfig> {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "name", selector: { text: {} } },
-        dropdown("shape", [["square", "Square"], ["tall", "Tall"]]),
+        { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
+            dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
+            dropdown("tone", TONES),
+          ],
+        },
         ...layoutFields(false),
         ...actionFields(),
         {
@@ -91,13 +106,19 @@ export class RamsButton extends Piece<ButtonConfig> {
     if (!c) return nothing;
     const view = readState(this.hass, c.entity, c);
     const name = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
-    const cls = ["key", c.shape === "tall" ? "tall" : "", view.active ? "down" : "", view.tone ?? ""].filter(Boolean).join(" ");
-    return html`<div class="cell">
-      <i class="led ${view.alert ? "on" : ""}"></i>
-      <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-        ${view.tone ? html`<i class="dot"></i>` : nothing}
-      </button></div>
-      <div class="txt">${name}</div>
+    const pos = c.label_position ?? "below";
+    const tone = c.tone && c.tone !== "neutral" ? c.tone : "";
+    const cls = ["key", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    return html`<div class="cell ${pos === "inside" ? "below" : pos}">
+      <div class="stack">
+        <i class="led ${view.alert ? "on" : ""}"></i>
+        <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+          ${view.tone ? html`<i class="dot ${view.tone}"></i>` : nothing}
+          ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
+          ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
+        </button></div>
+      </div>
+      ${pos === "inside" ? html`<div class="txt"></div>` : html`<div class="txt">${name}</div>`}
     </div>`;
   }
 }

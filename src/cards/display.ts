@@ -15,6 +15,8 @@ export interface DisplayConfig extends PieceConfig {
   /** Fixed text for the value line. Ignored when an entity is set. */
   text?: string;
   entity?: string;
+  /** Icon before the value (the standard HA icon picker). */
+  icon?: string;
   /** Show this attribute instead of the state. */
   attribute?: string;
   unit?: string;
@@ -25,6 +27,8 @@ export interface DisplayConfig extends PieceConfig {
   state_colours?: Array<{ state: string; tone: Tone }>;
   /** A colour per number: above or below a value. */
   value_colours?: Array<{ when: "above" | "below"; value: number; tone: Tone }>;
+  /** Where the title goes: inside the box (default), or printed outside it. */
+  title_position?: "inside" | "above" | "below" | "left" | "right";
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -32,6 +36,8 @@ export interface DisplayConfig extends PieceConfig {
 @customElement("rams-display")
 export class RamsDisplay extends Piece<DisplayConfig> {
   protected defaultFrame = "recessed" as const;
+  /** The display draws its own box (the face), so a title can sit outside it. */
+  protected hostFrame = false;
   private press = new Press(this, () => (this.actionable() ? this.config : undefined));
 
   protected signal(): string | undefined {
@@ -41,8 +47,24 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   static styles = [
     tokens,
     css`
-      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
-            .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
+      :host { display: block; }
+      .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+      .wrap.above { flex-direction: column-reverse; }
+      .wrap.left { flex-direction: row-reverse; align-items: center; }
+      .wrap.right { flex-direction: row; align-items: center; }
+      /* the title printed outside the box */
+      .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .left .outer, .right .outer { max-width: 40%; }
+      /* the face: the box itself */
+      .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
+      .left .face, .right .face { align-self: stretch; }
+      .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
+      .face.outline { background: transparent; }
+      .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
+      .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+      /* a signalled display (warning or colour for a state): filled with the tone, white text */
+      .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
+      .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
       .start { align-items: flex-start; text-align: left; }
       .center { align-items: center; text-align: center; }
       .end { align-items: flex-end; text-align: right; }
@@ -50,6 +72,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       .has-title .value { flex: 1; display: flex; align-items: center; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .value { line-height: 1.1; }
+      .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }
       .small .value { font-size: 12px; }
       .medium .value { font-size: 20px; }
       .large .value { font-size: 44px; letter-spacing: -0.02em; }
@@ -71,12 +94,14 @@ export class RamsDisplay extends Piece<DisplayConfig> {
         { name: "title", selector: { text: {} } },
         { name: "text", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
+        { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "attribute", selector: { attribute: {} } },
+            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
+            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
@@ -137,10 +162,18 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
-    const cls = [c.align ?? "start", c.size ?? "medium", c.title ? "has-title" : ""].filter(Boolean).join(" ");
-    return html`<div class="box ${cls}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-      ${c.title ? html`<span class="title">${c.title}</span>` : nothing}
-      <span class="value">${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+    const outside = c.title_position && c.title_position !== "inside" && !!c.title;
+    const inside = !!c.title && !outside;
+    const cls = [c.align ?? "start", c.size ?? "medium", inside ? "has-title" : ""].filter(Boolean).join(" ");
+    const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
+    return html`<div class="wrap ${outside ? c.title_position : ""}">
+      ${outside ? html`<span class="outer">${c.title}</span>` : nothing}
+      <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="box ${cls}">
+          ${inside ? html`<span class="title">${c.title}</span>` : nothing}
+          <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+        </div>
+      </div>
     </div>`;
   }
 }
