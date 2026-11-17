@@ -1,4 +1,5 @@
 import "./cards/button";
+import "./cards/switch";
 import "./cards/display";
 import "./cards/panel";
 import "./cards/ruler";
@@ -20,6 +21,7 @@ w.customCards.push(
   { type: "rams-list", name: "Dieter Rams List", description: "List of entities with state and optional keys", preview: true },
   { type: "rams-keypad", name: "Dieter Rams Keypad", description: "Alarm code entry and mode keys", preview: true },
   { type: "rams-shelf", name: "Dieter Rams Shelf", description: "Artwork tiles generated from a list", preview: true },
-  { type: "rams-button", name: "Dieter Rams Button", description: "Key or round button", preview: true },
+  { type: "rams-button", name: "Dieter Rams Button", description: "Key with dish, state dot and warning LED", preview: true },
+  { type: "rams-switch", name: "Dieter Rams Switch", description: "On/off switch with a lever", preview: true },
   { type: "rams-dial", name: "Dieter Rams Dial", description: "Half-round scale with a needle, value from an entity or fixed", preview: true },
 );

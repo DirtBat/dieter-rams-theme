@@ -9,7 +9,7 @@ import { css } from "lit";
 export const tokens = css`
   :host {
     --_plate: var(--rams-plate, #f5f4f0);
-    --_cap: var(--rams-cap, #ffffff);
+    --_cap: var(--rams-cap, #e6e3da);
     --_field: var(--rams-field, #eae9e3);
     --_ink: var(--rams-ink, #261201);
     --_ink-on: var(--rams-ink-on, #ffffff);
@@ -28,7 +28,12 @@ export const tokens = css`
     --_inset: var(--rams-inset, inset 0 2px 3px rgba(38, 18, 1, 0.12));
     --_radius: var(--rams-radius, 6px);
     --_row: var(--rams-row, 56px);
-    --_down: var(--rams-down, #d2cec5);
+    --_down: var(--rams-down, #cfcbc1);
+    --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
+    --_lens: var(--rams-lens, #b9b3a6);
+    --_slot: var(--rams-slot, #2b2118);
+    --_lever: var(--rams-lever, #efece4);
+    --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
     /* night roles: day values make them invisible */
     --_glow: var(--rams-glow, 0px);

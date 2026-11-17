@@ -6,7 +6,8 @@ Principle: as few card types as possible. Anything that is only a combination of
 | Card | Role | Main options | Covers (from current Mies / Rams studies) | Status |
 |---|---|---|---|---|
 | `rams-panel` | Container: plate, N columns, holds pieces and nested panels | columns | every cluster: thermostat, light block, scenes, transport, alarm, volume row | done |
-| `rams-button` | Key or round, 1-2 lines | entity, name, label or state line, shape, tone, alert_when, selected_when, tap/hold action, columns, rows | tabs, scenes, presets, toggles, openings, shutters, alarm modes, transport, keypad digits, - / + | done, incl. stepper (`adjust_by`) |
+| `rams-button` | Key: blank cap with a dish, state dot, warning LED above, name printed below | entity, name, shape (square, tall), alert_when, selected_when, colour by state, rules_entity, tap/hold action, columns, rows | tabs, scenes, presets, toggles, openings, shutters, transport, - / + | rebuilt 2026-11-17, in lab only |
+| `rams-switch` | On/off switch: lever left = off, right = on, LED above, name below | entity, name, alert_when, selected_when, rules_entity, tap/hold action, columns, rows | boolean toggles | new 2026-11-17, in lab only |
 | `rams-display` | Text block, 1-2 lines | title, text or entity/attribute, unit, size, align, frame (none / outline / recessed) | big values, side values, captions, LCD, status and advice strips, verdict, now-playing title block | done |
 | `rams-ruler` | Scale with pointer | entity, min, max, step, target entity, centre-zero variant, captions, optional touch to set | temperature scale and trend, dimmer level, volume | done: scale with pointer, centre-zero bar, target mark, touch to set (tested: drag sets a number helper) |
 | `rams-artwork` | Square picture | picture source (entity picture or image), caption, playing LED, tap action | now-playing cover, radio / album / podcast tiles | done (entity picture or fixed image, caption, playing LED) |
@@ -38,9 +39,8 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 - Light plate (#F5F4F0, caps white, fields #EAE9E3), outline on the panel plate, one base radius (6) with plate radius = radius + gap, `spacing` option on the panel (default 8).
 - `frame: none | outline | recessed | raised` on every piece and on the panel plate. Defaults: panel raised, display recessed, artwork raised, others none.
-- Tones: neutral, red, orange, blue, green, grey. `tone_style: stripe` (default) puts a stripe on a white key (opposite the text alignment), `cap` colours the whole key; neutral looks the same either way. The key stays down (darker body, inset shadow) while active; the stripe does not change. Active is decided by `selected_when` (a state list, offered from the entity's own states).
+- Key (2026-11-17): size follows the Layout tab (or columns/rows in a panel); a 1x2, 4x1 or 2x1 key is just a bigger key, the dish becomes a pill when the key is long or tall. `shape: tall` is half as wide in the same box. The dot appears only when a state rule (colour by state or value) gives the key a colour; the LED above lights on a warning (`alert_when` or an automatic warning); active (`selected_when`) keeps the key pressed in. Removed: show_state, label_position, round shape, tone, tone_style, size, align (old configs ignore them).
 - Warnings: red key + triangle. Automatic for binary sensors with problem-type device classes; `alert_when` overrides.
-- Button label position: inside / above / below / beside. `show_state` formats timestamps (scene date stamp).
 - Actions: tap and hold on every piece and on the panel (panel action fires only where no piece handles the press). Default tap toggles toggleable domains, otherwise opens more-info.
 - `adjust_by` only for climate entities; elsewhere use a perform-action tap action (e.g. `input_number.decrement`).
 - List: multiple entities (name, state, dot), optional toggle or cover keys.

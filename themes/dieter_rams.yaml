@@ -6,12 +6,17 @@ Dieter Rams:
   modes:
     light:
       rams-plate: "#f5f4f0"
-      rams-cap: "#ffffff"
+      primary-background-color: "#ffffff"   # the page: white by day
+      rams-cap: "#e6e3da"             # keys are beige-grey, so they do not vanish on a white page
       rams-field: "#eae9e3"
       rams-ink: "#261201"
       rams-ink-on: "#ffffff"
       rams-muted: "#736356"
-      rams-down: "#d2cec5"            # a key that is down: darker than the cap, lighter than the shadow
+      rams-down: "#cfcbc1"            # a key that is down: darker than the cap, lighter than the shadow
+      rams-key-edge: "rgba(38, 18, 1, 0.35)"
+      rams-lens: "#b9b3a6"            # warning LED, unlit
+      rams-slot: "#2b2118"            # switch slot
+      rams-lever: "#efece4"
       rams-red: "#c8362b"
       rams-orange: "#e8801a"
       rams-blue: "#2f5fa8"
@@ -30,6 +35,7 @@ Dieter Rams:
       rams-lcd-bg: "linear-gradient(180deg, #cfd8b0 0%, #c4cea3 100%)"
       rams-lcd-ink: "#2a3320"
     dark:
+      primary-background-color: "#0b0b0a"   # the page: black by night
       rams-plate: "#1c1b19"
       rams-cap: "#2a2825"
       rams-field: "#141311"
@@ -37,6 +43,10 @@ Dieter Rams:
       rams-ink-on: "#fff6e8"
       rams-muted: "#9b9285"
       rams-down: "#4d463a"            # a key that is down is lit
+      rams-key-edge: "rgba(0, 0, 0, 0.7)"
+      rams-lens: "#3a1512"
+      rams-slot: "#0e0d0c"
+      rams-lever: "#8d887c"
       rams-red: "#e0483a"
       rams-orange: "#f09a2e"
       rams-blue: "#5c8fe0"

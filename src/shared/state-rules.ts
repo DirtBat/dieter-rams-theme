@@ -25,6 +25,8 @@ export interface StateView {
   active: boolean;
   /** The tone to fill a piece with now, if any: a colour for this state, else red for a warning. */
   signal?: Tone;
+  /** Only the colour chosen by state or value rules (never the red warning): the dot on a key. */
+  tone?: Tone;
 }
 
 /** Binary sensors with these device classes are warnings when on: HA already marks them as problems. */
@@ -56,5 +58,6 @@ export function readState(hass: Hass | undefined, entity: string | undefined, ru
     alert,
     active: (rules.selected_when ?? ACTIVE_STATES).some((a) => same(a, state)),
     signal: byValue && byValue !== "neutral" ? byValue : alert ? "red" : undefined,
+    tone: byValue && byValue !== "neutral" ? byValue : undefined,
   };
 }
