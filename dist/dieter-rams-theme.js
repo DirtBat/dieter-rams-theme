@@ -600,13 +600,13 @@ function n2(t2) {
 function r(r2) {
   return n2({ ...r2, state: true, attribute: false });
 }
-var __defProp$5 = Object.defineProperty;
+var __defProp$6 = Object.defineProperty;
 var __decorateClass$c = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(target, key, result) || result;
-  if (result) __defProp$5(target, key, result);
+  if (result) __defProp$6(target, key, result);
   return result;
 };
 class Piece extends i {
@@ -803,6 +803,12 @@ const tokens = i$3`
   :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
+function fitKey(w2, h2) {
+  if (w2 <= 0 || h2 <= 0) return { n: 1, m: 1, u: 0 };
+  const n3 = w2 >= h2 ? Math.max(1, Math.round(w2 / h2)) : 1;
+  const m2 = w2 >= h2 ? 1 : Math.max(1, Math.round(h2 / w2));
+  return { n: n3, m: m2, u: Math.min(w2 / n3, h2 / m2) };
+}
 const keyStyles = i$3`
   .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
   .cell.above { flex-direction: column-reverse; }
@@ -829,26 +835,21 @@ const keyStyles = i$3`
     box-shadow: var(--_raised); color: var(--_ink);
     font: inherit; font-size: 14px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .key.tall { width: 50%; }
   /* down: the key stays in while active */
   .key.down, .key:active { background: var(--_down); box-shadow: var(--_pressed); transform: translateY(1px); }
 
-  /* the dish */
+  /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    height: 62%; aspect-ratio: 1; border-radius: 50%;
+    height: calc(var(--u, 56px) * 0.76); aspect-ratio: 1; border-radius: 50%;
     background: radial-gradient(120% 140% at 50% 15%, var(--_cap) 0%, var(--_dish) 100%);
     box-shadow: var(--_inset), 0 1px 0 rgba(255, 255, 255, 0.3);
   }
-  .key.tall::before { height: calc(100% - 20px); width: 56%; aspect-ratio: auto; border-radius: 999px; }
-  @container (min-aspect-ratio: 13/10) {
-    .key:not(.tall)::before { height: 62%; width: calc(100% - 20px); aspect-ratio: auto; border-radius: 999px; }
-  }
-  @container (max-aspect-ratio: 10/13) {
-    .key:not(.tall)::before { height: calc(100% - 20px); width: 62%; aspect-ratio: auto; border-radius: 999px; }
-  }
+  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.24); aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.24); width: calc(var(--u) * 0.76); aspect-ratio: auto; border-radius: 999px; }
+  .key.tall::before { height: calc(100% - var(--u) * 0.24); width: 62%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
-  .key:has(.legend):not(.round)::before { height: 62%; width: calc(100% - 20px); aspect-ratio: auto; border-radius: 999px; }
+  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.62); width: calc(100% - 12px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
   .key.round .ico { --mdc-icon-size: 18px; }
@@ -969,12 +970,14 @@ async function writeNumber(hass, entity, value) {
       throw new Error(`rams: cannot set a number on ${entity}`);
   }
 }
+var __defProp$5 = Object.defineProperty;
 var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
 var __decorateClass$b = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
-      result = decorator(result) || result;
+      result = (kind ? decorator(target, key, result) : decorator(result)) || result;
+  if (kind && result) __defProp$5(target, key, result);
   return result;
 };
 let RamsButton = class extends Piece {
@@ -983,6 +986,23 @@ let RamsButton = class extends Piece {
     this.hostFrame = false;
     this.minRows = true;
     this.press = new Press(this, () => this.config, () => this.step());
+    this.fit = { n: 1, m: 1, u: 0 };
+  }
+  /** Measure the key's room, so the key is a square or a whole number of squares whatever the grid gives it. */
+  firstUpdated() {
+    const area = this.renderRoot.querySelector(".keyarea");
+    if (!area) return;
+    this.ro = new ResizeObserver(([e2]) => {
+      const { width, height } = e2.contentRect;
+      const f2 = fitKey(width, height);
+      if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
+    });
+    this.ro.observe(area);
+  }
+  disconnectedCallback() {
+    var _a2;
+    super.disconnectedCallback();
+    (_a2 = this.ro) == null ? void 0 : _a2.disconnect();
   }
   static getStubConfig() {
     return { type: "custom:rams-button", name: "Button", columns: 2, rows: 2 };
@@ -1046,6 +1066,11 @@ let RamsButton = class extends Piece {
     if (now !== void 0) void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, defaultRange(this.hass, c2.entity)));
     return true;
   }
+  keySize(shape) {
+    const { n: n3, m: m2, u: u2 } = this.fit;
+    if (shape === "round" || !u2) return "";
+    return `--u:${u2}px; width:${(shape === "tall" ? n3 / 2 : n3) * u2}px; height:${m2 * u2}px`;
+  }
   render() {
     var _a2, _b;
     const c2 = this.config;
@@ -1058,7 +1083,7 @@ let RamsButton = class extends Piece {
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${view.alert ? "on" : ""}"></i>
-        <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea"><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
           ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
@@ -1069,6 +1094,9 @@ let RamsButton = class extends Piece {
   }
 };
 RamsButton.styles = [tokens, keyStyles, i$3`:host { display: block; }`];
+__decorateClass$b([
+  r()
+], RamsButton.prototype, "fit", 2);
 RamsButton = __decorateClass$b([
   t("rams-button")
 ], RamsButton);

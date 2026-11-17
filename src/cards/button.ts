@@ -1,10 +1,10 @@
 import { css, html, nothing, type TemplateResult } from "lit";
-import { customElement } from "lit/decorators.js";
+import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
 import { readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
-import { keyStyles } from "../shared/key";
+import { fitKey, keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { PieceConfig } from "../shared/types";
@@ -34,6 +34,25 @@ export class RamsButton extends Piece<ButtonConfig> {
   protected hostFrame = false;
   protected minRows = true;
   private press = new Press(this, () => this.config, () => this.step());
+  @state() private fit = { n: 1, m: 1, u: 0 };
+  private ro?: ResizeObserver;
+
+  /** Measure the key's room, so the key is a square or a whole number of squares whatever the grid gives it. */
+  protected firstUpdated(): void {
+    const area = this.renderRoot.querySelector(".keyarea");
+    if (!area) return;
+    this.ro = new ResizeObserver(([e]) => {
+      const { width, height } = e.contentRect;
+      const f = fitKey(width, height);
+      if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
+    });
+    this.ro.observe(area);
+  }
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.ro?.disconnect();
+  }
 
   static styles = [tokens, keyStyles, css`:host { display: block; }`];
 
@@ -101,6 +120,12 @@ export class RamsButton extends Piece<ButtonConfig> {
     return true;
   }
 
+  private keySize(shape?: string): string {
+    const { n, m, u } = this.fit;
+    if (shape === "round" || !u) return "";
+    return `--u:${u}px; width:${(shape === "tall" ? n / 2 : n) * u}px; height:${m * u}px`;
+  }
+
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
@@ -112,7 +137,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${view.alert ? "on" : ""}"></i>
-        <div class="keyarea"><button class=${cls} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea"><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}

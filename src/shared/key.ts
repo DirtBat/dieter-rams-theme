@@ -1,11 +1,19 @@
 import { css } from "lit";
 
+/** How many unit squares fit a box: n wide or m tall (never both), and the side of one square. */
+export function fitKey(w: number, h: number): { n: number; m: number; u: number } {
+  if (w <= 0 || h <= 0) return { n: 1, m: 1, u: 0 };
+  const n = w >= h ? Math.max(1, Math.round(w / h)) : 1;
+  const m = w >= h ? 1 : Math.max(1, Math.round(h / w));
+  return { n, m, u: Math.min(w / n, h / m) };
+}
+
 /**
  * The key, drawn once: a beige-grey cap with a recessed dish, an optional dot (the colour a state rule gives it),
  * a warning LED above and the printed name below. Buttons, switches and the keypad share it.
  *
- * The key fills the room it is given. The dish is a circle on a squarish key and a pill on a long or tall one
- * (a container query on the key's room decides), so a 1x2, 4x1 or tall key needs no extra option.
+ * A key is a square, or a whole number of squares (1x2, 4x1, 2x2 ...): the card's box decides how many fit and the
+ * key never stretches off-square. The dish is a circle on a square key and a pill on a long or tall one.
  */
 export const keyStyles = css`
   .cell { height: 100%; min-height: var(--_row); display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; }
@@ -33,26 +41,21 @@ export const keyStyles = css`
     box-shadow: var(--_raised); color: var(--_ink);
     font: inherit; font-size: 14px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  .key.tall { width: 50%; }
   /* down: the key stays in while active */
   .key.down, .key:active { background: var(--_down); box-shadow: var(--_pressed); transform: translateY(1px); }
 
-  /* the dish */
+  /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    height: 62%; aspect-ratio: 1; border-radius: 50%;
+    height: calc(var(--u, 56px) * 0.76); aspect-ratio: 1; border-radius: 50%;
     background: radial-gradient(120% 140% at 50% 15%, var(--_cap) 0%, var(--_dish) 100%);
     box-shadow: var(--_inset), 0 1px 0 rgba(255, 255, 255, 0.3);
   }
-  .key.tall::before { height: calc(100% - 20px); width: 56%; aspect-ratio: auto; border-radius: 999px; }
-  @container (min-aspect-ratio: 13/10) {
-    .key:not(.tall)::before { height: 62%; width: calc(100% - 20px); aspect-ratio: auto; border-radius: 999px; }
-  }
-  @container (max-aspect-ratio: 10/13) {
-    .key:not(.tall)::before { height: calc(100% - 20px); width: 62%; aspect-ratio: auto; border-radius: 999px; }
-  }
+  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.24); aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.24); width: calc(var(--u) * 0.76); aspect-ratio: auto; border-radius: 999px; }
+  .key.tall::before { height: calc(100% - var(--u) * 0.24); width: 62%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
-  .key:has(.legend):not(.round)::before { height: 62%; width: calc(100% - 20px); aspect-ratio: auto; border-radius: 999px; }
+  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.62); width: calc(100% - 12px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
   .key.round .ico { --mdc-icon-size: 18px; }
