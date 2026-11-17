@@ -3,12 +3,14 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, computeHelper, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface RulerConfig extends PieceConfig {
   entity?: string;
   attribute?: string;
+  /** Horizontal (default) or vertical: the lowest value at the bottom. */
+  orientation?: "horizontal" | "vertical";
   min?: number;
   max?: number;
   step?: number;
@@ -42,6 +44,16 @@ export class RamsRuler extends Piece<RulerConfig> {
       .pointer { position: absolute; top: 2px; bottom: 2px; width: 3px; margin-left: -1.5px; background: var(--_active); }
       .target { position: absolute; top: 0; height: 8px; width: 3px; margin-left: -1.5px; background: var(--_honey, var(--_muted)); }
       .labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--_muted); }
+      /* vertical: the same scale turned up, lowest value at the bottom */
+      .wrap.v { flex-direction: row; align-items: stretch; justify-content: center; gap: 6px; }
+      .v .track { width: 24px; height: auto; flex: none; }
+      .v .line { left: 50%; right: auto; top: 0; bottom: 0; width: 1px; height: auto; }
+      .v .tick { left: 50%; top: auto; width: 6px; height: 1px; transform: translateX(-50%); }
+      .v .tick.major { width: 12px; height: 1px; }
+      .v .bar { left: 50%; top: auto; width: 4px; height: auto; transform: translateX(-50%); }
+      .v .pointer { left: 2px; right: 2px; top: auto; width: auto; height: 3px; margin: 0 0 -1.5px 0; }
+      .v .target { left: 0; top: auto; width: 8px; height: 3px; margin: 0 0 -1.5px 0; }
+      .v .labels { flex-direction: column-reverse; align-items: flex-start; }
     `,
   ];
 
@@ -65,6 +77,7 @@ export class RamsRuler extends Piece<RulerConfig> {
             { name: "unit", selector: { text: {} } },
           ],
         },
+        dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
@@ -88,7 +101,9 @@ export class RamsRuler extends Piece<RulerConfig> {
   private fromPointer(e: PointerEvent, el: HTMLElement) {
     const r = this.range();
     const box = el.getBoundingClientRect();
-    const f = Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
+    const f = this.config?.orientation === "vertical"
+      ? Math.min(1, Math.max(0, 1 - (e.clientY - box.top) / box.height))
+      : Math.min(1, Math.max(0, (e.clientX - box.left) / box.width));
     return clamp(r.min + f * (r.max - r.min), r);
   }
 
@@ -121,15 +136,19 @@ export class RamsRuler extends Piece<RulerConfig> {
     const f = this.frac(value, min, max);
     const tf = this.frac(readNumber(this.hass, c.target_entity, c.target_attribute), min, max);
     const ticks = Array.from({ length: 21 }, (_, i) => i / 20);
+    const vertical = c.orientation === "vertical";
     const pct = (x: number) => `${x * 100}%`;
-    const bar = f === undefined ? nothing : c.centre ? html`<div class="bar" style="left:${pct(Math.min(f, 0.5))};width:${pct(Math.abs(f - 0.5))}"></div>` : nothing;
-    return html`<div class="wrap">
+    // along the scale: left for horizontal, bottom for vertical
+    const at = (x: number) => `${vertical ? "bottom" : "left"}:${pct(x)}`;
+    const bar = f === undefined || !c.centre ? nothing
+      : html`<div class="bar" style="${at(Math.min(f, 0.5))};${vertical ? "height" : "width"}:${pct(Math.abs(f - 0.5))}"></div>`;
+    return html`<div class="wrap ${vertical ? "v" : ""}">
       <div class="track ${c.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         <div class="line"></div>
-        ${ticks.map((t) => html`<div class="tick ${t === 0 || t === 0.5 || t === 1 ? "major" : ""}" style="left:${pct(t)}"></div>`)}
+        ${ticks.map((t) => html`<div class="tick ${t === 0 || t === 0.5 || t === 1 ? "major" : ""}" style="${at(t)}"></div>`)}
         ${bar}
-        ${tf === undefined ? nothing : html`<div class="target" style="left:${pct(tf)}"></div>`}
-        ${f === undefined || c.centre ? nothing : html`<div class="pointer" style="left:${pct(f)}"></div>`}
+        ${tf === undefined ? nothing : html`<div class="target" style="${at(tf)}"></div>`}
+        ${f === undefined || c.centre ? nothing : html`<div class="pointer" style="${at(f)}"></div>`}
       </div>
       ${c.labels ? html`<div class="labels"><span>${this.fmt(min)}</span>${c.centre ? html`<span>${this.fmt(0)}</span>` : nothing}<span>${this.fmt(max)}</span></div>` : nothing}
     </div>`;

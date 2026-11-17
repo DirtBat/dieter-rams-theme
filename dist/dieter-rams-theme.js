@@ -1175,6 +1175,22 @@ RamsSwitch.styles = [
 RamsSwitch = __decorateClass$a([
   t("rams-switch")
 ], RamsSwitch);
+const faceStyles = i$3`
+  :host { display: block; }
+  .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .wrap.above { flex-direction: column-reverse; }
+  .wrap.left { flex-direction: row-reverse; align-items: center; }
+  .wrap.right { flex-direction: row; align-items: center; }
+  .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .left .outer, .right .outer { max-width: 40%; }
+  .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
+  .left .face, .right .face { align-self: stretch; }
+  .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
+  .face.outline { background: transparent; }
+  .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
+  .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+  .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
+`;
 var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
 var __decorateClass$9 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
@@ -1291,24 +1307,8 @@ let RamsDisplay = class extends Piece {
 };
 RamsDisplay.styles = [
   tokens,
+  faceStyles,
   i$3`
-      :host { display: block; }
-      .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-      .wrap.above { flex-direction: column-reverse; }
-      .wrap.left { flex-direction: row-reverse; align-items: center; }
-      .wrap.right { flex-direction: row; align-items: center; }
-      /* the title printed outside the box */
-      .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .left .outer, .right .outer { max-width: 40%; }
-      /* the face: the box itself */
-      .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
-      .left .face, .right .face { align-self: stretch; }
-      .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
-      .face.outline { background: transparent; }
-      .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
-      .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
-      /* a signalled display (warning or colour for a state): filled with the tone, white text */
-      .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
       .box { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 2px; overflow: hidden; }
       .start { align-items: flex-start; text-align: left; }
       .center { align-items: center; text-align: center; }
@@ -1589,6 +1589,7 @@ let RamsRuler = class extends Piece {
             { name: "unit", selector: { text: {} } }
           ]
         },
+        dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
@@ -1607,9 +1608,10 @@ let RamsRuler = class extends Piece {
     return v2 === void 0 ? void 0 : Math.min(1, Math.max(0, (v2 - min) / (max - min)));
   }
   fromPointer(e2, el) {
+    var _a2;
     const r2 = this.range();
     const box = el.getBoundingClientRect();
-    const f2 = Math.min(1, Math.max(0, (e2.clientX - box.left) / box.width));
+    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.orientation) === "vertical" ? Math.min(1, Math.max(0, 1 - (e2.clientY - box.top) / box.height)) : Math.min(1, Math.max(0, (e2.clientX - box.left) / box.width));
     return clamp(r2.min + f2 * (r2.max - r2.min), r2);
   }
   fmt(v2) {
@@ -1625,15 +1627,17 @@ let RamsRuler = class extends Piece {
     const f2 = this.frac(value, min, max);
     const tf = this.frac(readNumber(this.hass, c2.target_entity, c2.target_attribute), min, max);
     const ticks = Array.from({ length: 21 }, (_2, i2) => i2 / 20);
+    const vertical = c2.orientation === "vertical";
     const pct = (x2) => `${x2 * 100}%`;
-    const bar = f2 === void 0 ? A : c2.centre ? b`<div class="bar" style="left:${pct(Math.min(f2, 0.5))};width:${pct(Math.abs(f2 - 0.5))}"></div>` : A;
-    return b`<div class="wrap">
+    const at2 = (x2) => `${vertical ? "bottom" : "left"}:${pct(x2)}`;
+    const bar = f2 === void 0 || !c2.centre ? A : b`<div class="bar" style="${at2(Math.min(f2, 0.5))};${vertical ? "height" : "width"}:${pct(Math.abs(f2 - 0.5))}"></div>`;
+    return b`<div class="wrap ${vertical ? "v" : ""}">
       <div class="track ${c2.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         <div class="line"></div>
-        ${ticks.map((t2) => b`<div class="tick ${t2 === 0 || t2 === 0.5 || t2 === 1 ? "major" : ""}" style="left:${pct(t2)}"></div>`)}
+        ${ticks.map((t2) => b`<div class="tick ${t2 === 0 || t2 === 0.5 || t2 === 1 ? "major" : ""}" style="${at2(t2)}"></div>`)}
         ${bar}
-        ${tf === void 0 ? A : b`<div class="target" style="left:${pct(tf)}"></div>`}
-        ${f2 === void 0 || c2.centre ? A : b`<div class="pointer" style="left:${pct(f2)}"></div>`}
+        ${tf === void 0 ? A : b`<div class="target" style="${at2(tf)}"></div>`}
+        ${f2 === void 0 || c2.centre ? A : b`<div class="pointer" style="${at2(f2)}"></div>`}
       </div>
       ${c2.labels ? b`<div class="labels"><span>${this.fmt(min)}</span>${c2.centre ? b`<span>${this.fmt(0)}</span>` : A}<span>${this.fmt(max)}</span></div>` : A}
     </div>`;
@@ -1653,6 +1657,16 @@ RamsRuler.styles = [
       .pointer { position: absolute; top: 2px; bottom: 2px; width: 3px; margin-left: -1.5px; background: var(--_active); }
       .target { position: absolute; top: 0; height: 8px; width: 3px; margin-left: -1.5px; background: var(--_honey, var(--_muted)); }
       .labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--_muted); }
+      /* vertical: the same scale turned up, lowest value at the bottom */
+      .wrap.v { flex-direction: row; align-items: stretch; justify-content: center; gap: 6px; }
+      .v .track { width: 24px; height: auto; flex: none; }
+      .v .line { left: 50%; right: auto; top: 0; bottom: 0; width: 1px; height: auto; }
+      .v .tick { left: 50%; top: auto; width: 6px; height: 1px; transform: translateX(-50%); }
+      .v .tick.major { width: 12px; height: 1px; }
+      .v .bar { left: 50%; top: auto; width: 4px; height: auto; transform: translateX(-50%); }
+      .v .pointer { left: 2px; right: 2px; top: auto; width: auto; height: 3px; margin: 0 0 -1.5px 0; }
+      .v .target { left: 0; top: auto; width: 8px; height: 3px; margin: 0 0 -1.5px 0; }
+      .v .labels { flex-direction: column-reverse; align-items: flex-start; }
     `
 ];
 __decorateClass$6([
@@ -1764,6 +1778,7 @@ let RamsClock = class extends Piece {
   constructor() {
     super(...arguments);
     this.defaultFrame = "none";
+    this.hostFrame = false;
     this.now = /* @__PURE__ */ new Date();
     this.toggleAlarm = (e2) => {
       var _a2;
@@ -1779,6 +1794,8 @@ let RamsClock = class extends Piece {
       schema: [
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
+        { name: "title", selector: { text: {} } },
+        dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
         ...layoutFields()
       ],
@@ -1807,35 +1824,42 @@ let RamsClock = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const { h: h2, m: m2, s: s2 } = this.parts();
+    const digital = c2.variant === "digital";
     const alarm = c2.alarm_entity ? ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.alarm_entity]) == null ? void 0 : _b.state) === "on" : false;
-    const key = c2.alarm_entity ? b`<div class="key ${alarm ? "on" : ""}" @click=${this.toggleAlarm}></div>` : A;
-    if (c2.variant === "digital") {
-      const pad = (n3) => String(n3).padStart(2, "0");
-      return b`<div class="face"><span class="digital">${pad(h2)}:${pad(m2)}${c2.seconds ? `:${pad(s2)}` : ""}</span>${key}</div>`;
-    }
+    const led = c2.alarm_entity ? b`<button class="led ${alarm ? "on" : ""}" aria-label="Alarm" @click=${this.toggleAlarm}></button>` : A;
+    const frame = c2.frame ?? (digital ? "recessed" : this.defaultFrame);
+    const pos = c2.title ? c2.title_position ?? "above" : "";
     const hourDeg = (h2 % 12 + m2 / 60) * 30;
     const minDeg = (m2 + s2 / 60) * 6;
-    return b`<div class="face">${w$1`<svg viewBox="0 0 120 120">
-      <circle class="dots" cx="60" cy="60" r="50" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 26.18" transform="rotate(-90 60 60)" />
-      <line class="hand" x1="60" y1="60" x2="60" y2="38" stroke-width="6" style="transform: rotate(${hourDeg}deg)" />
-      <line class="hand" x1="60" y1="60" x2="60" y2="22" stroke-width="5" style="transform: rotate(${minDeg}deg)" />
-      ${c2.seconds ? w$1`<line class="sec" x1="60" y1="68" x2="60" y2="12" stroke-width="1.5" style="transform: rotate(${s2 * 6}deg)" />` : A}
-      <circle class="hub" cx="60" cy="60" r="6" />
-    </svg>`}${key}</div>`;
+    const pad = (n3) => String(n3).padStart(2, "0");
+    const dial = digital ? b`<span class="digital ${c2.seconds ? "sec" : ""}">${pad(h2)}:${pad(m2)}${c2.seconds ? `:${pad(s2)}` : ""}</span>` : w$1`<svg viewBox="0 0 120 120">
+      <circle class="dots" cx="60" cy="60" r="50" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 26.18" transform="rotate(-90 60 60)" />
+      <line class="hand" x1="60" y1="60" x2="60" y2="38" stroke-width="4" style="transform: rotate(${hourDeg}deg)" />
+      <line class="hand" x1="60" y1="60" x2="60" y2="22" stroke-width="3" style="transform: rotate(${minDeg}deg)" />
+      ${c2.seconds ? w$1`<line class="sec" x1="60" y1="68" x2="60" y2="12" stroke-width="1" style="transform: rotate(${s2 * 6}deg)" />` : A}
+      <circle class="hub" cx="60" cy="60" r="4.5" />
+    </svg>`;
+    return b`<div class="wrap ${pos}">
+      ${pos ? b`<span class="outer">${c2.title}</span>` : A}
+      <div class="face ${frame === "none" ? "" : frame}">${dial}${led}</div>
+    </div>`;
   }
 };
 RamsClock.styles = [
   tokens,
+  faceStyles,
   i$3`
-            .face { position: relative; box-sizing: border-box; height: 100%; display: grid; place-items: center; }
+      .face { position: relative; display: grid; place-items: center; overflow: hidden; container-type: inline-size; }
       svg { height: 100%; max-width: 100%; aspect-ratio: 1; }
       .dots { stroke: var(--_ink); }
       .hand { stroke: var(--_ink); stroke-linecap: round; transform-origin: 60px 60px; }
       .sec { stroke: var(--_honey); transform-origin: 60px 60px; }
       .hub { fill: var(--_ink); }
-      .digital { font-family: var(--rams-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: 30px; letter-spacing: 0.02em; }
-      .key { position: absolute; top: -4px; right: 14%; width: 22%; height: 7px; border-radius: 2px; border: var(--_border); background: var(--_ink); cursor: pointer; }
-      .key.on { background: var(--_active); }
+      .digital { font-family: var(--rams-mono, ui-monospace, "SF Mono", Menlo, monospace); font-size: clamp(14px, 24cqw, 40px); letter-spacing: 0.02em; white-space: nowrap; }
+      .digital.sec { font-size: clamp(12px, 15cqw, 34px); }
+      /* the alarm lamp: dark glass, lit while the alarm is on */
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; padding: 0; border: 0; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); cursor: pointer; }
+      .led.on { background: var(--_active); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_active) 85%, transparent); }
     `
 ];
 __decorateClass$4([
