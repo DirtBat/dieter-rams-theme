@@ -61,3 +61,11 @@ export function readState(hass: Hass | undefined, entity: string | undefined, ru
     tone: byValue && byValue !== "neutral" ? byValue : undefined,
   };
 }
+
+/** True when a warning is possible: the piece has "warning when" states, or judges a problem-type binary sensor. */
+export function canWarn(hass: Hass | undefined, entity: string | undefined, rules: StateRules): boolean {
+  if (rules.alert_when?.length) return true;
+  const judged = rules.rules_entity ?? entity;
+  const e = judged ? hass?.states[judged] : undefined;
+  return !!e && judged!.startsWith("binary_sensor.") && WARNING_CLASSES.includes(String(e.attributes.device_class));
+}

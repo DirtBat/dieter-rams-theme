@@ -2,7 +2,7 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
-import { readState, type StateRules } from "../shared/state-rules";
+import { canWarn, readState, type StateRules } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
 import { keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
@@ -71,7 +71,7 @@ export class RamsSwitch extends Piece<SwitchConfig> {
     const view = readState(this.hass, c.entity, c);
     const name = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     return html`<div class="cell">
-      <i class="led ${view.alert ? "on" : ""}"></i>
+      <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
       <div class="well">
         <button class="slot ${view.active ? "on" : ""}" aria-pressed=${view.active} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}><i class="lever"></i></button>
         <div class="pos"><span>off</span><span>on</span></div>

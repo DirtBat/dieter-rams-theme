@@ -741,6 +741,13 @@ function readState(hass, entity, rules) {
     tone: byValue && byValue !== "neutral" ? byValue : void 0
   };
 }
+function canWarn(hass, entity, rules) {
+  var _a2;
+  if ((_a2 = rules.alert_when) == null ? void 0 : _a2.length) return true;
+  const judged = rules.rules_entity ?? entity;
+  const e2 = judged ? hass == null ? void 0 : hass.states[judged] : void 0;
+  return !!e2 && judged.startsWith("binary_sensor.") && WARNING_CLASSES.includes(String(e2.attributes.device_class));
+}
 const tokens = i$3`
   :host {
     --_plate: var(--rams-plate, #f5f4f0);
@@ -800,7 +807,7 @@ const tokens = i$3`
   :host([signal="green"]) { --_sig: var(--_green); }
   :host([signal="grey"]) { --_sig: var(--_grey); }
   :host([actionable]) { cursor: pointer; }
-  :host([frame="recessed"]) { background: var(--_field); box-shadow: var(--_inset); }
+  :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
 function fitKey(w2, h2) {
@@ -821,6 +828,7 @@ const keyStyles = i$3`
   /* name beside the key: key and LED sit next to it, not in the middle of the leftover room */
   .cell.right .stack { align-items: flex-end; } .cell.right .keyarea { justify-content: flex-end; }
   .cell.left .stack { align-items: flex-start; } .cell.left .keyarea { justify-content: flex-start; }
+  .led.off { visibility: hidden; }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -841,15 +849,16 @@ const keyStyles = i$3`
   /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    height: calc(var(--u, 56px) * 0.76); aspect-ratio: 1; border-radius: 50%;
-    background: radial-gradient(120% 140% at 50% 15%, var(--_cap) 0%, var(--_dish) 100%);
-    box-shadow: var(--_inset), 0 1px 0 rgba(255, 255, 255, 0.3);
+    height: calc(var(--u, 56px) * 0.86); aspect-ratio: 1; border-radius: 50%;
+    /* hollow: shaded at the top edge, catching the light at the bottom */
+    background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--_cap) 78%, #fff) 0%, var(--_dish) 72%);
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.3), inset 0 -1px 1px rgba(255, 255, 255, 0.55), 0 1px 0 rgba(255, 255, 255, 0.45);
   }
-  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.24); aspect-ratio: auto; border-radius: 999px; }
-  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.24); width: calc(var(--u) * 0.76); aspect-ratio: auto; border-radius: 999px; }
-  .key.tall::before { height: calc(100% - var(--u) * 0.24); width: 62%; aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.14); aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.14); width: calc(var(--u) * 0.86); aspect-ratio: auto; border-radius: 999px; }
+  .key.tall::before { height: calc(100% - var(--u) * 0.14); width: 74%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
-  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.62); width: calc(100% - 12px); aspect-ratio: auto; border-radius: 999px; }
+  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
   .key.round .ico { --mdc-icon-size: 18px; }
@@ -859,7 +868,7 @@ const keyStyles = i$3`
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }
   .key.filled:not(.round) { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff), var(--c)); box-shadow: var(--_raised), 0 0 var(--_glow) 1px color-mix(in srgb, var(--c) 45%, transparent); }
-  .key.filled:not(.round)::before { background: radial-gradient(120% 140% at 50% 15%, color-mix(in srgb, var(--c) 90%, #fff) 0%, color-mix(in srgb, var(--c) 80%, #000) 100%); }
+  .key.filled:not(.round)::before { background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--c) 88%, #fff) 0%, color-mix(in srgb, var(--c) 76%, #000) 75%); }
 
   /* round: a dome on a dark ring, as on the Braun calculator. Always a circle: the biggest that fits. */
   .key.round {
@@ -1082,7 +1091,7 @@ let RamsButton = class extends Piece {
     const cls = ["key", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${view.alert ? "on" : ""}"></i>
+        <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
         <div class="keyarea"><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
@@ -1151,7 +1160,7 @@ let RamsSwitch = class extends Piece {
     const view = readState(this.hass, c2.entity, c2);
     const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
     return b`<div class="cell">
-      <i class="led ${view.alert ? "on" : ""}"></i>
+      <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
       <div class="well">
         <button class="slot ${view.active ? "on" : ""}" aria-pressed=${view.active} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}><i class="lever"></i></button>
         <div class="pos"><span>off</span><span>on</span></div>
@@ -1529,7 +1538,7 @@ RamsPanel.styles = [
   i$3`
       .plate { display: block; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
-      .plate.f-recessed { box-shadow: var(--_inset); }
+      .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
@@ -2125,7 +2134,8 @@ RamsKeypad.styles = [
   keyStyles,
   i$3`
       :host { display: block; min-width: 0; }
-      .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); }
+      /* one centred block: the screen and the keys share the same width and margins */
+      .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
       /* the screen is the display: the same recessed LCD, filled with a tone for a state */
       .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }

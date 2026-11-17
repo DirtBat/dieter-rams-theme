@@ -27,6 +27,7 @@ export const keyStyles = css`
   /* name beside the key: key and LED sit next to it, not in the middle of the leftover room */
   .cell.right .stack { align-items: flex-end; } .cell.right .keyarea { justify-content: flex-end; }
   .cell.left .stack { align-items: flex-start; } .cell.left .keyarea { justify-content: flex-start; }
+  .led.off { visibility: hidden; }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -47,15 +48,16 @@ export const keyStyles = css`
   /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    height: calc(var(--u, 56px) * 0.76); aspect-ratio: 1; border-radius: 50%;
-    background: radial-gradient(120% 140% at 50% 15%, var(--_cap) 0%, var(--_dish) 100%);
-    box-shadow: var(--_inset), 0 1px 0 rgba(255, 255, 255, 0.3);
+    height: calc(var(--u, 56px) * 0.86); aspect-ratio: 1; border-radius: 50%;
+    /* hollow: shaded at the top edge, catching the light at the bottom */
+    background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--_cap) 78%, #fff) 0%, var(--_dish) 72%);
+    box-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.3), inset 0 -1px 1px rgba(255, 255, 255, 0.55), 0 1px 0 rgba(255, 255, 255, 0.45);
   }
-  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.24); aspect-ratio: auto; border-radius: 999px; }
-  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.24); width: calc(var(--u) * 0.76); aspect-ratio: auto; border-radius: 999px; }
-  .key.tall::before { height: calc(100% - var(--u) * 0.24); width: 62%; aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.14); aspect-ratio: auto; border-radius: 999px; }
+  .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.14); width: calc(var(--u) * 0.86); aspect-ratio: auto; border-radius: 999px; }
+  .key.tall::before { height: calc(100% - var(--u) * 0.14); width: 74%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
-  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.62); width: calc(100% - 12px); aspect-ratio: auto; border-radius: 999px; }
+  .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
   .key.round .ico { --mdc-icon-size: 18px; }
@@ -65,7 +67,7 @@ export const keyStyles = css`
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }
   .key.filled:not(.round) { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff), var(--c)); box-shadow: var(--_raised), 0 0 var(--_glow) 1px color-mix(in srgb, var(--c) 45%, transparent); }
-  .key.filled:not(.round)::before { background: radial-gradient(120% 140% at 50% 15%, color-mix(in srgb, var(--c) 90%, #fff) 0%, color-mix(in srgb, var(--c) 80%, #000) 100%); }
+  .key.filled:not(.round)::before { background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--c) 88%, #fff) 0%, color-mix(in srgb, var(--c) 76%, #000) 75%); }
 
   /* round: a dome on a dark ring, as on the Braun calculator. Always a circle: the biggest that fits. */
   .key.round {

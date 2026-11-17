@@ -2,7 +2,7 @@ import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { Press } from "../shared/press";
-import { readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
+import { canWarn, readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
 import { fitKey, keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
@@ -136,7 +136,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const cls = ["key", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${view.alert ? "on" : ""}"></i>
+        <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
         <div class="keyarea"><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
