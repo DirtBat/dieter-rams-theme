@@ -10,6 +10,10 @@ import "./cards/keypad";
 import "./cards/shelf";
 import "./cards/dial";
 
+declare const __BUILT__: string;
+// Shows in the browser console which build is loaded, to tell a stale cached file from a current one.
+console.info(`%c RAMS CARDS %c built ${__BUILT__}`, "background:#261201;color:#fff", "");
+
 const w = window as unknown as { customCards?: Array<Record<string, unknown>> };
 w.customCards = w.customCards ?? [];
 w.customCards.push(
