@@ -38,6 +38,8 @@ export class RamsPanel extends Piece<PanelConfig> {
       /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
       :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
       :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
+      /* a nested panel with rows set is exactly that many rows, like any piece next to it: its own rows share what is left */
+      :host([nested][fixed]) .grid { grid-auto-rows: minmax(0, 1fr); }
       hui-card { min-width: 0; }
     `,
   ];
@@ -100,8 +102,11 @@ export class RamsPanel extends Piece<PanelConfig> {
     const cs = getComputedStyle(plate);
     const px = (v: string) => parseFloat(v) || 0;
     const title = this.shadowRoot?.querySelector<HTMLElement>(".title")?.offsetHeight ?? 0;
+    const nested = this.isNested();
+    this.toggleAttribute("nested", nested);
+    const fixed = nested && typeof this.config?.rows === "number";
+    this.toggleAttribute("fixed", fixed);
     // measure the content at its natural row height, then let a nested panel stretch again
-    this.toggleAttribute("nested", this.isNested());
     grid.classList.add("natural");
     const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
     grid.classList.remove("natural");
@@ -110,8 +115,10 @@ export class RamsPanel extends Piece<PanelConfig> {
     const n = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
     this.needed = n;
     // Inside another panel: tell it how many rows this one spans, or the pieces after it flow into its space.
-    this.reportRows(Math.max(n, typeof this.config?.rows === "number" ? this.config.rows : 0));
-    const h = `${n * row + (n - 1) * gap}px`;
+    // Rows set by the user are the height, exactly; otherwise it is what the content needs.
+    const span = fixed ? (this.config!.rows as number) : n;
+    this.reportRows(span);
+    const h = `${span * row + (span - 1) * gap}px`;
     if (plate.style.minHeight !== h) plate.style.minHeight = h;
   };
 

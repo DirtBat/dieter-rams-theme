@@ -3,7 +3,8 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, computeHelper, layoutFields, num } from "../shared/form";
+import { faceStyles } from "../shared/face";
+import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface DialConfig extends PieceConfig {
@@ -17,7 +18,13 @@ export interface DialConfig extends PieceConfig {
   /** Distance between tick marks, and the step when set by touch. */
   interval?: number;
   unit?: string;
+  /** Printed with the dial: inside the arc (default), or above, below, left or right of it. */
+  title?: string;
+  title_position?: "inside" | "above" | "below" | "left" | "right";
+  /** Earlier name of title. */
   label?: string;
+  /** The number in the middle: shown (default) or not, when the needle says enough. */
+  show?: "all" | "none";
   /** The scale's first and last angle in degrees: 0 is straight up, positive is clockwise. -90 to 90 is a horizontal VU style arc, 30 to 150 a vertical one on the right. */
   start_angle?: number;
   end_angle?: number;
@@ -37,9 +44,11 @@ export class RamsDial extends Piece<DialConfig> {
 
   static styles = [
     tokens,
+    faceStyles,
     css`
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
       svg { display: block; width: 100%; height: 100%; touch-action: none; }
+      .face { display: block; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
       .tick { stroke: var(--_muted); stroke-width: 1; }
       .tick.major { stroke: var(--_ink); stroke-width: 1.5; }
@@ -70,7 +79,9 @@ export class RamsDial extends Piece<DialConfig> {
             num("start_angle", -360, 360, { step: 5 }),
             num("end_angle", -360, 360, { step: 5 }),
             { name: "unit", selector: { text: {} } },
-            { name: "label", selector: { text: {} } },
+            { name: "title", selector: { text: {} } },
+            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
           ],
         },
         { name: "interactive", selector: { boolean: {} } },
@@ -99,12 +110,30 @@ export class RamsDial extends Piece<DialConfig> {
     return at(a0 + f * (a1 - a0), r);
   }
 
+  private text(): string {
+    return this.config?.title ?? this.config?.label ?? "";
+  }
+
+  private inside(): boolean {
+    return !this.config?.title_position || this.config.title_position === "inside";
+  }
+
+  /** Baseline of the number: under a top arc, but centred on the dial when the arc runs down the side. */
+  private numberY(): number {
+    const [a0, a1] = this.angles();
+    let low = Math.max(at(a0, R)[1], at(a1, R)[1]);
+    for (let a = Math.ceil(a0 / 90) * 90; a <= a1; a += 90) low = Math.max(low, at(a, R)[1]);
+    if (low <= 20) return 26;
+    return this.config?.unit ? 2 : 8;
+  }
+
   /** The drawing area: the arc, the end labels and the centre text, whatever the angles are. */
   private box(): [number, number, number, number] {
     const [a0, a1] = this.angles();
-    const pts: Array<[number, number]> = [at(a0, R + 14), at(a1, R + 14), [0, 34 + (this.config?.unit ? 12 : 0)]];
+    const pts: Array<[number, number]> = [at(a0, R + 14), at(a1, R + 14)];
+    if (this.config?.show !== "none") pts.push([0, this.numberY() + 8 + (this.config?.unit ? 12 : 0)]);
     for (let a = Math.ceil(a0 / 90) * 90; a <= a1; a += 90) pts.push(at(a, R + 4));
-    if (this.config?.label) pts.push([0, -R - 16]);
+    if (this.inside() && this.text()) pts.push([0, -R - 16]);
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4;
     return [x0 - 8, y0, Math.max(...xs) + 4 - x0 + 16, Math.max(...ys) + 4 - y0];
@@ -158,7 +187,9 @@ export class RamsDial extends Piece<DialConfig> {
       const s = Math.sin(rad(a));
       return svg`<text class="end" x=${x} y=${y + 3} text-anchor=${s > 0.4 ? "start" : s < -0.4 ? "end" : "middle"}>${text}</text>`;
     };
-    return html`<svg viewBox="${x0} ${y0} ${w} ${h}" class=${c.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+    const ny = this.numberY();
+    const outside = !this.inside() && !!this.text();
+    const dial = html`<svg viewBox="${x0} ${y0} ${w} ${h}" class=${c.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
       ${svg`<path class="arc" d="M ${sx} ${sy} A ${R} ${R} 0 ${large} 1 ${ex} ${ey}" />
       ${ticks.map((t, i) => {
         const major = i === 0 || i === count || (count % 2 === 0 && i === count / 2);
@@ -168,9 +199,10 @@ export class RamsDial extends Piece<DialConfig> {
       })}
       ${f === undefined ? nothing : svg`<line class="needle" x1=${this.at(f, R * 0.5)[0]} y1=${this.at(f, R * 0.5)[1]} x2=${this.at(f, R - 6)[0]} y2=${this.at(f, R - 6)[1]} />`}
       ${endLabel(a0, min)}${endLabel(a1, max)}
-      <text class="num" x="0" y="26">${shown}</text>
-      ${c.unit ? svg`<text class="unit" x="0" y="38">${c.unit}</text>` : nothing}
-      ${c.label ? svg`<text class="lab" x="0" y=${-R - 8}>${c.label}</text>` : nothing}`}
+      ${c.show === "none" ? nothing : svg`<text class="num" x="0" y=${ny}>${shown}</text>${c.unit ? svg`<text class="unit" x="0" y=${ny + 12}>${c.unit}</text>` : nothing}`}
+      ${!outside && this.text() ? svg`<text class="lab" x="0" y=${-R - 8}>${this.text()}</text>` : nothing}`}
     </svg>`;
+    if (!outside) return dial;
+    return html`<div class="wrap ${c.title_position}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
 }

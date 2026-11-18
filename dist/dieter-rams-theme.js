@@ -1208,9 +1208,10 @@ RamsSwitch = __decorateClass$a([
 const faceStyles = i$3`
   :host { display: block; }
   .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-  .wrap.above { flex-direction: column-reverse; }
-  .wrap.left { flex-direction: row-reverse; align-items: center; }
-  .wrap.right { flex-direction: row; align-items: center; }
+  /* the title comes first in the markup: that is "above" (column) and "left" (row) */
+  .wrap.below { flex-direction: column-reverse; }
+  .wrap.left { flex-direction: row; align-items: center; }
+  .wrap.right { flex-direction: row-reverse; align-items: center; }
   .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .left .outer, .right .outer { max-width: 40%; }
   .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
@@ -1508,7 +1509,10 @@ let RamsPanel = class extends Piece {
       const cs = getComputedStyle(plate);
       const px = (v2) => parseFloat(v2) || 0;
       const title = ((_d = (_c = this.shadowRoot) == null ? void 0 : _c.querySelector(".title")) == null ? void 0 : _d.offsetHeight) ?? 0;
-      this.toggleAttribute("nested", this.isNested());
+      const nested = this.isNested();
+      this.toggleAttribute("nested", nested);
+      const fixed = nested && typeof ((_e = this.config) == null ? void 0 : _e.rows) === "number";
+      this.toggleAttribute("fixed", fixed);
       grid.classList.add("natural");
       const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
       grid.classList.remove("natural");
@@ -1516,8 +1520,9 @@ let RamsPanel = class extends Piece {
       const gap = px(cs.getPropertyValue("--_gap")) || 8;
       const n3 = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
       this.needed = n3;
-      this.reportRows(Math.max(n3, typeof ((_e = this.config) == null ? void 0 : _e.rows) === "number" ? this.config.rows : 0));
-      const h2 = `${n3 * row + (n3 - 1) * gap}px`;
+      const span = fixed ? this.config.rows : n3;
+      this.reportRows(span);
+      const h2 = `${span * row + (span - 1) * gap}px`;
       if (plate.style.minHeight !== h2) plate.style.minHeight = h2;
     };
     this.onRows = (e2) => {
@@ -1619,6 +1624,8 @@ RamsPanel.styles = [
       /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
       :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
       :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
+      /* a nested panel with rows set is exactly that many rows, like any piece next to it: its own rows share what is left */
+      :host([nested][fixed]) .grid { grid-auto-rows: minmax(0, 1fr); }
       hui-card { min-width: 0; }
     `
 ];
@@ -2416,7 +2423,9 @@ let RamsDial = class extends Piece {
             num$1("start_angle", -360, 360, { step: 5 }),
             num$1("end_angle", -360, 360, { step: 5 }),
             { name: "unit", selector: { text: {} } },
-            { name: "label", selector: { text: {} } }
+            { name: "title", selector: { text: {} } },
+            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]])
           ]
         },
         { name: "interactive", selector: { boolean: {} } },
@@ -2441,13 +2450,31 @@ let RamsDial = class extends Piece {
     const [a0, a1] = this.angles();
     return at(a0 + f2 * (a1 - a0), r2);
   }
+  text() {
+    var _a2, _b;
+    return ((_a2 = this.config) == null ? void 0 : _a2.title) ?? ((_b = this.config) == null ? void 0 : _b.label) ?? "";
+  }
+  inside() {
+    var _a2;
+    return !((_a2 = this.config) == null ? void 0 : _a2.title_position) || this.config.title_position === "inside";
+  }
+  /** Baseline of the number: under a top arc, but centred on the dial when the arc runs down the side. */
+  numberY() {
+    var _a2;
+    const [a0, a1] = this.angles();
+    let low = Math.max(at(a0, R2)[1], at(a1, R2)[1]);
+    for (let a2 = Math.ceil(a0 / 90) * 90; a2 <= a1; a2 += 90) low = Math.max(low, at(a2, R2)[1]);
+    if (low <= 20) return 26;
+    return ((_a2 = this.config) == null ? void 0 : _a2.unit) ? 2 : 8;
+  }
   /** The drawing area: the arc, the end labels and the centre text, whatever the angles are. */
   box() {
     var _a2, _b;
     const [a0, a1] = this.angles();
-    const pts = [at(a0, R2 + 14), at(a1, R2 + 14), [0, 34 + (((_a2 = this.config) == null ? void 0 : _a2.unit) ? 12 : 0)]];
+    const pts = [at(a0, R2 + 14), at(a1, R2 + 14)];
+    if (((_a2 = this.config) == null ? void 0 : _a2.show) !== "none") pts.push([0, this.numberY() + 8 + (((_b = this.config) == null ? void 0 : _b.unit) ? 12 : 0)]);
     for (let a2 = Math.ceil(a0 / 90) * 90; a2 <= a1; a2 += 90) pts.push(at(a2, R2 + 4));
-    if ((_b = this.config) == null ? void 0 : _b.label) pts.push([0, -R2 - 16]);
+    if (this.inside() && this.text()) pts.push([0, -R2 - 16]);
     const xs = pts.map((p2) => p2[0]), ys = pts.map((p2) => p2[1]);
     const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4;
     return [x0 - 8, y0, Math.max(...xs) + 4 - x0 + 16, Math.max(...ys) + 4 - y0];
@@ -2485,7 +2512,9 @@ let RamsDial = class extends Piece {
       const s2 = Math.sin(rad(a2));
       return w$1`<text class="end" x=${x2} y=${y3 + 3} text-anchor=${s2 > 0.4 ? "start" : s2 < -0.4 ? "end" : "middle"}>${text}</text>`;
     };
-    return b`<svg viewBox="${x0} ${y0} ${w2} ${h2}" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+    const ny = this.numberY();
+    const outside = !this.inside() && !!this.text();
+    const dial = b`<svg viewBox="${x0} ${y0} ${w2} ${h2}" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
       ${w$1`<path class="arc" d="M ${sx} ${sy} A ${R2} ${R2} 0 ${large} 1 ${ex} ${ey}" />
       ${ticks.map((t2, i2) => {
       const major = i2 === 0 || i2 === count || count % 2 === 0 && i2 === count / 2;
@@ -2495,17 +2524,20 @@ let RamsDial = class extends Piece {
     })}
       ${f2 === void 0 ? A : w$1`<line class="needle" x1=${this.at(f2, R2 * 0.5)[0]} y1=${this.at(f2, R2 * 0.5)[1]} x2=${this.at(f2, R2 - 6)[0]} y2=${this.at(f2, R2 - 6)[1]} />`}
       ${endLabel(a0, min)}${endLabel(a1, max)}
-      <text class="num" x="0" y="26">${shown}</text>
-      ${c2.unit ? w$1`<text class="unit" x="0" y="38">${c2.unit}</text>` : A}
-      ${c2.label ? w$1`<text class="lab" x="0" y=${-R2 - 8}>${c2.label}</text>` : A}`}
+      ${c2.show === "none" ? A : w$1`<text class="num" x="0" y=${ny}>${shown}</text>${c2.unit ? w$1`<text class="unit" x="0" y=${ny + 12}>${c2.unit}</text>` : A}`}
+      ${!outside && this.text() ? w$1`<text class="lab" x="0" y=${-R2 - 8}>${this.text()}</text>` : A}`}
     </svg>`;
+    if (!outside) return dial;
+    return b`<div class="wrap ${c2.title_position}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
 };
 RamsDial.styles = [
   tokens,
+  faceStyles,
   i$3`
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
       svg { display: block; width: 100%; height: 100%; touch-action: none; }
+      .face { display: block; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
       .tick { stroke: var(--_muted); stroke-width: 1; }
       .tick.major { stroke: var(--_ink); stroke-width: 1.5; }

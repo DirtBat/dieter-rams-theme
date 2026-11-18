@@ -8,9 +8,10 @@ import { css } from "lit";
 export const faceStyles = css`
   :host { display: block; }
   .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-  .wrap.above { flex-direction: column-reverse; }
-  .wrap.left { flex-direction: row-reverse; align-items: center; }
-  .wrap.right { flex-direction: row; align-items: center; }
+  /* the title comes first in the markup: that is "above" (column) and "left" (row) */
+  .wrap.below { flex-direction: column-reverse; }
+  .wrap.left { flex-direction: row; align-items: center; }
+  .wrap.right { flex-direction: row-reverse; align-items: center; }
   .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .left .outer, .right .outer { max-width: 40%; }
   .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
