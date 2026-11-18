@@ -1925,6 +1925,10 @@ var __decorateClass$3 = (decorators, target, key, kind) => {
   return result;
 };
 const parse = (e2) => typeof e2 === "string" ? { entity: e2 } : e2;
+const states = (a2) => {
+  const l2 = (Array.isArray(a2) ? a2 : (a2 ?? "").split(",")).map((x2) => String(x2).trim()).filter(Boolean);
+  return l2.length ? l2 : void 0;
+};
 const COLOURS = { red: "var(--_red)", orange: "var(--_orange)", blue: "var(--_blue)", green: "var(--_green)", grey: "var(--_grey)" };
 let RamsList = class extends Piece {
   static getStubConfig() {
@@ -1943,6 +1947,11 @@ let RamsList = class extends Piece {
               fields: {
                 entity: { required: true, selector: { entity: {} } },
                 name: { selector: { text: {} } },
+                icon: { selector: { icon: {} } },
+                show: { label: "show", selector: { select: { mode: "dropdown", options: [{ value: "all", label: "Name and value" }, { value: "name", label: "Name only" }, { value: "value", label: "Value only" }, { value: "none", label: "Icon and lamp only" }] } } },
+                lamp: { label: "lamp", selector: { boolean: {} } },
+                alert_when: { label: "lamp lights when", selector: { text: {} } },
+                lamp_tone: { label: "lamp colour", selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } },
                 category: { selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
               }
             }
@@ -2026,21 +2035,29 @@ let RamsList = class extends Piece {
     var _a2;
     return (((_a2 = this.config) == null ? void 0 : _a2.entities) ?? []).some((e2) => !!parse(e2).category);
   }
+  any(key) {
+    var _a2;
+    return (((_a2 = this.config) == null ? void 0 : _a2.entities) ?? []).some((e2) => !!parse(e2)[key]);
+  }
   row(entry) {
     var _a2;
     const c2 = this.config;
-    const { entity: id, name: own, category } = parse(entry);
+    const r2 = parse(entry);
+    const { entity: id, name: own, category } = r2;
+    const show = r2.show ?? "all";
     const e2 = (_a2 = this.hass) == null ? void 0 : _a2.states[id];
     const dot = category && COLOURS[category] ? b`<span class="dot" style="--c:${COLOURS[category]}"></span>` : this.categorised ? b`<span class="dot spacer"></span>` : A;
-    if (!this.hass || !e2) return b`<div class="row">${dot}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
+    const icon = r2.icon ? b`<ha-icon class="ico" .icon=${r2.icon}></ha-icon>` : this.any("icon") ? b`<span class="ico spacer"></span>` : A;
+    if (!this.hass || !e2) return b`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
     const name = own || String(e2.attributes.friendly_name ?? id);
     const small = c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
-    const alert = readState(this.hass, id, {}).alert;
+    const alert = readState(this.hass, id, { alert_when: states(r2.alert_when) }).alert;
+    const lamp = r2.lamp ? b`<i class="lamp ${alert ? "on" : ""}" style="--l:${COLOURS[r2.lamp_tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? b`<i class="lamp spacer"></i>` : A;
     const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
     return b`<div class="row" @click=${() => this.more(id)}>
-      ${dot}
-      <span class="name">${small ? b`<small>${small.replace(/_/g, " ")}</small>` : A}${name}</span>
-      <span class="val ${alert ? "alert" : ""}">${this.value(this.hass, e2)}</span>${keys}
+      ${dot}${icon}${lamp}
+      ${show === "all" || show === "name" ? b`<span class="name">${small ? b`<small>${small.replace(/_/g, " ")}</small>` : A}${name}</span>` : A}
+      ${show === "all" || show === "value" ? b`<span class="val ${alert ? "alert" : ""}" style=${show === "value" ? "margin-left:auto" : ""}>${this.value(this.hass, e2)}</span>` : A}${keys}
     </div>`;
   }
   render() {
@@ -2066,7 +2083,11 @@ RamsList.styles = [
       .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
-      .dot.spacer { background: none; }
+      .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
+      .lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
+      .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
+      .ico { --mdc-icon-size: 1.3em; flex: none; color: var(--_ink); }
+      .ico.spacer { display: inline-block; width: 1.3em; }
       .row[hidden], .more[hidden] { display: none; }
       .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c); }
       .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

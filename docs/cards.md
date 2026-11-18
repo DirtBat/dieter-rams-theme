@@ -43,7 +43,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Warnings: red key + triangle. Automatic for binary sensors with problem-type device classes; `alert_when` overrides.
 - Actions: tap and hold on every piece and on the panel (panel action fires only where no piece handles the press). Default tap toggles toggleable domains, otherwise opens more-info.
 - `adjust_by` only for climate entities; elsewhere use a perform-action tap action (e.g. `input_number.decrement`).
-- List: multiple entities (name, state, dot), optional toggle or cover keys.
+- List: multiple entities (name, state, dot), optional toggle or cover keys. Per row (2026-11-18): `icon`; `lamp` (lights on a warning, `alert_when` as one or several states separated by commas, or automatic for problem-type binary sensors; `lamp_tone` sets its colour, default red); `show`: all (default), name, value, or none for just the icon and lamp. Rows without an icon or lamp keep the same indent.
 - Dial (new): half-round scale, needle, no centre knob; value from entity or fixed; min, max, interval; optional touch to set.
 - Artwork: square from its width when no height is set; optional media keys.
 - Panel: working title; stray stack-editor title hidden; pieces default to full panel width; editor says "width / height (grid units)".

@@ -7,8 +7,27 @@ import { tokens } from "../shared/styles";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { Hass, HassEntity, PieceConfig } from "../shared/types";
 
-/** A row: just an entity id, or an entity with its own name and a category (shown as a coloured dot). */
-export type ListEntry = string | { entity: string; name?: string; category?: Tone };
+/** What a row prints: name and value (default), only one of them, or neither (an icon and a lamp is enough). */
+export type RowShow = "all" | "name" | "value" | "none";
+
+export interface ListRow {
+  entity: string;
+  name?: string;
+  /** A coloured dot before the name (a fixed category, not a state). */
+  category?: Tone;
+  /** An icon before the name. */
+  icon?: string;
+  /** A small lamp that lights on a warning (see alert_when). */
+  lamp?: boolean;
+  /** Colour of the lit lamp. Default red. */
+  lamp_tone?: Tone;
+  /** States that light the lamp, one or several separated by commas. Default: automatic for problem-type binary sensors. */
+  alert_when?: string | string[];
+  show?: RowShow;
+}
+
+/** A row: just an entity id, or an entity with its own name, icon, lamp and category. */
+export type ListEntry = string | ListRow;
 
 export interface ListConfig extends PieceConfig {
   title?: string;
@@ -24,7 +43,11 @@ export interface ListConfig extends PieceConfig {
 }
 
 /** One reader for both entry forms. */
-const parse = (e: ListEntry): { entity: string; name?: string; category?: Tone } => (typeof e === "string" ? { entity: e } : e);
+const parse = (e: ListEntry): ListRow => (typeof e === "string" ? { entity: e } : e);
+const states = (a: ListRow["alert_when"]): string[] | undefined => {
+  const l = (Array.isArray(a) ? a : (a ?? "").split(",")).map((x) => String(x).trim()).filter(Boolean);
+  return l.length ? l : undefined;
+};
 
 const COLOURS: Record<string, string> = { red: "var(--_red)", orange: "var(--_orange)", blue: "var(--_blue)", green: "var(--_green)", grey: "var(--_grey)" };
 
@@ -39,7 +62,11 @@ export class RamsList extends Piece<ListConfig> {
       .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
-      .dot.spacer { background: none; }
+      .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
+      .lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
+      .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
+      .ico { --mdc-icon-size: 1.3em; flex: none; color: var(--_ink); }
+      .ico.spacer { display: inline-block; width: 1.3em; }
       .row[hidden], .more[hidden] { display: none; }
       .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c); }
       .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -69,6 +96,11 @@ export class RamsList extends Piece<ListConfig> {
               fields: {
                 entity: { required: true, selector: { entity: {} } },
                 name: { selector: { text: {} } },
+                icon: { selector: { icon: {} } },
+                show: { label: "show", selector: { select: { mode: "dropdown", options: [{ value: "all", label: "Name and value" }, { value: "name", label: "Name only" }, { value: "value", label: "Value only" }, { value: "none", label: "Icon and lamp only" }] } } },
+                lamp: { label: "lamp", selector: { boolean: {} } },
+                alert_when: { label: "lamp lights when", selector: { text: {} } },
+                lamp_tone: { label: "lamp colour", selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
                 category: { selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
               },
             },
@@ -158,24 +190,32 @@ export class RamsList extends Piece<ListConfig> {
     return (this.config?.entities ?? []).some((e) => !!parse(e).category);
   }
 
+  private any(key: "icon" | "lamp"): boolean {
+    return (this.config?.entities ?? []).some((e) => !!parse(e)[key]);
+  }
+
   private row(entry: ListEntry): TemplateResult {
     const c = this.config!;
-    const { entity: id, name: own, category } = parse(entry);
+    const r = parse(entry);
+    const { entity: id, name: own, category } = r;
+    const show = r.show ?? "all";
     const e = this.hass?.states[id];
     const dot = category && COLOURS[category] ? html`<span class="dot" style="--c:${COLOURS[category]}"></span>` : this.categorised ? html`<span class="dot spacer"></span>` : nothing;
-    if (!this.hass || !e) return html`<div class="row">${dot}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
+    const icon = r.icon ? html`<ha-icon class="ico" .icon=${r.icon}></ha-icon>` : this.any("icon") ? html`<span class="ico spacer"></span>` : nothing;
+    if (!this.hass || !e) return html`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
     const name = own || String(e.attributes.friendly_name ?? id);
     const small = c.attribute ? String(e.attributes[c.attribute] ?? "") : String(e.attributes.device_class ?? "");
-    const alert = readState(this.hass, id, {}).alert;
+    const alert = readState(this.hass, id, { alert_when: states(r.alert_when) }).alert;
+    const lamp = r.lamp ? html`<i class="lamp ${alert ? "on" : ""}" style="--l:${COLOURS[r.lamp_tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? html`<i class="lamp spacer"></i>` : nothing;
     const keys = c.keys === "toggle"
       ? html`<button class="key" @click=${(ev: Event) => this.call(ev, "homeassistant", "toggle", id)}>${e.state === "on" ? "on" : "off"}</button>`
       : c.keys === "cover"
         ? html`<button class="key" @click=${(ev: Event) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev: Event) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>`
         : nothing;
     return html`<div class="row" @click=${() => this.more(id)}>
-      ${dot}
-      <span class="name">${small ? html`<small>${small.replace(/_/g, " ")}</small>` : nothing}${name}</span>
-      <span class="val ${alert ? "alert" : ""}">${this.value(this.hass, e)}</span>${keys}
+      ${dot}${icon}${lamp}
+      ${show === "all" || show === "name" ? html`<span class="name">${small ? html`<small>${small.replace(/_/g, " ")}</small>` : nothing}${name}</span>` : nothing}
+      ${show === "all" || show === "value" ? html`<span class="val ${alert ? "alert" : ""}" style=${show === "value" ? "margin-left:auto" : ""}>${this.value(this.hass, e)}</span>` : nothing}${keys}
     </div>`;
   }
 
