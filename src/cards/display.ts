@@ -32,6 +32,8 @@ export interface DisplayConfig extends PieceConfig {
   title_position?: "inside" | "above" | "below" | "left" | "right";
   /** A status lamp in the display: left or right of the text, or alone. It lights in the colour the state rules give, and the display then stays unfilled. */
   light?: "none" | "left" | "right" | "only";
+  /** Text in the display: title and value (default), or none, for an icon (with the light) alone. */
+  show?: "all" | "none";
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -57,13 +59,17 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     faceStyles,
     css`
       /* the lamp and the text are one group, centred; spare room goes outside it */
-      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; }
       .box.lamp-right { flex-direction: row-reverse; }
       .box.lamp-only { justify-content: center; }
-      .block { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+      .block { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
       .start .block { align-items: flex-start; text-align: left; }
       .center .block { align-items: center; text-align: center; }
       .end .block { align-items: flex-end; text-align: right; }
+      /* no text: the icon and the lamp sit together, on the side the alignment says */
+      .notext .block { flex: none; }
+      .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
+      .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
       .has-title { padding: 8px 0; }
       .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
       .lamp-only .lamp { width: 16px; height: 16px; }
@@ -101,6 +107,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
             { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("show", [["all", "Title and value"], ["none", "Icon and light only"]]),
             dropdown("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
@@ -165,7 +172,8 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const outside = c.title_position && c.title_position !== "inside" && !!c.title;
     const inside = !!c.title && !outside;
     const light = this.lamp() ? c.light! : "none";
-    const cls = [c.align ?? "start", c.size ?? "medium", inside && light !== "only" ? "has-title" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
+    const notext = c.show === "none" && light !== "only";
+    const cls = [c.align ?? "start", c.size ?? "medium", inside && light !== "only" && !notext ? "has-title" : "", notext ? "notext" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
     return html`<div class="wrap ${outside ? c.title_position : ""}">
@@ -174,8 +182,8 @@ export class RamsDisplay extends Piece<DisplayConfig> {
         <div class="box ${cls}">
           ${light !== "none" ? html`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : nothing}
           ${light === "only" ? nothing : html`<div class="block">
-            ${inside ? html`<span class="title">${c.title}</span>` : nothing}
-            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+            ${inside && !notext ? html`<span class="title">${c.title}</span>` : nothing}
+            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon} style=${notext ? "margin-right:0" : ""}></ha-icon>` : nothing}${notext ? nothing : this.value()}${!notext && c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
           </div>`}
         </div>
       </div>

@@ -1266,6 +1266,7 @@ let RamsDisplay = class extends Piece {
             { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown2("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown2("show", [["all", "Title and value"], ["none", "Icon and light only"]]),
             dropdown2("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown2("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
@@ -1329,7 +1330,8 @@ let RamsDisplay = class extends Piece {
     const outside = c2.title_position && c2.title_position !== "inside" && !!c2.title;
     const inside = !!c2.title && !outside;
     const light = this.lamp() ? c2.light : "none";
-    const cls = [c2.align ?? "start", c2.size ?? "medium", inside && light !== "only" ? "has-title" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
+    const notext = c2.show === "none" && light !== "only";
+    const cls = [c2.align ?? "start", c2.size ?? "medium", inside && light !== "only" && !notext ? "has-title" : "", notext ? "notext" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c2.entity, c2).signal : void 0;
     const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
     return b`<div class="wrap ${outside ? c2.title_position : ""}">
@@ -1338,8 +1340,8 @@ let RamsDisplay = class extends Piece {
         <div class="box ${cls}">
           ${light !== "none" ? b`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : A}
           ${light === "only" ? A : b`<div class="block">
-            ${inside ? b`<span class="title">${c2.title}</span>` : A}
-            <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+            ${inside && !notext ? b`<span class="title">${c2.title}</span>` : A}
+            <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon} style=${notext ? "margin-right:0" : ""}></ha-icon>` : A}${notext ? A : this.value()}${!notext && c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
           </div>`}
         </div>
       </div>
@@ -1351,13 +1353,17 @@ RamsDisplay.styles = [
   faceStyles,
   i$3`
       /* the lamp and the text are one group, centred; spare room goes outside it */
-      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+      .box { box-sizing: border-box; height: 100%; display: flex; align-items: center; gap: 8px; }
       .box.lamp-right { flex-direction: row-reverse; }
       .box.lamp-only { justify-content: center; }
-      .block { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+      .block { flex: 1; min-width: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
       .start .block { align-items: flex-start; text-align: left; }
       .center .block { align-items: center; text-align: center; }
       .end .block { align-items: flex-end; text-align: right; }
+      /* no text: the icon and the lamp sit together, on the side the alignment says */
+      .notext .block { flex: none; }
+      .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
+      .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
       .has-title { padding: 8px 0; }
       .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
       .lamp-only .lamp { width: 16px; height: 16px; }
@@ -2105,7 +2111,8 @@ RamsList.styles = [
       :host { --sz: 14px; }
       :host([size="small"]) { --sz: 12px; }
       :host([size="large"]) { --sz: 18px; }
-      .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; font-size: var(--sz); }
+      /* the side padding keeps a lit lamp's glow inside the clipped area */
+      .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 0 6px; margin: 0 -6px; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
       .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }

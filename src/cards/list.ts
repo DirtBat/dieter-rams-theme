@@ -59,7 +59,8 @@ export class RamsList extends Piece<ListConfig> {
       :host { --sz: 14px; }
       :host([size="small"]) { --sz: 12px; }
       :host([size="large"]) { --sz: 18px; }
-      .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; font-size: var(--sz); }
+      /* the side padding keeps a lit lamp's glow inside the clipped area */
+      .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 0 6px; margin: 0 -6px; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
       .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
