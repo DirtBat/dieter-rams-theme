@@ -1119,7 +1119,7 @@ let RamsButton = class extends Piece {
           ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
         </button></div>
       </div>
-      ${pos === "inside" ? A : b`<div class="txt">${name}</div>`}
+      ${pos === "inside" || !name.trim() && (pos === "left" || pos === "right") ? A : b`<div class="txt">${name}</div>`}
     </div>`;
   }
 };
@@ -1482,7 +1482,7 @@ let RamsPanel = class extends Piece {
     this.press = new Press(this, () => this.config);
     this.needed = 1;
     this.fit = () => {
-      var _a2, _b, _c, _d;
+      var _a2, _b, _c, _d, _e;
       const plate = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".plate");
       const grid = (_b = this.shadowRoot) == null ? void 0 : _b.querySelector(".grid");
       if (!plate || !grid) return;
@@ -1494,12 +1494,14 @@ let RamsPanel = class extends Piece {
       const gap = px(cs.getPropertyValue("--_gap")) || 8;
       const n3 = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
       this.needed = n3;
+      this.reportRows(Math.max(n3, typeof ((_e = this.config) == null ? void 0 : _e.rows) === "number" ? this.config.rows : 0));
       const h2 = `${n3 * row + (n3 - 1) * gap}px`;
       if (plate.style.minHeight !== h2) plate.style.minHeight = h2;
     };
     this.onRows = (e2) => {
       const card = e2.composedPath().find((n3) => n3.localName === "hui-card");
       if (card) card.style.gridRow = `span ${e2.detail.rows}`;
+      e2.stopPropagation();
     };
     this.fits = (e2) => !e2.composedPath().some((n3) => {
       var _a2;

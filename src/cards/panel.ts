@@ -91,6 +91,8 @@ export class RamsPanel extends Piece<PanelConfig> {
     const gap = px(cs.getPropertyValue("--_gap")) || 8;
     const n = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
     this.needed = n;
+    // Inside another panel: tell it how many rows this one spans, or the pieces after it flow into its space.
+    this.reportRows(Math.max(n, typeof this.config?.rows === "number" ? this.config.rows : 0));
     const h = `${n * row + (n - 1) * gap}px`;
     if (plate.style.minHeight !== h) plate.style.minHeight = h;
   };
@@ -114,6 +116,7 @@ export class RamsPanel extends Piece<PanelConfig> {
   private onRows = (e: Event) => {
     const card = e.composedPath().find((n) => (n as HTMLElement).localName === "hui-card") as HTMLElement | undefined;
     if (card) card.style.gridRow = `span ${(e as CustomEvent<{ rows: number }>).detail.rows}`;
+    e.stopPropagation(); // a nested panel's own pieces must not reach the outer panel
   };
 
   /** The panel's own action fires only when the press did not land on a piece that has its own. */

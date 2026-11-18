@@ -166,7 +166,7 @@ export class RamsButton extends Piece<ButtonConfig> {
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
         </button></div>
       </div>
-      ${pos === "inside" ? nothing : html`<div class="txt">${name}</div>`}
+      ${pos === "inside" || (!name.trim() && (pos === "left" || pos === "right")) ? nothing : html`<div class="txt">${name}</div>`}
     </div>`;
   }
 }
