@@ -26,11 +26,14 @@ export class RamsSwitch extends Piece<SwitchConfig> {
     keyStyles,
     css`
       :host { display: block; }
+      /* one row (56px) is enough for the lamp, the lever and the name: with less room the on/off words go */
+      .cell { container-type: size; }
       .well { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
       .slot { position: relative; box-sizing: border-box; width: 52px; height: 26px; padding: 0; border: 0; border-radius: 4px; background: var(--_slot, #2b2118); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6); cursor: pointer; -webkit-tap-highlight-color: transparent; }
       .lever { position: absolute; top: 3px; left: 3px; width: 24px; height: 20px; border-radius: 3px; background: linear-gradient(180deg, var(--_lever, #efece4), color-mix(in srgb, var(--_lever, #efece4) 80%, #000)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); transition: left 0.12s ease-out; }
       .on .lever { left: 25px; }
       .pos { display: flex; justify-content: space-between; width: 52px; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--_muted); }
+      @container (max-height: 69px) { .pos { display: none; } .cell, .well { gap: 4px; } }
     `,
   ];
 
