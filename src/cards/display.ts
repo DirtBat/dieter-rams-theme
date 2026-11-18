@@ -32,8 +32,8 @@ export interface DisplayConfig extends PieceConfig {
   title_position?: "inside" | "above" | "below" | "left" | "right";
   /** A status lamp in the display: left or right of the text, or alone. It lights in the colour the state rules give, and the display then stays unfilled. */
   light?: "none" | "left" | "right" | "only";
-  /** Text in the display: title and value (default), or none, for an icon (with the light) alone. */
-  show?: "all" | "none";
+  /** What the display prints: title and value (default), the value only, the title only, or none (an icon and the light alone). An outside title is not affected. */
+  show?: "all" | "value" | "title" | "none";
   size?: Size;
   align?: "start" | "center" | "end";
 }
@@ -68,6 +68,9 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       .end .block { align-items: flex-end; text-align: right; }
       /* no text: the icon and the lamp sit together, on the side the alignment says */
       .notext .block { flex: none; }
+      /* icon and lamp on one centre line */
+      .noval .value { display: flex; align-items: center; line-height: 1; }
+      .noval .ico { margin: 0; vertical-align: baseline; }
       .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
       .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
       .has-title { padding: 8px 0; }
@@ -107,7 +110,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
             { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("show", [["all", "Title and value"], ["none", "Icon and light only"]]),
+            dropdown("show", [["all", "Title and value"], ["value", "Value only"], ["title", "Title only"], ["none", "Icon and light only"]]),
             dropdown("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
@@ -172,8 +175,11 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const outside = c.title_position && c.title_position !== "inside" && !!c.title;
     const inside = !!c.title && !outside;
     const light = this.lamp() ? c.light! : "none";
-    const notext = c.show === "none" && light !== "only";
-    const cls = [c.align ?? "start", c.size ?? "medium", inside && light !== "only" && !notext ? "has-title" : "", notext ? "notext" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
+    const show = c.show ?? "all";
+    const notext = show === "none" && light !== "only";
+    const showTitle = inside && (show === "all" || show === "title");
+    const showValue = show === "all" || show === "value";
+    const cls = [c.align ?? "start", c.size ?? "medium", showTitle && light !== "only" ? "has-title" : "", notext ? "notext" : "", !showValue ? "noval" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
     return html`<div class="wrap ${outside ? c.title_position : ""}">
@@ -182,8 +188,8 @@ export class RamsDisplay extends Piece<DisplayConfig> {
         <div class="box ${cls}">
           ${light !== "none" ? html`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : nothing}
           ${light === "only" ? nothing : html`<div class="block">
-            ${inside && !notext ? html`<span class="title">${c.title}</span>` : nothing}
-            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon} style=${notext ? "margin-right:0" : ""}></ha-icon>` : nothing}${notext ? nothing : this.value()}${!notext && c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+            ${showTitle ? html`<span class="title">${c.title}</span>` : nothing}
+            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${showValue ? this.value() : nothing}${showValue && c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
           </div>`}
         </div>
       </div>
