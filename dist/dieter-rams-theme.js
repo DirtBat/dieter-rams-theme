@@ -1396,6 +1396,7 @@ class RamsPanelEditor extends i {
       e2.stopPropagation();
       this.emit({ ...this.config, cards: e2.detail.config.cards ?? [] });
     };
+    this.helper = (s2) => s2.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s2.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : void 0;
   }
   setConfig(config) {
     this.config = config;
@@ -1430,11 +1431,17 @@ class RamsPanelEditor extends i {
     const schema = [
       { name: "title", selector: { text: {} } },
       { type: "grid", name: "", schema: [num$1("columns", 1, 24), num$1("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      {
+        type: "expandable",
+        name: "",
+        title: "Size in panel",
+        schema: [num$1("rows", 1, 24)]
+      },
       ...actionFields()
     ];
     const data = { ...c2, columns: c2.columns ?? 12, spacing: c2.spacing ?? 8, frame: c2.frame ?? "raised" };
     return b`
-      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s2) => s2.name === "columns" ? "grid columns" : computeLabel(s2)} @value-changed=${this.columnsChanged}></ha-form>
+      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s2) => s2.name === "columns" ? "grid columns" : computeLabel(s2)} .computeHelper=${this.helper} @value-changed=${this.columnsChanged}></ha-form>
       ${this.stackOk ? b`<hui-stack-card-editor
             .hass=${this.hass}
             .lovelace=${this.lovelace}
@@ -1489,7 +1496,10 @@ let RamsPanel = class extends Piece {
       const cs = getComputedStyle(plate);
       const px = (v2) => parseFloat(v2) || 0;
       const title = ((_d = (_c = this.shadowRoot) == null ? void 0 : _c.querySelector(".title")) == null ? void 0 : _d.offsetHeight) ?? 0;
+      this.toggleAttribute("nested", this.isNested());
+      grid.classList.add("natural");
       const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
+      grid.classList.remove("natural");
       const row = px(cs.getPropertyValue("--_row")) || 56;
       const gap = px(cs.getPropertyValue("--_gap")) || 8;
       const n3 = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));
@@ -1541,6 +1551,16 @@ let RamsPanel = class extends Piece {
     this.style.setProperty("--rams-gap", `${gap}px`);
     this.style.setProperty("--rams-radius", `${Math.max(2, BASE_RADIUS + (gap - BASE_GAP) / 2)}px`);
   }
+  /** True when this panel sits inside another panel (through hui-card and shadow roots). */
+  isNested() {
+    let n3 = this.parentNode;
+    while (n3) {
+      n3 = n3 instanceof ShadowRoot ? n3.host : n3;
+      if (n3.localName === "rams-panel") return true;
+      n3 = n3.parentNode ?? n3.host ?? null;
+    }
+    return false;
+  }
   updated() {
     var _a2;
     const grid = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".grid");
@@ -1577,13 +1597,16 @@ let RamsPanel = class extends Piece {
 RamsPanel.styles = [
   tokens,
   i$3`
-      .plate { display: block; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
       .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
+      /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
+      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
+      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
       hui-card { min-width: 0; }
     `
 ];

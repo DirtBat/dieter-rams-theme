@@ -28,13 +28,16 @@ export class RamsPanel extends Piece<PanelConfig> {
   static styles = [
     tokens,
     css`
-      .plate { display: block; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
       .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
+      /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
+      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
+      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
       hui-card { min-width: 0; }
     `,
   ];
@@ -73,6 +76,17 @@ export class RamsPanel extends Piece<PanelConfig> {
     this.style.setProperty("--rams-radius", `${Math.max(2, BASE_RADIUS + (gap - BASE_GAP) / 2)}px`);
   }
 
+  /** True when this panel sits inside another panel (through hui-card and shadow roots). */
+  private isNested(): boolean {
+    let n: Node | null = this.parentNode;
+    while (n) {
+      n = n instanceof ShadowRoot ? n.host : n;
+      if ((n as HTMLElement).localName === "rams-panel") return true;
+      n = n.parentNode ?? (n as ShadowRoot).host ?? null;
+    }
+    return false;
+  }
+
   private watcher?: ResizeObserver;
 
   /**
@@ -86,7 +100,11 @@ export class RamsPanel extends Piece<PanelConfig> {
     const cs = getComputedStyle(plate);
     const px = (v: string) => parseFloat(v) || 0;
     const title = this.shadowRoot?.querySelector<HTMLElement>(".title")?.offsetHeight ?? 0;
+    // measure the content at its natural row height, then let a nested panel stretch again
+    this.toggleAttribute("nested", this.isNested());
+    grid.classList.add("natural");
     const natural = px(cs.paddingTop) + px(cs.paddingBottom) + px(cs.borderTopWidth) + px(cs.borderBottomWidth) + title + grid.offsetHeight;
+    grid.classList.remove("natural");
     const row = px(cs.getPropertyValue("--_row")) || 56;
     const gap = px(cs.getPropertyValue("--_gap")) || 8;
     const n = Math.max(1, Math.ceil((natural - 0.5 + gap) / (row + gap)));

@@ -61,17 +61,27 @@ class RamsPanelEditor extends LitElement {
     root.append(style);
   }
 
+  /** The panel's columns double as its width when it sits inside another panel. */
+  private helper = (s: { name: string }): string | undefined =>
+    s.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : undefined;
+
   protected render(): TemplateResult | typeof nothing {
     if (!this.config || !this.hass) return nothing;
     const c = this.config;
     const schema = [
       { name: "title", selector: { text: {} } },
       { type: "grid", name: "", schema: [num("columns", 1, 24), num("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      {
+        type: "expandable",
+        name: "",
+        title: "Size in panel",
+        schema: [num("rows", 1, 24)],
+      },
       ...actionFields(),
     ];
     const data = { ...c, columns: c.columns ?? 12, spacing: c.spacing ?? 8, frame: c.frame ?? "raised" };
     return html`
-      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s: { name: string }) => (s.name === "columns" ? "grid columns" : computeLabel(s))} @value-changed=${this.columnsChanged}></ha-form>
+      <ha-form .hass=${this.hass} .data=${data} .schema=${schema} .computeLabel=${(s: { name: string }) => (s.name === "columns" ? "grid columns" : computeLabel(s))} .computeHelper=${this.helper} @value-changed=${this.columnsChanged}></ha-form>
       ${this.stackOk
         ? html`<hui-stack-card-editor
             .hass=${this.hass}
