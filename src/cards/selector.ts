@@ -83,7 +83,12 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .v .lever::after { left: 22%; right: 22%; top: 50%; height: 3px; margin-top: -1.5px; }
       .lever.none { opacity: 0.4; }
       /* the knob: options sit round it from a start angle; the box is square and everything inside is in cqmin of it */
-      .knobbox { position: relative; flex: none; width: var(--S); height: var(--S); container-type: size; }
+      /* the knob fills the room it is given (--S is the least it needs): a square as big as fits beside the lamp, with text and shadow scaling along */
+      .face.k { flex: 1; align-self: stretch; min-height: var(--S); container-type: size; }
+      .knobbox { position: relative; flex: none; width: min(62cqw, calc(100cqh - var(--lampH))); height: min(62cqw, calc(100cqh - var(--lampH))); container-type: size; }
+      .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
+      .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
+      .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
       .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box; border: 0; padding: 0; cursor: pointer;
         background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #d4d1ca) 0 58%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #bdbab4) 59% 100%);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 2.5cqmin var(--_slot, #2b2118); transform: rotate(var(--a)); transition: transform 0.15s ease-out; -webkit-tap-highlight-color: transparent; }
@@ -92,7 +97,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
       /* pointer cap: a brushed-metal teardrop turning about its round end, the scale arc beyond its tip */
       .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
       .knobbox .disc.ptr::after { content: none; }
-      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 calc(var(--S) * 0.04) calc(var(--S) * 0.03) rgba(0, 0, 0, 0.32)) drop-shadow(0 calc(var(--S) * 0.01) calc(var(--S) * 0.01) rgba(0, 0, 0, 0.45)); }
+      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 4cqmin 3cqmin rgba(0, 0, 0, 0.32)) drop-shadow(0 1cqmin 1cqmin rgba(0, 0, 0, 0.45)); }
       .arc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
       .arc path, .arc line { stroke: var(--_muted); stroke-width: 0.9; fill: none; stroke-linecap: round; }
       /* two halves: left steps toward the left of the scale, right toward the right; nothing at either end */
@@ -164,7 +169,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
             dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
             dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
             dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
-            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "Neither"]]),
+            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
@@ -343,8 +348,8 @@ export class RamsSelector extends Piece<SelectorConfig> {
     });
     return html`<div class="wrap ${pos}">
       ${pos ? html`<span class="outer">${title}</span>` : nothing}
-      <div class="face h" style="overflow: visible; gap: 12px">${c.light === "below" ? nothing : lamp}
-        <div class="knobbox" style="--S:${S}px; --a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div>
+      <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px; --lampH:${c.light === "above" || c.light === "below" ? 24 : 0}px">${c.light === "below" ? nothing : lamp}
+        <div class="knobbox" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div>
       ${c.light === "below" ? lamp : nothing}</div>
     </div>`;
   }
