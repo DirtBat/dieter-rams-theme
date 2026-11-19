@@ -630,7 +630,7 @@ class Piece extends i {
     return void 0;
   }
   willUpdate(changed) {
-    var _a2, _b;
+    var _a2;
     const signal = this.signal();
     if (signal) this.setAttribute("signal", signal);
     else this.removeAttribute("signal");
@@ -638,11 +638,19 @@ class Piece extends i {
     this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
     this.toggleAttribute("actionable", this.actionable());
     if (this.minRows) {
-      const n3 = typeof ((_b = this.config) == null ? void 0 : _b.rows) === "number" ? this.config.rows : 1;
+      const n3 = this.rowsSet() ?? 1;
       const min = `calc(var(--_row) * ${n3} + var(--_gap) * ${n3 - 1})`;
       this.style.minHeight = min;
       this.style.setProperty("--_min", min);
     }
+  }
+  /** The rows the user gave this card: in the YAML (rows) or in the Layout tab (grid_options). */
+  rowsSet() {
+    var _a2;
+    const c2 = this.config;
+    if (typeof (c2 == null ? void 0 : c2.rows) === "number") return c2.rows;
+    const g2 = (_a2 = c2 == null ? void 0 : c2.grid_options) == null ? void 0 : _a2.rows;
+    return typeof g2 === "number" ? g2 : void 0;
   }
   /** Tell the enclosing panel how many grid rows this piece needs (data-driven height). */
   reportRows(rows) {
@@ -1216,12 +1224,26 @@ var __decorateClass$a = (decorators, target, key, kind) => {
 };
 const KNOB = { small: 104, medium: 128, large: 156 };
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
+const knobStep = (n3, pointer) => n3 < 2 ? 0 : pointer ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } };
 let RamsSelector = class extends Piece {
   constructor() {
     super(...arguments);
     this.hostFrame = false;
     this.minRows = true;
+    this.fitKnob = () => {
+      var _a2, _b;
+      const face = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".kslot");
+      if (!face) return;
+      const lamp = 0;
+      const e2 = this.knobExtent();
+      const floor = KNOB[((_b = this.config) == null ? void 0 : _b.size) ?? "small"] * 0.6;
+      const k2 = Math.floor(Math.max(floor, Math.min(face.clientWidth / e2.w, (face.clientHeight - lamp) / (e2.top + e2.bottom))));
+      const dy = Math.round((e2.top - e2.bottom) / 2 * k2);
+      const set = (name, v2) => this.style.getPropertyValue(name) !== v2 && this.style.setProperty(name, v2);
+      set("--_K", `${k2}px`);
+      set("--_dy", `${dy}px`);
+    };
   }
   static getStubConfig() {
     return {
@@ -1360,24 +1382,60 @@ let RamsSelector = class extends Piece {
     const step = ((_a2 = this.config) == null ? void 0 : _a2.cycle) === "backward" ? -1 : 1;
     this.select(stops[(now + step + stops.length) % stops.length].option);
   }
+  /** What the knob's drawing covers, as fractions of its square: how far right/left (w), up (top) and down (bottom) from the centre, labels included. */
+  knobExtent() {
+    var _a2;
+    const n3 = this.stops().length;
+    const ptr = ((_a2 = this.config) == null ? void 0 : _a2.cap) === "pointer";
+    const step = knobStep(n3, ptr);
+    let sin = 0, up = 0, down = 0;
+    for (let i2 = 0; i2 < n3; i2++) {
+      const a2 = (-(step * (n3 - 1)) / 2 + i2 * step) * Math.PI / 180;
+      sin = Math.max(sin, Math.abs(Math.sin(a2)));
+      up = Math.max(up, Math.cos(a2));
+      down = Math.max(down, -Math.cos(a2));
+    }
+    const reach = ptr ? 0.42 : 0.38;
+    return { w: 2 * (reach * sin + 0.5 * (n3 > 1 ? 1 : 0.4)), top: reach * up + 0.1, bottom: Math.max(ptr ? 0.17 : 0.3, reach * down + 0.08) };
+  }
+  disconnectedCallback() {
+    var _a2;
+    super.disconnectedCallback();
+    (_a2 = this.watcher) == null ? void 0 : _a2.disconnect();
+    this.watcher = void 0;
+    this.watched = void 0;
+  }
   /** In a panel with no rows set, ask for the rows the control needs; the lever, labels, lamp and title must fit. */
   updated() {
-    var _a2;
+    var _a2, _b, _c;
     const c2 = this.config;
-    if (!c2 || typeof c2.rows === "number") return;
+    const face = ((_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".kslot")) ?? void 0;
+    if (face !== this.watched) {
+      (_b = this.watcher) == null ? void 0 : _b.disconnect();
+      this.watched = face;
+      if (face) {
+        this.watcher ?? (this.watcher = new ResizeObserver(this.fitKnob));
+        this.watcher.observe(face);
+      }
+    }
+    this.fitKnob();
+    if (!c2 || this.rowsSet() !== void 0) return;
     const stops = this.stops();
     const n3 = stops.length;
     const z2 = SIZES[c2.size ?? "small"];
     const light = c2.light === "above" || c2.light === "below" ? 17 : 0;
     const pos = c2.title_position ?? "below";
-    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) && pos !== "left" && pos !== "right" ? 18 : 0;
+    const title = ((_c = c2.title) == null ? void 0 : _c.trim()) && pos !== "left" && pos !== "right" ? 18 : 0;
     const show = c2.show ?? "auto";
     const own = c2.light === "options";
     const icon = show !== "labels" && show !== "none" && stops.some((x2) => x2.icon);
     const text = show === "labels" || show === "both" || show === "auto" && stops.some((x2) => !x2.icon);
     const body = icon && text && show === "both" ? z2.ico + 3 + z2.fs + 4 : icon ? z2.ico : text ? z2.fs + 4 : 0;
     const labels = body || own ? body + (own ? 15 : 0) + (c2.lines && !own ? 8 : 0) + 4 : 0;
-    if (c2.shape === "knob") return this.reportRows(this.rowsFor(KNOB[c2.size ?? "small"] + light + title + 4));
+    if (c2.shape === "knob") {
+      const e2 = this.knobExtent();
+      return this.reportRows(this.rowsFor(KNOB[c2.size ?? "small"] * (e2.top + e2.bottom) + light + title + 4));
+    }
     const need = this.vertical() ? n3 * z2.p + light + title + 4 : z2.p + labels + light + title + 4;
     this.reportRows(this.rowsFor(need));
   }
@@ -1397,7 +1455,7 @@ let RamsSelector = class extends Piece {
   knob(c2, stops, now, show, z2, lamp, title, pos, own, lines) {
     const n3 = stops.length;
     const ptr = c2.cap === "pointer";
-    const step = n3 < 2 ? 0 : ptr ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
+    const step = knobStep(n3, ptr);
     const dir = c2.orientation === "left" || c2.orientation === "up" ? -1 : 1;
     const angle = (i2) => (-(step * (n3 - 1)) / 2 + i2 * step) * dir;
     const S2 = KNOB[c2.size ?? "small"];
@@ -1422,8 +1480,8 @@ let RamsSelector = class extends Piece {
     });
     return b`<div class="wrap ${pos}">
       ${pos ? b`<span class="outer">${title}</span>` : A}
-      <div class="face k" style="overflow: visible; gap: 12px; --S:${S2}px; --lampH:${c2.light === "above" || c2.light === "below" ? 24 : 0}px">${c2.light === "below" ? A : lamp}
-        <div class="knobbox" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div>
+      <div class="face k" style="overflow: visible; gap: 12px; --S:${S2}px">${c2.light === "below" ? A : lamp}
+        <div class="kslot"><div class="knobbox" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div></div>
       ${c2.light === "below" ? lamp : A}</div>
     </div>`;
   }
@@ -1472,7 +1530,9 @@ RamsSelector.styles = [
   tokens,
   faceStyles,
   i$3`
-      :host { display: block; }
+      /* a flex column, so the card fills the height its rows give it even where the host's own height is not known (sections view) */
+      :host { display: flex; flex-direction: column; }
+      .wrap { flex: 1; }
       /* a horizontal lever and its title sit together in the middle of the cell; a vertical one takes the cell's height */
       .wrap { justify-content: center; }
       .face.h { flex: none; }
@@ -1499,8 +1559,9 @@ RamsSelector.styles = [
       .lever.none { opacity: 0.4; }
       /* the knob: options sit round it from a start angle; the box is square and everything inside is in cqmin of it */
       /* the knob fills the room it is given (--S is the least it needs): a square as big as fits beside the lamp, with text and shadow scaling along */
-      .face.k { flex: 1; align-self: stretch; min-height: var(--S); container-type: size; }
-      .knobbox { position: relative; flex: none; width: min(62cqw, calc(100cqh - var(--lampH))); height: min(62cqw, calc(100cqh - var(--lampH))); container-type: size; }
+      .face.k { flex: 1; align-self: stretch; min-height: 0; }
+      .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
+      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(-50%, calc(-50% + var(--_dy, 0px))); container-type: size; }
       .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
@@ -2991,7 +3052,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-19 18:28 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-19 18:38 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

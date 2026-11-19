@@ -40,11 +40,19 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     this.setAttribute("frame", this.hostFrame ? (this.config?.frame ?? this.defaultFrame) : "none");
     this.toggleAttribute("actionable", this.actionable());
     if (this.minRows) {
-      const n = typeof this.config?.rows === "number" ? this.config.rows : 1;
+      const n = this.rowsSet() ?? 1;
       const min = `calc(var(--_row) * ${n} + var(--_gap) * ${n - 1})`;
       this.style.minHeight = min;
       this.style.setProperty("--_min", min);
     }
+  }
+
+  /** The rows the user gave this card: in the YAML (rows) or in the Layout tab (grid_options). */
+  protected rowsSet(): number | undefined {
+    const c = this.config;
+    if (typeof c?.rows === "number") return c.rows;
+    const g = c?.grid_options?.rows;
+    return typeof g === "number" ? g : undefined;
   }
 
   private lastRows = 0;

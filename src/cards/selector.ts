@@ -45,6 +45,8 @@ export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_ent
 const KNOB = { small: 104, medium: 128, large: 156 } as const;
 /** On/off entities: two stops, off then on, switched with turn_off / turn_on. */
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
+/** Degrees between two options on a knob. The pointer is a big control: six options fill a half circle, fewer use less of it. */
+const knobStep = (n: number, pointer: boolean): number => (n < 2 ? 0 : pointer ? Math.min(36, 270 / (n - 1)) : Math.min(60, n === 2 ? 90 : 270 / (n - 1)));
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } } as const;
 
 /** A selector for an input_select, select or on/off entity: a lever on a slot, or a knob, with one stop per option. Tap the lever to step, tap another stop to go there. With two options it is an on/off switch. */
@@ -57,7 +59,9 @@ export class RamsSelector extends Piece<SelectorConfig> {
     tokens,
     faceStyles,
     css`
-      :host { display: block; }
+      /* a flex column, so the card fills the height its rows give it even where the host's own height is not known (sections view) */
+      :host { display: flex; flex-direction: column; }
+      .wrap { flex: 1; }
       /* a horizontal lever and its title sit together in the middle of the cell; a vertical one takes the cell's height */
       .wrap { justify-content: center; }
       .face.h { flex: none; }
@@ -84,8 +88,9 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .lever.none { opacity: 0.4; }
       /* the knob: options sit round it from a start angle; the box is square and everything inside is in cqmin of it */
       /* the knob fills the room it is given (--S is the least it needs): a square as big as fits beside the lamp, with text and shadow scaling along */
-      .face.k { flex: 1; align-self: stretch; min-height: var(--S); container-type: size; }
-      .knobbox { position: relative; flex: none; width: min(62cqw, calc(100cqh - var(--lampH))); height: min(62cqw, calc(100cqh - var(--lampH))); container-type: size; }
+      .face.k { flex: 1; align-self: stretch; min-height: 0; }
+      .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
+      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(-50%, calc(-50% + var(--_dy, 0px))); container-type: size; }
       .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
@@ -279,10 +284,60 @@ export class RamsSelector extends Piece<SelectorConfig> {
     this.select(stops[(now + step + stops.length) % stops.length].option);
   }
 
+  private watched?: Element;
+  private watcher?: ResizeObserver;
+
+  /** What the knob's drawing covers, as fractions of its square: how far right/left (w), up (top) and down (bottom) from the centre, labels included. */
+  private knobExtent(): { w: number; top: number; bottom: number } {
+    const n = this.stops().length;
+    const ptr = this.config?.cap === "pointer";
+    const step = knobStep(n, ptr);
+    let sin = 0, up = 0, down = 0;
+    for (let i = 0; i < n; i++) {
+      const a = ((-(step * (n - 1)) / 2 + i * step) * Math.PI) / 180;
+      sin = Math.max(sin, Math.abs(Math.sin(a)));
+      up = Math.max(up, Math.cos(a));
+      down = Math.max(down, -Math.cos(a));
+    }
+    const reach = ptr ? 0.42 : 0.38;
+    return { w: 2 * (reach * sin + 0.5 * (n > 1 ? 1 : 0.4)), top: reach * up + 0.1, bottom: Math.max(ptr ? 0.17 : 0.3, reach * down + 0.08) };
+  }
+
+  /** The knob is the biggest square whose drawing fits the card beside the lamp, centred. Measured, as the card's own height is not known to CSS in every layout. */
+  private fitKnob = (): void => {
+    const face = this.shadowRoot?.querySelector<HTMLElement>(".kslot");
+    if (!face) return;
+    const lamp = 0;
+    const e = this.knobExtent();
+    const floor = KNOB[this.config?.size ?? "small"] * 0.6;
+    const k = Math.floor(Math.max(floor, Math.min(face.clientWidth / e.w, (face.clientHeight - lamp) / (e.top + e.bottom))));
+    const dy = Math.round(((e.top - e.bottom) / 2) * k);
+    const set = (name: string, v: string) => this.style.getPropertyValue(name) !== v && this.style.setProperty(name, v);
+    set("--_K", `${k}px`);
+    set("--_dy", `${dy}px`);
+  };
+
+  disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this.watcher?.disconnect();
+    this.watcher = undefined;
+    this.watched = undefined;
+  }
+
   /** In a panel with no rows set, ask for the rows the control needs; the lever, labels, lamp and title must fit. */
   protected updated(): void {
     const c = this.config;
-    if (!c || typeof c.rows === "number") return;
+    const face = this.shadowRoot?.querySelector(".kslot") ?? undefined;
+    if (face !== this.watched) {
+      this.watcher?.disconnect();
+      this.watched = face;
+      if (face) {
+        this.watcher ??= new ResizeObserver(this.fitKnob);
+        this.watcher.observe(face);
+      }
+    }
+    this.fitKnob();
+    if (!c || this.rowsSet() !== undefined) return;
     const stops = this.stops();
     const n = stops.length;
     const z = SIZES[c.size ?? "small"];
@@ -295,7 +350,10 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const text = show === "labels" || show === "both" || (show === "auto" && stops.some((x) => !x.icon));
     const body = icon && text && show === "both" ? z.ico + 3 + z.fs + 4 : icon ? z.ico : text ? z.fs + 4 : 0;
     const labels = body || own ? body + (own ? 15 : 0) + (c.lines && !own ? 8 : 0) + 4 : 0;
-    if (c.shape === "knob") return this.reportRows(this.rowsFor(KNOB[c.size ?? "small"] + light + title + 4));
+    if (c.shape === "knob") {
+      const e = this.knobExtent();
+      return this.reportRows(this.rowsFor(KNOB[c.size ?? "small"] * (e.top + e.bottom) + light + title + 4));
+    }
     const need = this.vertical() ? n * z.p + light + title + 4 : z.p + labels + light + title + 4;
     this.reportRows(this.rowsFor(need));
   }
@@ -318,8 +376,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private knob(c: SelectorConfig, stops: ReturnType<RamsSelector["stops"]>, now: number, show: string, z: (typeof SIZES)[keyof typeof SIZES], lamp: TemplateResult | typeof nothing, title: string, pos: string, own: boolean, lines: boolean): TemplateResult {
     const n = stops.length;
     const ptr = c.cap === "pointer";
-    // the pointer is a big control: six options would fill a half circle, so each step is 36 degrees (fewer options use less of the arc)
-    const step = n < 2 ? 0 : ptr ? Math.min(36, 270 / (n - 1)) : Math.min(60, n === 2 ? 90 : 270 / (n - 1));
+    const step = knobStep(n, ptr);
     const dir = c.orientation === "left" || c.orientation === "up" ? -1 : 1;
     const angle = (i: number) => (-(step * (n - 1)) / 2 + i * step) * dir;
     const S = KNOB[c.size ?? "small"];
@@ -348,8 +405,8 @@ export class RamsSelector extends Piece<SelectorConfig> {
     });
     return html`<div class="wrap ${pos}">
       ${pos ? html`<span class="outer">${title}</span>` : nothing}
-      <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px; --lampH:${c.light === "above" || c.light === "below" ? 24 : 0}px">${c.light === "below" ? nothing : lamp}
-        <div class="knobbox" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div>
+      <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px">${c.light === "below" ? nothing : lamp}
+        <div class="kslot"><div class="knobbox" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div></div>
       ${c.light === "below" ? lamp : nothing}</div>
     </div>`;
   }

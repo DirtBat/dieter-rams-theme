@@ -28,6 +28,8 @@ export interface PieceConfig {
   columns?: number;
   /** Height in grid units. */
   rows?: number;
+  /** Written by the Home Assistant Layout tab: the size the user gave this card in a sections view. */
+  grid_options?: { rows?: number | string; columns?: number | string };
   frame?: Frame;
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
