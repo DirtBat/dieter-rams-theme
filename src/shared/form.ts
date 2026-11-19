@@ -11,6 +11,8 @@ const LABELS: Record<string, string> = {
 export const computeLabel = (s: { name: string }): string => LABELS[s.name] ?? s.name.replace(/_/g, " ");
 
 const HELPERS: Record<string, string> = {
+  options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named.",
+  labels_position: "Above or below a horizontal lever, left or right of a vertical one. A side that does not fit is turned to the nearest that does.",
   setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. The lists below then offer that entity's states.",
   selected_when: "Type a state if it is not listed.",

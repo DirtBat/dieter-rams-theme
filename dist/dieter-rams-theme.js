@@ -946,6 +946,8 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named.",
+  labels_position: "Above or below a horizontal lever, left or right of a vertical one. A side that does not fit is turned to the nearest that does.",
   setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. The lists below then offer that entity's states.",
   selected_when: "Type a state if it is not listed.",
@@ -1187,87 +1189,6 @@ __decorateClass$b([
 RamsButton = __decorateClass$b([
   t("rams-button")
 ], RamsButton);
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
-  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
-    if (decorator = decorators[i2])
-      result = decorator(result) || result;
-  return result;
-};
-let RamsSwitch = class extends Piece {
-  constructor() {
-    super(...arguments);
-    this.hostFrame = false;
-    this.minRows = true;
-    this.press = new Press(this, () => this.config);
-  }
-  static getStubConfig() {
-    return { type: "custom:rams-switch", name: "Switch", columns: 2, rows: 2 };
-  }
-  static getConfigElement() {
-    return formEditor(this.getConfigForm());
-  }
-  static getConfigForm() {
-    return {
-      schema: [
-        { name: "entity", selector: { entity: {} } },
-        { name: "name", selector: { text: {} } },
-        ...layoutFields(false),
-        ...actionFields(),
-        {
-          type: "expandable",
-          name: "",
-          title: "State rules",
-          schema: [
-            { name: "rules_entity", selector: { entity: {} } },
-            { name: "selected_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
-            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } }
-          ]
-        }
-      ],
-      computeLabel,
-      computeHelper
-    };
-  }
-  actionable() {
-    var _a2;
-    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
-  }
-  render() {
-    var _a2, _b;
-    const c2 = this.config;
-    if (!c2) return A;
-    const view = readState(this.hass, c2.entity, c2);
-    const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
-    return b`<div class="cell">
-      <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
-      <div class="well">
-        <button class="slot ${view.active ? "on" : ""}" aria-pressed=${view.active} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}><i class="lever"></i></button>
-        <div class="pos"><span>off</span><span>on</span></div>
-      </div>
-      <div class="txt">${name}</div>
-    </div>`;
-  }
-};
-RamsSwitch.styles = [
-  tokens,
-  keyStyles,
-  i$3`
-      :host { display: block; }
-      /* one row (56px) is enough for the lamp, the lever and the name: with less room the on/off words go */
-      .cell { container-type: size; }
-      .well { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-      .slot { position: relative; box-sizing: border-box; width: 52px; height: 26px; padding: 0; border: 0; border-radius: 4px; background: var(--_slot, #2b2118); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-      .lever { position: absolute; top: 3px; left: 3px; width: 24px; height: 20px; border-radius: 3px; background: linear-gradient(180deg, var(--_lever, #efece4), color-mix(in srgb, var(--_lever, #efece4) 80%, #000)); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); transition: left 0.12s ease-out; }
-      .on .lever { left: 25px; }
-      .pos { display: flex; justify-content: space-between; width: 52px; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--_muted); }
-      @container (max-height: 69px) { .pos { display: none; } .cell, .well { gap: 4px; } }
-    `
-];
-RamsSwitch = __decorateClass$a([
-  t("rams-switch")
-], RamsSwitch);
 const faceStyles = i$3`
   :host { display: block; }
   .wrap { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -1285,6 +1206,354 @@ const faceStyles = i$3`
   .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
 `;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = decorator(result) || result;
+  return result;
+};
+const KNOB = { small: 104, medium: 128, large: 156 };
+const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
+const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } };
+let RamsSelector = class extends Piece {
+  constructor() {
+    super(...arguments);
+    this.hostFrame = false;
+    this.minRows = true;
+  }
+  static getStubConfig() {
+    return {
+      type: "custom:rams-selector",
+      title: "Mode",
+      options: [{ option: "off", label: "off" }, { option: "auto", label: "auto" }, { option: "manual", label: "manual" }],
+      columns: 6,
+      rows: 2
+    };
+  }
+  static getConfigElement() {
+    return formEditor(this.getConfigForm());
+  }
+  static getConfigForm() {
+    return {
+      schema: [
+        { name: "entity", selector: { entity: { domain: ["input_select", "select", ...BOOLEAN] } } },
+        { name: "title", selector: { text: {} } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
+            dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
+            dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
+            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "Neither"]]),
+            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
+            dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
+            { name: "lines", selector: { boolean: {} } },
+            dropdown("cycle", [["forward", "Toward the last option"], ["backward", "Toward the first option"]])
+          ]
+        },
+        {
+          name: "options",
+          selector: {
+            object: {
+              multiple: true,
+              label_field: "option",
+              description_field: "label",
+              fields: {
+                option: { label: "Option", required: true, selector: { text: {} } },
+                label: { label: "Label", selector: { text: {} } },
+                icon: { label: "Icon", selector: { icon: {} } }
+              }
+            }
+          }
+        },
+        ...layoutFields(false),
+        {
+          type: "expandable",
+          name: "",
+          title: "State rules",
+          schema: [
+            { name: "rules_entity", selector: { entity: {} } },
+            { name: "alert_when", selector: { state: { multiple: true } }, context: { filter_entity: "entity" } },
+            {
+              name: "state_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "state",
+                  fields: {
+                    state: { label: "State", required: true, selector: { text: {} } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      computeLabel,
+      computeHelper
+    };
+  }
+  actionable() {
+    var _a2;
+    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
+  }
+  /** The stops in the entity's order (or as the options list gives them). */
+  stops() {
+    var _a2, _b, _c;
+    const c2 = this.config;
+    if ((_a2 = c2.options) == null ? void 0 : _a2.length) return c2.options.filter((o2) => (o2 == null ? void 0 : o2.option) !== void 0).map((o2) => {
+      var _a3;
+      return { option: String(o2.option), label: ((_a3 = o2.label) == null ? void 0 : _a3.trim()) ? o2.label : String(o2.option), icon: o2.icon || void 0 };
+    });
+    if (this.isBoolean()) return [{ option: "off", label: "off" }, { option: "on", label: "on" }];
+    const options = c2.entity ? (_c = (_b = this.hass) == null ? void 0 : _b.states[c2.entity]) == null ? void 0 : _c.attributes.options : void 0;
+    return Array.isArray(options) ? options.map((o2) => ({ option: String(o2), label: String(o2) })) : [];
+  }
+  /** The colour of an option's own lamp: lit on the current option, in the colour its state rule gives it. With rules set, an option without one stays dark. */
+  lampTone(option) {
+    var _a2, _b, _c, _d;
+    const c2 = this.config;
+    const judged = (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.rules_entity ?? c2.entity ?? ""]) == null ? void 0 : _b.state;
+    if (judged !== option) return void 0;
+    if (!((_c = c2.state_colours) == null ? void 0 : _c.length)) return "red";
+    const tone = (_d = c2.state_colours.find((r2) => r2.state === option)) == null ? void 0 : _d.tone;
+    return tone && tone !== "neutral" ? tone : void 0;
+  }
+  vertical() {
+    var _a2, _b;
+    return ((_a2 = this.config) == null ? void 0 : _a2.orientation) === "down" || ((_b = this.config) == null ? void 0 : _b.orientation) === "up";
+  }
+  reversed() {
+    var _a2, _b;
+    return ((_a2 = this.config) == null ? void 0 : _a2.orientation) === "left" || ((_b = this.config) == null ? void 0 : _b.orientation) === "up";
+  }
+  current() {
+    var _a2, _b, _c;
+    const state = ((_a2 = this.config) == null ? void 0 : _a2.entity) ? (_c = (_b = this.hass) == null ? void 0 : _b.states[this.config.entity]) == null ? void 0 : _c.state : void 0;
+    return state === void 0 ? -1 : this.stops().findIndex((s2) => s2.option === state);
+  }
+  isBoolean() {
+    var _a2, _b;
+    return BOOLEAN.includes(((_b = (_a2 = this.config) == null ? void 0 : _a2.entity) == null ? void 0 : _b.split(".")[0]) ?? "");
+  }
+  select(option) {
+    var _a2;
+    const c2 = this.config;
+    const domain = (_a2 = c2 == null ? void 0 : c2.entity) == null ? void 0 : _a2.split(".")[0];
+    if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
+    if (this.isBoolean()) void this.hass.callService("homeassistant", option === "on" ? "turn_on" : "turn_off", { entity_id: c2.entity });
+    else if (domain === "input_select" || domain === "select") void this.hass.callService(domain, "select_option", { entity_id: c2.entity, option });
+  }
+  /** A tap on the current stop steps on; a tap on another stop goes there. */
+  choose(i2) {
+    var _a2;
+    const stops = this.stops();
+    if (!stops.length) return;
+    const now = this.current();
+    if (i2 !== now) return this.select(stops[i2].option);
+    const step = ((_a2 = this.config) == null ? void 0 : _a2.cycle) === "backward" ? -1 : 1;
+    this.select(stops[(now + step + stops.length) % stops.length].option);
+  }
+  /** In a panel with no rows set, ask for the rows the control needs; the lever, labels, lamp and title must fit. */
+  updated() {
+    var _a2;
+    const c2 = this.config;
+    if (!c2 || typeof c2.rows === "number") return;
+    const stops = this.stops();
+    const n3 = stops.length;
+    const z2 = SIZES[c2.size ?? "small"];
+    const light = c2.light === "above" || c2.light === "below" ? 17 : 0;
+    const pos = c2.title_position ?? "below";
+    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) && pos !== "left" && pos !== "right" ? 18 : 0;
+    const show = c2.show ?? "auto";
+    const own = c2.light === "options";
+    const icon = show !== "labels" && show !== "none" && stops.some((x2) => x2.icon);
+    const text = show === "labels" || show === "both" || show === "auto" && stops.some((x2) => !x2.icon);
+    const body = icon && text && show === "both" ? z2.ico + 3 + z2.fs + 4 : icon ? z2.ico : text ? z2.fs + 4 : 0;
+    const labels = body || own ? body + (own ? 15 : 0) + (c2.lines && !own ? 8 : 0) + 4 : 0;
+    if (c2.shape === "knob") return this.reportRows(this.rowsFor(KNOB[c2.size ?? "small"] + light + title + 4));
+    const need = this.vertical() ? n3 * z2.p + light + title + 4 : z2.p + labels + light + title + 4;
+    this.reportRows(this.rowsFor(need));
+  }
+  /** The stop one step toward the left (-1) or right (1) of the scale, or -1 at the end. A knob does not wrap. */
+  nudgeTo(side, dir) {
+    const n3 = this.stops().length;
+    const now = this.current();
+    if (now < 0) return n3 ? 0 : -1;
+    const i2 = now + side * dir;
+    return i2 < 0 || i2 >= n3 ? -1 : i2;
+  }
+  nudge(side, dir) {
+    const i2 = this.nudgeTo(side, dir);
+    if (i2 >= 0) this.select(this.stops()[i2].option);
+  }
+  /** Knob: the options are spread round the top, the cap turns to the current one. */
+  knob(c2, stops, now, show, z2, lamp, title, pos, own, lines) {
+    const n3 = stops.length;
+    const ptr = c2.cap === "pointer";
+    const step = n3 < 2 ? 0 : ptr ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
+    const dir = c2.orientation === "left" || c2.orientation === "up" ? -1 : 1;
+    const angle = (i2) => (-(step * (n3 - 1)) / 2 + i2 * step) * dir;
+    const S2 = KNOB[c2.size ?? "small"];
+    const cap = now < 0 ? 0 : angle(now);
+    const at2 = (a2, r2) => `${(50 + r2 * Math.sin(a2 * Math.PI / 180)).toFixed(2)} ${(50 - r2 * Math.cos(a2 * Math.PI / 180)).toFixed(2)}`;
+    const arc = ptr && n3 > 1 ? w$1`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at2(angle(0), 38)} A 38 38 0 ${step * (n3 - 1) > 180 ? 1 : 0} ${dir === 1 ? 1 : 0} ${at2(angle(n3 - 1), 38)}" />${stops.map((_2, i2) => w$1`<line x1=${at2(angle(i2), 38).split(" ")[0]} y1=${at2(angle(i2), 38).split(" ")[1]} x2=${at2(angle(i2), 35.5).split(" ")[0]} y2=${at2(angle(i2), 35.5).split(" ")[1]} />`)}</svg>` : A;
+    const drop = ptr ? w$1`<svg viewBox="-31 -31 62 62"><defs><linearGradient id="rams-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9d8d3" /><stop offset="0.55" stop-color="#a9a8a3" /><stop offset="1" stop-color="#8f8e89" /></linearGradient></defs><path d="M10.05 -5.8 L3.35 -17.57 Q1.86 -20.18 1.86 -23.18 L1.86 -31.9 A1.86 1.86 0 0 0 -1.86 -31.9 L-1.86 -23.18 Q-1.86 -20.18 -3.35 -17.57 L-10.05 -5.8 A11.6 11.6 0 1 0 10.05 -5.8 Z" fill="url(#rams-metal)" stroke="rgba(0,0,0,0.25)" stroke-width="0.4" stroke-linejoin="round" /></svg>` : A;
+    const pts = stops.map((s2, i2) => {
+      const a2 = angle(i2);
+      const rad2 = a2 * Math.PI / 180;
+      const ux = Math.round(Math.sin(rad2) * 1e3) / 1e3;
+      const uy = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
+      const hasIcon = show !== "labels" && show !== "none" && !!s2.icon;
+      const icon = hasIcon ? b`<ha-icon class="ico" .icon=${s2.icon}></ha-icon>` : A;
+      const text = show === "labels" || show === "both" || show === "auto" && !hasIcon ? b`<span>${s2.label}</span>` : A;
+      const tone = own ? this.lampTone(s2.option) : void 0;
+      const lampEl = own ? b`<span class="ray" style="--r:${a2}deg"><span class="pip" style=${ptr ? "top: calc(-38cqmin - 4px)" : ""}><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : A;
+      const tick = lines && !ptr ? b`<span class="ray" style="--r:${a2}deg"><i class="tick"></i></span>` : A;
+      const reach = ptr ? own ? 45 : 42 : own ? 41 : lines ? 39 : 35;
+      const side = ux < -0.3 ? "ux-l" : "ux-1";
+      return b`${lampEl}${tick}<span class="pt ${side}" style="--ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${icon}${text}</button></span>`;
+    });
+    return b`<div class="wrap ${pos}">
+      ${pos ? b`<span class="outer">${title}</span>` : A}
+      <div class="face h" style="overflow: visible; gap: 12px">${c2.light === "below" ? A : lamp}
+        <div class="knobbox" style="--S:${S2}px; --a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div>
+      ${c2.light === "below" ? lamp : A}</div>
+    </div>`;
+  }
+  render() {
+    var _a2;
+    const c2 = this.config;
+    if (!c2) return A;
+    const vertical = this.vertical();
+    const stops = this.stops();
+    const n3 = Math.max(1, stops.length);
+    const order = stops.map((_2, i2) => i2);
+    if (this.reversed()) order.reverse();
+    const now = this.current();
+    const slotIndex = now < 0 ? 0 : order.indexOf(now);
+    const show = c2.show ?? "auto";
+    const z2 = SIZES[c2.size ?? "small"];
+    const lines = !!c2.lines && c2.light !== "options";
+    const side = c2.labels_position ?? (vertical ? "right" : "above");
+    const before = vertical ? side === "left" || side === "above" : side === "above" || side === "left";
+    const view = readState(this.hass, c2.entity, c2);
+    const lamp = c2.light === "above" || c2.light === "below" ? b`<i class="lamp ${view.signal ? `on ${view.signal}` : ""}"></i>` : A;
+    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) ?? "";
+    const pos = title ? c2.title_position ?? "below" : "";
+    const own = c2.light === "options";
+    const labels = show === "none" && !own && !lines ? A : b`<div class="labels ${before ? "before" : "after"}">${order.map((i2) => {
+      const s2 = stops[i2];
+      const hasIcon = show !== "labels" && show !== "none" && !!s2.icon;
+      const icon = hasIcon ? b`<ha-icon class="ico" .icon=${s2.icon}></ha-icon>` : A;
+      const text = show === "labels" || show === "both" || show === "auto" && !hasIcon ? b`<span>${s2.label}</span>` : A;
+      const vi = order.indexOf(i2);
+      const half = Math.floor(n3 / 2);
+      const where = n3 === 1 || n3 % 2 === 1 && vi === half ? "m" : vi < half ? "l" : "r";
+      const tone = own ? this.lampTone(s2.option) : void 0;
+      return b`<button class="lab ${where} ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${lines ? b`<i class="lead"></i>` : A}${own ? b`<span class="lane"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span>` : A}${icon}${text}</button>`;
+    })}</div>`;
+    if (c2.shape === "knob") return this.knob(c2, stops, now, show, z2, lamp, title, pos, own, lines);
+    const slot = b`<div class="slot"><div class="stops">${order.map((i2) => b`<button class="stop" aria-label=${stops[i2].label} @click=${() => this.choose(i2)}></button>`)}</div><i class="lever ${now < 0 ? "none" : ""}"></i></div>`;
+    const ctl = b`<div class="ctl ${vertical ? "v" : "h"}" style="--n:${n3}; --i:${slotIndex}; --p:${z2.p}px; --fs:${z2.fs}px; --ico:${z2.ico}px">${before ? labels : A}${slot}${before ? A : labels}</div>`;
+    return b`<div class="wrap ${pos}">
+      ${pos ? b`<span class="outer">${title}</span>` : A}
+      <div class="face ${vertical ? "v" : "h"}">${c2.light === "below" ? A : lamp}${ctl}${c2.light === "below" ? lamp : A}</div>
+    </div>`;
+  }
+};
+RamsSelector.styles = [
+  tokens,
+  faceStyles,
+  i$3`
+      :host { display: block; }
+      /* a horizontal lever and its title sit together in the middle of the cell; a vertical one takes the cell's height */
+      .wrap { justify-content: center; }
+      .face.h { flex: none; }
+      .wrap.left .face.h, .wrap.right .face.h { flex: 1; }
+      .face { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 0; overflow: visible; }
+      .ctl { box-sizing: border-box; min-width: 0; display: flex; gap: 4px; }
+      .ctl.h { flex-direction: column; width: 100%; max-width: calc(var(--n) * 110px); }
+      .ctl.v { flex: 1; align-self: stretch; min-height: 0; flex-direction: row; justify-content: center; gap: 8px; }
+      .slot { position: relative; flex: none; box-sizing: border-box; border-radius: 4px; background-color: var(--_slot, #2b2118); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6); }
+      /* a fine brushed grain, along the travel */
+      .h .slot { width: 100%; height: var(--p); background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px); }
+      .v .slot { width: var(--p); height: 100%; background-image: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 3px); }
+      .stops { position: absolute; inset: 0; display: grid; }
+      .h .stops { grid-template-columns: repeat(var(--n), 1fr); }
+      .v .stops { grid-template-rows: repeat(var(--n), 1fr); }
+      .stop { all: unset; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      /* the lever: graphite with ribs across the travel, and a white stripe */
+      .lever { position: absolute; border-radius: 3px; --_g: color-mix(in srgb, var(--_slot, #2b2118) 38%, #bdbab4); background-color: var(--_g); box-shadow: 0 calc(var(--p) * 0.08) calc(var(--p) * 0.1) rgba(0, 0, 0, 0.7), 0 1px 1px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.14); pointer-events: none; transition: left 0.12s ease-out, top 0.12s ease-out; }
+      .h .lever { top: 3px; bottom: 3px; left: calc(var(--i) * 100% / var(--n) + 3px); width: calc(100% / var(--n) - 6px); background-image: repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 1px, rgba(255, 255, 255, 0.35) 1px 2px, transparent 2px 5px); }
+      .v .lever { left: 3px; right: 3px; top: calc(var(--i) * 100% / var(--n) + 3px); height: calc(100% / var(--n) - 6px); background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, rgba(255, 255, 255, 0.35) 1px 2px, transparent 2px 5px); }
+      .lever::after { content: ""; position: absolute; background: #fff; border-radius: 1px; box-shadow: 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 0.5px rgba(0, 0, 0, 0.25); }
+      .h .lever::after { top: 22%; bottom: 22%; left: 50%; width: 3px; margin-left: -1.5px; }
+      .v .lever::after { left: 22%; right: 22%; top: 50%; height: 3px; margin-top: -1.5px; }
+      .lever.none { opacity: 0.4; }
+      /* the knob: options sit round it from a start angle; the box is square and everything inside is in cqmin of it */
+      .knobbox { position: relative; flex: none; width: var(--S); height: var(--S); container-type: size; }
+      .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box; border: 0; padding: 0; cursor: pointer;
+        background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #d4d1ca) 0 58%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #bdbab4) 59% 100%);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 2.5cqmin var(--_slot, #2b2118); transform: rotate(var(--a)); transition: transform 0.15s ease-out; -webkit-tap-highlight-color: transparent; }
+      .knobbox .disc::after { content: ""; position: absolute; left: calc(50% - 1.5px); top: 10%; width: 3px; height: 30%; background: #fff; border-radius: 1px; box-shadow: 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 0.5px rgba(0, 0, 0, 0.25); }
+      .knobbox .disc.none { opacity: 0.4; }
+      /* pointer cap: a brushed-metal teardrop turning about its round end, the scale arc beyond its tip */
+      .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
+      .knobbox .disc.ptr::after { content: none; }
+      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 calc(var(--S) * 0.04) calc(var(--S) * 0.03) rgba(0, 0, 0, 0.32)) drop-shadow(0 calc(var(--S) * 0.01) calc(var(--S) * 0.01) rgba(0, 0, 0, 0.45)); }
+      .arc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      .arc path, .arc line { stroke: var(--_muted); stroke-width: 0.9; fill: none; stroke-linecap: round; }
+      /* two halves: left steps toward the left of the scale, right toward the right; nothing at either end */
+      .half { all: unset; position: absolute; top: calc(50% - 28cqmin); width: 28cqmin; height: 56cqmin; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+      .half.l { left: calc(50% - 28cqmin); border-radius: 28cqmin 0 0 28cqmin; } .half.r { left: 50%; border-radius: 0 28cqmin 28cqmin 0; }
+      .half.off { cursor: default; }
+      .ray { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: rotate(var(--r)); }
+      .ray .tick { position: absolute; left: -0.5px; top: -33cqmin; width: 1px; height: 5cqmin; background: var(--_muted); }
+      .ray .pip { position: absolute; left: -4px; top: calc(-33cqmin - 4px); display: flex; align-items: center; justify-content: center; width: 8px; height: 8px; }
+      .pt { position: absolute; left: calc(50% + var(--ux) * var(--pr) * 1cqmin); top: calc(50% + var(--uy) * var(--pr) * 1cqmin); transform: translate(calc(-50% + var(--ux) * 50%), calc(-50% + var(--uy) * 50%)); }
+      .pt .lab { flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
+      .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
+      .pt .lab.ico-only { gap: 0; }
+      .labels { display: grid; min-width: 0; }
+      .h .labels { grid-template-columns: repeat(var(--n), 1fr); width: 100%; }
+      .v .labels { grid-template-rows: repeat(var(--n), 1fr); flex: none; width: max-content; max-width: 70%; }
+      /* from the slot outward: line, lamp, icon, text. The lamp and icon sit in lanes of their own, so they line up whatever the text. */
+      .lab { all: unset; box-sizing: border-box; min-width: 0; display: flex; align-items: center; gap: 4px; padding: 0 1px; cursor: pointer; font-size: var(--fs); letter-spacing: 0.08em; text-transform: uppercase; color: var(--_muted); -webkit-tap-highlight-color: transparent; }
+      .lab.on { color: var(--_ink); }
+      .lab span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .h .lab { flex-direction: column; justify-content: center; gap: 3px; }
+      .h .labels.before .lab { flex-direction: column-reverse; }
+      .v .lab { flex-direction: row; justify-content: flex-start; gap: 8px; padding: 0; }
+      .v .labels.before .lab { flex-direction: row-reverse; }
+      .v .labels.before .lab span { text-align: right; }
+      .lead { flex: none; background: var(--_muted); }
+      .v .lead { width: 8px; height: 1px; }
+      /* horizontal: a hook. A bar on the text side runs to the middle of the cell, where the stop is, and drops to the slot. Odd middle: straight. */
+      .h .lead { width: 50%; height: 8px; background: none; border: 0 solid var(--_muted); }
+      .h .lab.l { align-items: flex-start; text-align: left; } .h .lab.r { align-items: flex-end; text-align: right; } .h .lab.m { align-items: center; text-align: center; }
+      .h .lab.l .lead { align-self: flex-start; border-right-width: 1px; } .h .lab.r .lead { align-self: flex-end; border-left-width: 1px; }
+      .h .lab.m .lead { align-self: center; width: 0; border-left-width: 1px; }
+      .h .labels.before .lab.l .lead, .h .labels.before .lab.r .lead { border-top-width: 1px; }
+      .h .labels.after .lab.l .lead, .h .labels.after .lab.r .lead { border-bottom-width: 1px; }
+      .lane { flex: none; display: flex; align-items: center; justify-content: center; width: 12px; height: 12px; }
+      .v .lane { width: 8px; }
+      .ico { --mdc-icon-size: var(--ico); flex: none; display: inline-flex; width: var(--ico); height: var(--ico); }
+      .lamp.sm { width: 8px; height: 8px; }
+      .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
+      .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
+      .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
+    `
+];
+RamsSelector = __decorateClass$a([
+  t("rams-selector")
+], RamsSelector);
 var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
 var __decorateClass$9 = (decorators, target, key, kind) => {
   var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
@@ -2717,7 +2986,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-19 11:52 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-19 17:30 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
@@ -2730,6 +2999,6 @@ w.customCards.push(
   { type: "rams-keypad", name: "Dieter Rams Keypad", description: "Alarm code entry and mode keys", preview: true },
   { type: "rams-shelf", name: "Dieter Rams Shelf", description: "Artwork tiles generated from a list", preview: true },
   { type: "rams-button", name: "Dieter Rams Button", description: "Key with dish, state dot and warning LED", preview: true },
-  { type: "rams-switch", name: "Dieter Rams Switch", description: "On/off switch with a lever", preview: true },
+  { type: "rams-selector", name: "Dieter Rams Selector", description: "Lever or knob with one stop per option: input_select, select, or an on/off switch", preview: true },
   { type: "rams-dial", name: "Dieter Rams Dial", description: "Half-round scale with a needle, value from an entity or fixed", preview: true }
 );

@@ -15,7 +15,7 @@ Dieter Rams:
       rams-down: "#cfcbc1"            # a key that is down: darker than the cap, lighter than the shadow
       rams-key-edge: "rgba(38, 18, 1, 0.35)"
       rams-lens: "#b9b3a6"            # warning LED, unlit
-      rams-slot: "#2b2118"            # switch slot
+      rams-slot: "#2b2118"            # selector slot
       rams-lever: "#efece4"
       rams-red: "#c8362b"
       rams-orange: "#e8801a"
