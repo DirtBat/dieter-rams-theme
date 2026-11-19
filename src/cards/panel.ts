@@ -30,7 +30,7 @@ export class RamsPanel extends Piece<PanelConfig> {
     css`
       .plate { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
-      .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+      .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }

@@ -347,7 +347,7 @@ function M(t2, i2, s2 = t2, e2) {
   const o2 = a(i2) ? void 0 : i2._$litDirective$;
   return (h2 == null ? void 0 : h2.constructor) !== o2 && ((_b = h2 == null ? void 0 : h2._$AO) == null ? void 0 : _b.call(h2, false), void 0 === o2 ? h2 = void 0 : (h2 = new o2(t2), h2._$AT(t2, s2, e2)), void 0 !== e2 ? (s2._$Co ?? (s2._$Co = []))[e2] = h2 : s2._$Cl = h2), void 0 !== h2 && (i2 = M(t2, h2._$AS(t2, i2.values), h2, e2)), i2;
 }
-let R$1 = class R {
+class R {
   constructor(t2, i2) {
     this._$AV = [], this._$AN = void 0, this._$AD = t2, this._$AM = i2;
   }
@@ -374,7 +374,7 @@ let R$1 = class R {
     let i2 = 0;
     for (const s2 of this._$AV) void 0 !== s2 && (void 0 !== s2.strings ? (s2._$AI(t2, s2, i2), i2 += s2.strings.length - 2) : s2._$AI(t2[i2])), i2++;
   }
-};
+}
 class k {
   get _$AU() {
     var _a2;
@@ -411,7 +411,7 @@ class k {
     const { values: i2, _$litType$: s2 } = t2, e2 = "number" == typeof s2 ? this._$AC(t2) : (void 0 === s2.el && (s2.el = S.createElement(V(s2.h, s2.h[0]), this.options)), s2);
     if (((_a2 = this._$AH) == null ? void 0 : _a2._$AD) === e2) this._$AH.p(i2);
     else {
-      const t3 = new R$1(e2, this), s3 = t3.u(this.options);
+      const t3 = new R(e2, this), s3 = t3.u(this.options);
       t3.p(i2), this.T(s3), this._$AH = t3;
     }
   }
@@ -787,6 +787,7 @@ const tokens = i$3`
     --_cap-on-mix: var(--rams-cap-on-mix, #000);
     --_lcd-bg: var(--rams-lcd-bg, var(--_field));
     --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
+    --_lcd-muted: color-mix(in srgb, var(--_lcd-ink) 72%, transparent);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;
@@ -809,7 +810,7 @@ const tokens = i$3`
   :host([signal="green"]) { --_sig: var(--_green); }
   :host([signal="grey"]) { --_sig: var(--_grey); }
   :host([actionable]) { cursor: pointer; }
-  :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+  :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
 function fitKey(w2, h2) {
@@ -902,6 +903,9 @@ const HELPERS = {
   alert_when: "Type a state if it is not listed.",
   state_colours: 'Optional. A colour for each state, instead of red for every warning. A state listed here wins over "warning when".',
   value_colours: "Optional. Colour the piece when the number is above or below a value, for example CO2 above 1000. The strictest matching row wins.",
+  value: "A fixed value. Used only when no entity is set. The red mark sits at the value; nothing is drawn when there is none.",
+  interval: "Distance between the small tick marks. On an interactive dial it is also the step.",
+  major: "Distance between the thick tick marks, counted from the minimum. Empty: only the first and the last.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
   rows: "Only used inside a Rams panel. A standalone card is sized in the Layout tab."
 };
@@ -1222,7 +1226,7 @@ const faceStyles = i$3`
   .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
   .face.outline { background: transparent; }
   .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
-  .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+  .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
 `;
 var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
@@ -1329,10 +1333,12 @@ let RamsDisplay = class extends Piece {
     return c2.attribute ? String(entity.attributes[c2.attribute] ?? "") : entity.state;
   }
   render() {
+    var _a2;
     const c2 = this.config;
     if (!c2) return A;
-    const outside = c2.title_position && c2.title_position !== "inside" && !!c2.title;
-    const inside = !!c2.title && !outside;
+    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) ?? "";
+    const outside = c2.title_position && c2.title_position !== "inside" && !!title;
+    const inside = !!title && !outside;
     const light = this.lamp() ? c2.light : "none";
     const show = c2.show ?? "all";
     const notext = show === "none" && light !== "only";
@@ -1342,13 +1348,13 @@ let RamsDisplay = class extends Piece {
     const tone = light !== "none" ? readState(this.hass, c2.entity, c2).signal : void 0;
     const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
     return b`<div class="wrap ${outside ? c2.title_position : ""}">
-      ${outside ? b`<span class="outer">${c2.title}</span>` : A}
+      ${outside ? b`<span class="outer">${title}</span>` : A}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
           ${light !== "none" ? b`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : A}
           ${light === "only" ? A : b`<div class="block">
-            ${showTitle ? b`<span class="title">${c2.title}</span>` : A}
-            <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${showValue ? this.value() : A}${showValue && c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+            ${showTitle ? b`<span class="title">${title}</span>` : A}
+            <span class="value">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${showValue ? b`<span class="txt">${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>` : A}</span>
           </div>`}
         </div>
       </div>
@@ -1370,8 +1376,7 @@ RamsDisplay.styles = [
       /* no text: the icon and the lamp sit together, on the side the alignment says */
       .notext .block { flex: none; }
       /* icon and lamp on one centre line */
-      .noval .value { display: flex; align-items: center; line-height: 1; }
-      .noval .ico { margin: 0; vertical-align: baseline; }
+      .noval .ico { margin: 0; }
       .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
       .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
       .has-title { padding: 8px 0; }
@@ -1380,12 +1385,14 @@ RamsDisplay.styles = [
       .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
       .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-      .value { line-height: 1.1; }
-      .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }
+      /* icon and text on one centre line; the unit sits on the text's baseline */
+      .value { display: flex; align-items: center; line-height: 1.1; }
+      .txt { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+      .ico { --mdc-icon-size: 1em; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; margin-right: 6px; }
       .small .value { font-size: 12px; }
       .medium .value { font-size: 20px; }
       .large .value { font-size: 44px; letter-spacing: -0.02em; }
-      .unit { font-size: 0.4em; color: var(--_muted); margin-left: 3px; letter-spacing: 0; }
+      .unit { font-size: 0.4em; color: var(--_muted); letter-spacing: 0; }
     `
 ];
 RamsDisplay = __decorateClass$9([
@@ -1619,7 +1626,7 @@ RamsPanel.styles = [
   i$3`
       .plate { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
-      .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+      .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
@@ -2386,12 +2393,19 @@ var __decorateClass = (decorators, target, key, kind) => {
   if (kind && result) __defProp(target, key, result);
   return result;
 };
-const R2 = 72;
 const rad = (deg) => deg * Math.PI / 180;
 const at = (deg, r2) => [r2 * Math.sin(rad(deg)), -r2 * Math.cos(rad(deg))];
+const MINOR = 7;
+const MAJOR = 12;
+const MARK_OUT = 4;
+const MARK_IN = 14;
+const NUMBER_H = 28;
+const END_GAP = 8;
 let RamsDial = class extends Piece {
   constructor() {
     super(...arguments);
+    this.room = { w: 0, h: 0 };
+    this.origin = [0, 0];
     this.onDown = (e2) => {
       var _a2;
       if (!((_a2 = this.config) == null ? void 0 : _a2.interactive)) return;
@@ -2423,12 +2437,14 @@ let RamsDial = class extends Piece {
             num$1("min", void 0, void 0, { step: "any" }),
             num$1("max", void 0, void 0, { step: "any" }),
             num$1("interval", void 0, void 0, { step: "any" }),
+            num$1("major", void 0, void 0, { step: "any" }),
             num$1("start_angle", -360, 360, { step: 5 }),
             num$1("end_angle", -360, 360, { step: 5 }),
             { name: "unit", selector: { text: {} } },
             { name: "title", selector: { text: {} } },
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]])
+            dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
         { name: "interactive", selector: { boolean: {} } },
@@ -2437,6 +2453,23 @@ let RamsDial = class extends Piece {
       computeLabel,
       computeHelper
     };
+  }
+  disconnectedCallback() {
+    var _a2;
+    super.disconnectedCallback();
+    (_a2 = this.watcher) == null ? void 0 : _a2.disconnect();
+    this.watcher = this.watched = void 0;
+  }
+  updated() {
+    const el = this.renderRoot.querySelector(".room");
+    if (!el || el === this.watched) return;
+    this.watcher ?? (this.watcher = new ResizeObserver(([e2]) => {
+      const w2 = Math.round(e2.contentRect.width), h2 = Math.round(e2.contentRect.height);
+      if (w2 !== this.room.w || h2 !== this.room.h) this.room = { w: w2, h: h2 };
+    }));
+    if (this.watched) this.watcher.unobserve(this.watched);
+    this.watcher.observe(el);
+    this.watched = el;
   }
   range() {
     const c2 = this.config;
@@ -2455,40 +2488,62 @@ let RamsDial = class extends Piece {
   }
   text() {
     var _a2, _b;
-    return ((_a2 = this.config) == null ? void 0 : _a2.title) ?? ((_b = this.config) == null ? void 0 : _b.label) ?? "";
+    return (((_a2 = this.config) == null ? void 0 : _a2.title) ?? ((_b = this.config) == null ? void 0 : _b.label) ?? "").trim();
   }
   inside() {
     var _a2;
     return !((_a2 = this.config) == null ? void 0 : _a2.title_position) || this.config.title_position === "inside";
   }
-  /** Baseline of the number: under a top arc, but centred on the dial when the arc runs down the side. */
-  numberY() {
-    var _a2;
-    const [a0, a1] = this.angles();
-    let low = Math.max(at(a0, R2)[1], at(a1, R2)[1]);
-    for (let a2 = Math.ceil(a0 / 90) * 90; a2 <= a1; a2 += 90) low = Math.max(low, at(a2, R2)[1]);
-    if (low <= 20) return 26;
-    return ((_a2 = this.config) == null ? void 0 : _a2.unit) ? 2 : 8;
+  /** Text size of the end numbers: it follows the dial a little, within limits. */
+  endSize(r2) {
+    return Math.min(13, Math.max(10, r2 * 0.13));
   }
-  /** The drawing area: the arc, the end labels and the centre text, whatever the angles are. */
-  box() {
-    var _a2, _b;
+  /** The bounding box of everything drawn at radius r: the arc, the marks, the end numbers, an inside title. */
+  bounds(r2) {
     const [a0, a1] = this.angles();
-    const pts = [at(a0, R2 + 14), at(a1, R2 + 14)];
-    if (((_a2 = this.config) == null ? void 0 : _a2.show) !== "none") pts.push([0, this.numberY() + 8 + (((_b = this.config) == null ? void 0 : _b.unit) ? 12 : 0)]);
-    for (let a2 = Math.ceil(a0 / 90) * 90; a2 <= a1; a2 += 90) pts.push(at(a2, R2 + 4));
-    if (this.inside() && this.text()) pts.push([0, -R2 - 16]);
+    const { min, max } = this.range();
+    const fs = this.endSize(r2);
+    const pts = [];
+    const angles = [a0, a1];
+    for (let a2 = Math.ceil(a0 / 90) * 90; a2 < a1; a2 += 90) angles.push(a2);
+    for (let a2 = a0; a2 < a1; a2 += 5) angles.push(a2);
+    for (const a2 of angles) {
+      pts.push(at(a2, r2 + MARK_OUT), at(a2, r2 - MAJOR));
+    }
+    const label = (a2, value) => {
+      const [x2, y3] = at(a2, r2 + END_GAP);
+      const sin = Math.sin(rad(a2));
+      const w2 = String(value).length * fs * 0.62;
+      const left = sin > 0.4 ? x2 : sin < -0.4 ? x2 - w2 : x2 - w2 / 2;
+      pts.push([left, y3 - fs * 0.65], [left + w2, y3 + fs * 0.35]);
+    };
+    label(a0, min);
+    label(a1, max);
+    const title = this.inside() ? this.text() : "";
+    if (title) {
+      const top = Math.min(...pts.map((p2) => p2[1]));
+      const cx = (at(a0, r2)[0] + at(a1, r2)[0]) / 2;
+      const w2 = title.length * 6.4;
+      pts.push([cx - w2 / 2, top - 18], [cx + w2 / 2, top - 8]);
+    }
     const xs = pts.map((p2) => p2[0]), ys = pts.map((p2) => p2[1]);
-    const x0 = Math.min(...xs) - 4, y0 = Math.min(...ys) - 4;
-    return [x0 - 8, y0, Math.max(...xs) + 4 - x0 + 16, Math.max(...ys) + 4 - y0];
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  }
+  /** The largest radius whose drawing fits the room. */
+  radius(w2, h2) {
+    let lo = 12, hi = 4e3;
+    for (let i2 = 0; i2 < 24; i2++) {
+      const mid = (lo + hi) / 2;
+      const [x0, y0, x1, y1] = this.bounds(mid);
+      if (x1 - x0 <= w2 && y1 - y0 <= h2) lo = mid;
+      else hi = mid;
+    }
+    return lo;
   }
   fromPointer(e2) {
-    const el = e2.currentTarget;
-    const rect = el.getBoundingClientRect();
-    const [bx, by, bw, bh] = this.box();
-    const k2 = Math.min(rect.width / bw, rect.height / bh);
-    const px = (e2.clientX - (rect.left + (rect.width - bw * k2) / 2)) / k2 + bx;
-    const py = (e2.clientY - (rect.top + (rect.height - bh * k2) / 2)) / k2 + by;
+    const rect = e2.currentTarget.getBoundingClientRect();
+    const px = e2.clientX - rect.left + this.origin[0];
+    const py = e2.clientY - rect.top + this.origin[1];
     const [a0, a1] = this.angles();
     let a2 = Math.atan2(px, -py) * 180 / Math.PI;
     while (a2 < a0) a2 += 360;
@@ -2497,39 +2552,65 @@ let RamsDial = class extends Piece {
     const r2 = this.range();
     return clamp(r2.min + (a2 - a0) / (a1 - a0) * (r2.max - r2.min), r2);
   }
+  /** The scale, in a room of w x h pixels (the number's line already taken off). */
+  scale(w2, h2, value) {
+    const c2 = this.config;
+    const { min, max, step } = this.range();
+    const [a0, a1] = this.angles();
+    const r2 = this.radius(w2, h2);
+    const [bx0, by0, bx1, by1] = this.bounds(r2);
+    const height = Math.ceil(by1 - by0) + 4;
+    const vx = (bx0 + bx1) / 2 - w2 / 2, vy = by0 - 2;
+    this.origin = [vx, vy];
+    const span = max - min;
+    const frac = (v2) => (v2 - min) / span;
+    const count = Math.min(100, Math.max(1, Math.round(span / step)));
+    const majors = [0, 1];
+    if (c2.major && c2.major > 0) for (let v2 = min + c2.major; v2 < max - span * 1e-6; v2 += c2.major) majors.push(frac(v2));
+    const isMajor = (f22) => majors.some((m2) => Math.abs(m2 - f22) < 1e-6);
+    const minors = Array.from({ length: count + 1 }, (_2, i2) => i2 / count).filter((f22) => !isMajor(f22));
+    const tick = (f22, len, cls) => {
+      const [x1, y1] = this.at(f22, r2);
+      const [x2, y22] = this.at(f22, r2 - len);
+      return w$1`<line class="tick ${cls}" x1=${x1} y1=${y1} x2=${x2} y2=${y22} />`;
+    };
+    const [sx, sy] = at(a0, r2), [ex, ey] = at(a1, r2);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    const fs = this.endSize(r2);
+    const endLabel = (a2, text) => {
+      const [x2, y3] = at(a2, r2 + END_GAP);
+      const s2 = Math.sin(rad(a2));
+      return w$1`<text class="end" style="font-size:${fs}px" x=${x2} y=${y3 + fs * 0.35} text-anchor=${s2 > 0.4 ? "start" : s2 < -0.4 ? "end" : "middle"}>${text}</text>`;
+    };
+    const top = Math.min(...[a0, a1, ...[...Array(4).keys()].map((k2) => k2 * 90).filter((a2) => a2 > a0 && a2 < a1)].map((a2) => at(a2, r2 + MARK_OUT)[1]));
+    const f2 = value === void 0 ? void 0 : Math.min(1, Math.max(0, frac(value)));
+    const [m1x, m1y] = f2 === void 0 ? [0, 0] : this.at(f2, r2 + MARK_OUT);
+    const [m2x, m2y] = f2 === void 0 ? [0, 0] : this.at(f2, r2 - MARK_IN);
+    return {
+      height,
+      svg: b`<svg viewBox="${vx} ${vy} ${w2} ${height}" style="height:${height}px" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+        ${w$1`<path class="arc" d="M ${sx} ${sy} A ${r2} ${r2} 0 ${large} 1 ${ex} ${ey}" />
+        ${minors.map((t2) => tick(t2, MINOR, ""))}
+        ${majors.map((t2) => tick(t2, MAJOR, "major"))}
+        ${f2 === void 0 ? A : w$1`<line class="mark" x1=${m1x} y1=${m1y} x2=${m2x} y2=${m2y} />`}
+        ${endLabel(a0, min)}${endLabel(a1, max)}
+        ${this.inside() && this.text() ? w$1`<text class="lab" x=${(sx + ex) / 2} y=${top - 10}>${this.text()}</text>` : A}`}
+      </svg>`
+    };
+  }
   render() {
     const c2 = this.config;
     if (!c2) return A;
-    const { min, max, step } = this.range();
-    const [a0, a1] = this.angles();
     const value = this.drag ?? (c2.entity ? readNumber(this.hass, c2.entity, c2.attribute) : c2.value);
-    const f2 = value === void 0 ? void 0 : Math.min(1, Math.max(0, (value - min) / (max - min)));
-    const count = Math.min(60, Math.max(1, Math.round((max - min) / step)));
-    const ticks = Array.from({ length: count + 1 }, (_2, i2) => i2 / count);
+    const showNumber = c2.show !== "none";
+    const { w: w2, h: h2 } = this.room;
     const shown = value === void 0 ? "–" : String(Math.round(value * 10) / 10);
-    const [x0, y0, w2, h2] = this.box();
-    const [sx, sy] = at(a0, R2), [ex, ey] = at(a1, R2);
-    const large = a1 - a0 > 180 ? 1 : 0;
-    const endLabel = (a2, text) => {
-      const [x2, y3] = at(a2, R2 + 12);
-      const s2 = Math.sin(rad(a2));
-      return w$1`<text class="end" x=${x2} y=${y3 + 3} text-anchor=${s2 > 0.4 ? "start" : s2 < -0.4 ? "end" : "middle"}>${text}</text>`;
-    };
-    const ny = this.numberY();
+    const ready = w2 > 0 && h2 > 0;
+    const dial = b`<div class="dial"><div class="room">
+      ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (showNumber ? NUMBER_H + 4 : 0)), value).svg : A}
+      ${ready && showNumber ? b`<div class="num ${c2.align ?? "center"}">${shown}${c2.unit ? b`<small>${c2.unit}</small>` : A}</div>` : A}
+    </div></div>`;
     const outside = !this.inside() && !!this.text();
-    const dial = b`<svg viewBox="${x0} ${y0} ${w2} ${h2}" class=${c2.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
-      ${w$1`<path class="arc" d="M ${sx} ${sy} A ${R2} ${R2} 0 ${large} 1 ${ex} ${ey}" />
-      ${ticks.map((t2, i2) => {
-      const major = i2 === 0 || i2 === count || count % 2 === 0 && i2 === count / 2;
-      const [x1, y1] = this.at(t2, R2);
-      const [x2, y22] = this.at(t2, R2 - (major ? 12 : 7));
-      return w$1`<line class="tick ${major ? "major" : ""}" x1=${x1} y1=${y1} x2=${x2} y2=${y22} />`;
-    })}
-      ${f2 === void 0 ? A : w$1`<line class="needle" x1=${this.at(f2, R2 * 0.5)[0]} y1=${this.at(f2, R2 * 0.5)[1]} x2=${this.at(f2, R2 - 6)[0]} y2=${this.at(f2, R2 - 6)[1]} />`}
-      ${endLabel(a0, min)}${endLabel(a1, max)}
-      ${c2.show === "none" ? A : w$1`<text class="num" x="0" y=${ny}>${shown}</text>${c2.unit ? w$1`<text class="unit" x="0" y=${ny + 12}>${c2.unit}</text>` : A}`}
-      ${!outside && this.text() ? w$1`<text class="lab" x="0" y=${-R2 - 8}>${this.text()}</text>` : A}`}
-    </svg>`;
     if (!outside) return dial;
     return b`<div class="wrap ${c2.title_position}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
@@ -2538,25 +2619,33 @@ RamsDial.styles = [
   tokens,
   faceStyles,
   i$3`
-      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); }
-      svg { display: block; width: 100%; height: 100%; touch-action: none; }
+      :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
+      .dial { height: 100%; min-height: 72px; }
+      .room { box-sizing: border-box; height: 100%; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+      svg { display: block; flex: none; width: 100%; touch-action: none; }
       .face { display: block; }
-      .arc { fill: none; stroke: var(--_muted); stroke-width: 1; }
-      .tick { stroke: var(--_muted); stroke-width: 1; }
-      .tick.major { stroke: var(--_ink); stroke-width: 1.5; }
-      .needle { stroke: var(--_red); stroke-width: 3; stroke-linecap: round; }
-      .num { fill: var(--_ink); font-size: 22px; text-anchor: middle; }
-      .unit, .lab, .end { fill: var(--_muted); font-size: 9px; letter-spacing: 0.06em; text-anchor: middle; text-transform: uppercase; }
+      .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
+      .tick { stroke: var(--_muted); stroke-width: 1.5; }
+      .tick.major { stroke: var(--_ink); stroke-width: 2.5; }
+      .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
+      .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.06em; text-transform: uppercase; }
+      .lab { font-size: 10px; text-anchor: middle; }
+      .num { flex: none; box-sizing: border-box; height: ${NUMBER_H}px; margin-top: 4px; padding: 0 2px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 24px; line-height: ${NUMBER_H}px; color: var(--_ink); }
+      .num.start { justify-content: flex-start; } .num.end { justify-content: flex-end; }
+      .num small { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .interactive { cursor: pointer; }
     `
 ];
 __decorateClass([
   r()
 ], RamsDial.prototype, "drag", 2);
+__decorateClass([
+  r()
+], RamsDial.prototype, "room", 2);
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-18 20:24 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-19 10:50 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

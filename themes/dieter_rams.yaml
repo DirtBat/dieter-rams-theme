@@ -62,6 +62,6 @@ Dieter Rams:
       rams-cap-rest: "42%"
       rams-cap-on: "100%"
       rams-cap-on-mix: "#ffffff"
-      # LCD: green-grey, backlit
-      rams-lcd-bg: "linear-gradient(180deg, #b9c9a8 0%, #a1b490 50%, #84997a 100%)"
-      rams-lcd-ink: "#141d10"
+      # LCD: a dim grey with a hint of green, backlit; dark ink (the iPod's screen, at night)
+      rams-lcd-bg: "linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%)"
+      rams-lcd-ink: "#12160f"

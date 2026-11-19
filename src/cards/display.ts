@@ -69,8 +69,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       /* no text: the icon and the lamp sit together, on the side the alignment says */
       .notext .block { flex: none; }
       /* icon and lamp on one centre line */
-      .noval .value { display: flex; align-items: center; line-height: 1; }
-      .noval .ico { margin: 0; vertical-align: baseline; }
+      .noval .ico { margin: 0; }
       .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
       .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
       .has-title { padding: 8px 0; }
@@ -79,12 +78,14 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
       .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
-      .value { line-height: 1.1; }
-      .ico { --mdc-icon-size: 1em; margin-right: 6px; vertical-align: -0.12em; }
+      /* icon and text on one centre line; the unit sits on the text's baseline */
+      .value { display: flex; align-items: center; line-height: 1.1; }
+      .txt { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
+      .ico { --mdc-icon-size: 1em; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; margin-right: 6px; }
       .small .value { font-size: 12px; }
       .medium .value { font-size: 20px; }
       .large .value { font-size: 44px; letter-spacing: -0.02em; }
-      .unit { font-size: 0.4em; color: var(--_muted); margin-left: 3px; letter-spacing: 0; }
+      .unit { font-size: 0.4em; color: var(--_muted); letter-spacing: 0; }
     `,
   ];
 
@@ -172,8 +173,9 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
-    const outside = c.title_position && c.title_position !== "inside" && !!c.title;
-    const inside = !!c.title && !outside;
+    const title = c.title?.trim() ?? "";
+    const outside = c.title_position && c.title_position !== "inside" && !!title;
+    const inside = !!title && !outside;
     const light = this.lamp() ? c.light! : "none";
     const show = c.show ?? "all";
     const notext = show === "none" && light !== "only";
@@ -183,13 +185,13 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
     return html`<div class="wrap ${outside ? c.title_position : ""}">
-      ${outside ? html`<span class="outer">${c.title}</span>` : nothing}
+      ${outside ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
           ${light !== "none" ? html`<i class="lamp ${tone ? `on ${tone}` : ""}"></i>` : nothing}
           ${light === "only" ? nothing : html`<div class="block">
-            ${showTitle ? html`<span class="title">${c.title}</span>` : nothing}
-            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${showValue ? this.value() : nothing}${showValue && c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>
+            ${showTitle ? html`<span class="title">${title}</span>` : nothing}
+            <span class="value">${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}${showValue ? html`<span class="txt">${this.value()}${c.unit ? html`<span class="unit">${c.unit}</span>` : nothing}</span>` : nothing}</span>
           </div>`}
         </div>
       </div>

@@ -43,6 +43,7 @@ export const tokens = css`
     --_cap-on-mix: var(--rams-cap-on-mix, #000);
     --_lcd-bg: var(--rams-lcd-bg, var(--_field));
     --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
+    --_lcd-muted: color-mix(in srgb, var(--_lcd-ink) 72%, transparent);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;
@@ -65,6 +66,6 @@ export const tokens = css`
   :host([signal="green"]) { --_sig: var(--_green); }
   :host([signal="grey"]) { --_sig: var(--_grey); }
   :host([actionable]) { cursor: pointer; }
-  :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: color-mix(in srgb, var(--_lcd-ink) 62%, transparent); box-shadow: var(--_inset); }
+  :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
 `;
