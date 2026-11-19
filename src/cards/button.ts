@@ -1,6 +1,7 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
+import { formEditor } from "../shared/form-editor";
 import { Press } from "../shared/press";
 import { canWarn, readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
@@ -19,7 +20,7 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   label_position?: "below" | "above" | "left" | "right" | "inside";
   /** Square (default) fills the size it is given; tall is half as wide, in the same box; round is a dome, always a circle. */
   shape?: "square" | "tall" | "round";
-  /** Colours the whole key. A state rule's colour shows as a dot instead. */
+  /** Colours the whole key. A state rule's colour then replaces it while the rule matches; a key with no tone shows the rule's colour as a dot. */
   tone?: Tone;
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
   adjust_by?: number;
@@ -78,6 +79,10 @@ export class RamsButton extends Piece<ButtonConfig> {
     return { type: "custom:rams-button", name: "Button", columns: 2, rows: 2 };
   }
 
+  static getConfigElement(): Promise<HTMLElement> {
+    return formEditor(this.getConfigForm());
+  }
+
   static getConfigForm() {
     return {
       schema: [
@@ -110,7 +115,7 @@ export class RamsButton extends Piece<ButtonConfig> {
                   multiple: true,
                   label_field: "state",
                   fields: {
-                    state: { selector: { state: {} }, required: true },
+                    state: { label: "State", selector: { text: {} }, required: true },
                     tone: { selector: { select: { mode: "dropdown", options: ["red", "orange", "blue", "green", "grey"] } }, required: true },
                   },
                 },
@@ -155,13 +160,15 @@ export class RamsButton extends Piece<ButtonConfig> {
     const view = readState(this.hass, c.entity, c);
     const name = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     const pos = c.label_position ?? "below";
-    const tone = c.tone && c.tone !== "neutral" ? c.tone : "";
+    const own = c.tone && c.tone !== "neutral" ? c.tone : "";
+    // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
+    const tone = own ? (view.tone ?? own) : "";
     const cls = ["key", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
         <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-          ${view.tone ? html`<i class="dot ${view.tone}"></i>` : nothing}
+          ${view.tone && !own ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
         </button></div>

@@ -1,6 +1,7 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
+import { formEditor } from "../shared/form-editor";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
 import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
@@ -91,6 +92,10 @@ export class RamsDisplay extends Piece<DisplayConfig> {
 
   static getStubConfig(): DisplayConfig {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
+  }
+
+  static getConfigElement(): Promise<HTMLElement> {
+    return formEditor(this.getConfigForm());
   }
 
   static getConfigForm() {

@@ -600,13 +600,13 @@ function n2(t2) {
 function r(r2) {
   return n2({ ...r2, state: true, attribute: false });
 }
-var __defProp$6 = Object.defineProperty;
-var __decorateClass$c = (decorators, target, key, kind) => {
+var __defProp$7 = Object.defineProperty;
+var __decorateClass$d = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(target, key, result) || result;
-  if (result) __defProp$6(target, key, result);
+  if (result) __defProp$7(target, key, result);
   return result;
 };
 class Piece extends i {
@@ -666,12 +666,60 @@ class Piece extends i {
     return ((_a2 = this.config) == null ? void 0 : _a2.rows) ?? 1;
   }
 }
-__decorateClass$c([
+__decorateClass$d([
   n2({ attribute: false })
 ], Piece.prototype, "hass");
-__decorateClass$c([
+__decorateClass$d([
   n2({ attribute: false })
 ], Piece.prototype, "config");
+var __defProp$6 = Object.defineProperty;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = void 0;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = decorator(target, key, result) || result;
+  if (result) __defProp$6(target, key, result);
+  return result;
+};
+const JUDGED = /* @__PURE__ */ new Set(["selected_when", "alert_when"]);
+const retarget = (schema, from) => schema.map((f2) => {
+  if (f2.schema) return { ...f2, schema: retarget(f2.schema, from) };
+  if (f2.name && JUDGED.has(f2.name)) return { ...f2, context: { filter_entity: from } };
+  return f2;
+});
+class RamsFormEditor extends i {
+  constructor() {
+    super(...arguments);
+    this.changed = (e2) => {
+      e2.stopPropagation();
+      this.config = e2.detail.value;
+      this.dispatchEvent(new CustomEvent("config-changed", { detail: { config: this.config }, bubbles: true, composed: true }));
+    };
+  }
+  setConfig(config) {
+    this.config = config;
+  }
+  render() {
+    if (!this.config || !this.hass || !this.form) return A;
+    const from = this.config.rules_entity ? "rules_entity" : "entity";
+    return b`<ha-form .hass=${this.hass} .data=${this.config} .schema=${retarget(this.form.schema, from)} .computeLabel=${this.form.computeLabel} .computeHelper=${this.form.computeHelper} @value-changed=${this.changed}></ha-form>`;
+  }
+}
+__decorateClass$c([
+  n2({ attribute: false })
+], RamsFormEditor.prototype, "hass");
+__decorateClass$c([
+  n2({ attribute: false })
+], RamsFormEditor.prototype, "lovelace");
+__decorateClass$c([
+  n2({ attribute: false })
+], RamsFormEditor.prototype, "config");
+if (!customElements.get("rams-form-editor")) customElements.define("rams-form-editor", RamsFormEditor);
+async function formEditor(form) {
+  const el = document.createElement("rams-form-editor");
+  el.form = form;
+  return el;
+}
 const TOGGLE = ["light", "switch", "input_boolean", "fan", "scene", "script", "automation", "cover", "lock", "humidifier", "siren", "group"];
 function fireAction(node, config, action) {
   var _a2;
@@ -899,7 +947,7 @@ const LABELS = {
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
   setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
-  rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
+  rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. The lists below then offer that entity's states.",
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
   state_colours: 'Optional. A colour for each state, instead of red for every warning. A state listed here wins over "warning when".',
@@ -1038,6 +1086,9 @@ let RamsButton = class extends Piece {
   static getStubConfig() {
     return { type: "custom:rams-button", name: "Button", columns: 2, rows: 2 };
   }
+  static getConfigElement() {
+    return formEditor(this.getConfigForm());
+  }
   static getConfigForm() {
     return {
       schema: [
@@ -1070,7 +1121,7 @@ let RamsButton = class extends Piece {
                   multiple: true,
                   label_field: "state",
                   fields: {
-                    state: { selector: { state: {} }, required: true },
+                    state: { label: "State", selector: { text: {} }, required: true },
                     tone: { selector: { select: { mode: "dropdown", options: ["red", "orange", "blue", "green", "grey"] } }, required: true }
                   }
                 }
@@ -1113,13 +1164,14 @@ let RamsButton = class extends Piece {
     const view = readState(this.hass, c2.entity, c2);
     const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
     const pos = c2.label_position ?? "below";
-    const tone = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
+    const own = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
+    const tone = own ? view.tone ?? own : "";
     const cls = ["key", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
         <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-          ${view.tone ? b`<i class="dot ${view.tone}"></i>` : A}
+          ${view.tone && !own ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
           ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
         </button></div>
@@ -1152,6 +1204,9 @@ let RamsSwitch = class extends Piece {
   }
   static getStubConfig() {
     return { type: "custom:rams-switch", name: "Switch", columns: 2, rows: 2 };
+  }
+  static getConfigElement() {
+    return formEditor(this.getConfigForm());
   }
   static getConfigForm() {
     return {
@@ -1256,6 +1311,9 @@ let RamsDisplay = class extends Piece {
   }
   static getStubConfig() {
     return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
+  }
+  static getConfigElement() {
+    return formEditor(this.getConfigForm());
   }
   static getConfigForm() {
     const dropdown2 = (name, options) => ({
@@ -1625,7 +1683,7 @@ let RamsPanel = class extends Piece {
 RamsPanel.styles = [
   tokens,
   i$3`
-      .plate { display: flex; flex-direction: column; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
@@ -2659,7 +2717,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-19 11:00 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-19 11:52 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

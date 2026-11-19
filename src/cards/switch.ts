@@ -1,6 +1,7 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
+import { formEditor } from "../shared/form-editor";
 import { Press } from "../shared/press";
 import { canWarn, readState, type StateRules } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
@@ -39,6 +40,10 @@ export class RamsSwitch extends Piece<SwitchConfig> {
 
   static getStubConfig(): SwitchConfig {
     return { type: "custom:rams-switch", name: "Switch", columns: 2, rows: 2 };
+  }
+
+  static getConfigElement(): Promise<HTMLElement> {
+    return formEditor(this.getConfigForm());
   }
 
   static getConfigForm() {
