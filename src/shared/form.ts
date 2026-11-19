@@ -11,6 +11,7 @@ const LABELS: Record<string, string> = {
 export const computeLabel = (s: { name: string }): string => LABELS[s.name] ?? s.name.replace(/_/g, " ");
 
 const HELPERS: Record<string, string> = {
+  setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",

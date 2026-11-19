@@ -898,6 +898,7 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. Type its states: the lists offer this card's own entity.",
   selected_when: "Type a state if it is not listed.",
   alert_when: "Type a state if it is not listed.",
@@ -2398,6 +2399,7 @@ const at = (deg, r2) => [r2 * Math.sin(rad(deg)), -r2 * Math.cos(rad(deg))];
 const MINOR = 7;
 const MAJOR = 12;
 const MARK_OUT = 4;
+const POINTER = 10;
 const MARK_IN = 14;
 const NUMBER_H = 28;
 const END_GAP = 8;
@@ -2429,6 +2431,7 @@ let RamsDial = class extends Piece {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
+        { name: "setpoint", selector: { entity: {} } },
         {
           type: "grid",
           name: "",
@@ -2500,6 +2503,7 @@ let RamsDial = class extends Piece {
   }
   /** The bounding box of everything drawn at radius r: the arc, the marks, the end numbers, an inside title. */
   bounds(r2) {
+    var _a2;
     const [a0, a1] = this.angles();
     const { min, max } = this.range();
     const fs = this.endSize(r2);
@@ -2507,8 +2511,9 @@ let RamsDial = class extends Piece {
     const angles = [a0, a1];
     for (let a2 = Math.ceil(a0 / 90) * 90; a2 < a1; a2 += 90) angles.push(a2);
     for (let a2 = a0; a2 < a1; a2 += 5) angles.push(a2);
+    const out = ((_a2 = this.config) == null ? void 0 : _a2.setpoint) ? POINTER + 1 : MARK_OUT;
     for (const a2 of angles) {
-      pts.push(at(a2, r2 + MARK_OUT), at(a2, r2 - MAJOR));
+      pts.push(at(a2, r2 + out), at(a2, r2 - MAJOR));
     }
     const label = (a2, value) => {
       const [x2, y3] = at(a2, r2 + END_GAP);
@@ -2584,6 +2589,13 @@ let RamsDial = class extends Piece {
     };
     const top = Math.min(...[a0, a1, ...[...Array(4).keys()].map((k2) => k2 * 90).filter((a2) => a2 > a0 && a2 < a1)].map((a2) => at(a2, r2 + MARK_OUT)[1]));
     const f2 = value === void 0 ? void 0 : Math.min(1, Math.max(0, frac(value)));
+    const sp = c2.setpoint ? readNumber(this.hass, c2.setpoint) : void 0;
+    const pointer = (v2) => {
+      const a2 = a0 + Math.min(1, Math.max(0, frac(v2))) * (a1 - a0);
+      const t2 = [Math.cos(rad(a2)), Math.sin(rad(a2))];
+      const [ax, ay] = at(a2, r2 + 1), [bx, by] = at(a2, r2 + POINTER);
+      return w$1`<polygon class="pointer" points="${ax},${ay} ${bx + t2[0] * 4.5},${by + t2[1] * 4.5} ${bx - t2[0] * 4.5},${by - t2[1] * 4.5}" />`;
+    };
     const [m1x, m1y] = f2 === void 0 ? [0, 0] : this.at(f2, r2 + MARK_OUT);
     const [m2x, m2y] = f2 === void 0 ? [0, 0] : this.at(f2, r2 - MARK_IN);
     return {
@@ -2593,6 +2605,7 @@ let RamsDial = class extends Piece {
         ${minors.map((t2) => tick(t2, MINOR, ""))}
         ${majors.map((t2) => tick(t2, MAJOR, "major"))}
         ${f2 === void 0 ? A : w$1`<line class="mark" x1=${m1x} y1=${m1y} x2=${m2x} y2=${m2y} />`}
+        ${sp === void 0 ? A : pointer(sp)}
         ${endLabel(a0, min)}${endLabel(a1, max)}
         ${this.inside() && this.text() ? w$1`<text class="lab" x=${(sx + ex) / 2} y=${top - 10}>${this.text()}</text>` : A}`}
       </svg>`
@@ -2627,6 +2640,7 @@ RamsDial.styles = [
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
       .tick { stroke: var(--_muted); stroke-width: 1.5; }
       .tick.major { stroke: var(--_ink); stroke-width: 2.5; }
+      .pointer { fill: var(--_ink); }
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
       .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.06em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
@@ -2645,7 +2659,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-19 10:50 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-19 11:00 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

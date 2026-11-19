@@ -11,6 +11,8 @@ export interface DialConfig extends PieceConfig {
   /** Value from an entity (a sensor, or a helper) ... */
   entity?: string;
   attribute?: string;
+  /** A second entity, such as a setpoint: a dark pointer outside the scale. A climate entity gives its target temperature. */
+  setpoint?: string;
   /** ... or a fixed value. */
   value?: number;
   min?: number;
@@ -44,6 +46,7 @@ const at = (deg: number, r: number): [number, number] => [r * Math.sin(rad(deg))
 const MINOR = 7;
 const MAJOR = 12;
 const MARK_OUT = 4;
+const POINTER = 10;
 const MARK_IN = 14;
 const NUMBER_H = 28;
 const END_GAP = 8;
@@ -70,6 +73,7 @@ export class RamsDial extends Piece<DialConfig> {
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
       .tick { stroke: var(--_muted); stroke-width: 1.5; }
       .tick.major { stroke: var(--_ink); stroke-width: 2.5; }
+      .pointer { fill: var(--_ink); }
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
       .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.06em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
@@ -89,6 +93,7 @@ export class RamsDial extends Piece<DialConfig> {
       schema: [
         { name: "entity", selector: { entity: {} } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
+        { name: "setpoint", selector: { entity: {} } },
         {
           type: "grid",
           name: "",
@@ -173,8 +178,9 @@ export class RamsDial extends Piece<DialConfig> {
     const angles = [a0, a1];
     for (let a = Math.ceil(a0 / 90) * 90; a < a1; a += 90) angles.push(a);
     for (let a = a0; a < a1; a += 5) angles.push(a);
+    const out = this.config?.setpoint ? POINTER + 1 : MARK_OUT;
     for (const a of angles) {
-      pts.push(at(a, r + MARK_OUT), at(a, r - MAJOR));
+      pts.push(at(a, r + out), at(a, r - MAJOR));
     }
     const label = (a: number, value: number) => {
       const [x, y] = at(a, r + END_GAP);
@@ -267,6 +273,13 @@ export class RamsDial extends Piece<DialConfig> {
     };
     const top = Math.min(...[a0, a1, ...[...Array(4).keys()].map((k) => k * 90).filter((a) => a > a0 && a < a1)].map((a) => at(a, r + MARK_OUT)[1]));
     const f = value === undefined ? undefined : Math.min(1, Math.max(0, frac(value)));
+    const sp = c.setpoint ? readNumber(this.hass, c.setpoint) : undefined;
+    const pointer = (v: number) => {
+      const a = a0 + Math.min(1, Math.max(0, frac(v))) * (a1 - a0);
+      const t: [number, number] = [Math.cos(rad(a)), Math.sin(rad(a))];
+      const [ax, ay] = at(a, r + 1), [bx, by] = at(a, r + POINTER);
+      return svg`<polygon class="pointer" points="${ax},${ay} ${bx + t[0] * 4.5},${by + t[1] * 4.5} ${bx - t[0] * 4.5},${by - t[1] * 4.5}" />`;
+    };
     const [m1x, m1y] = f === undefined ? [0, 0] : this.at(f, r + MARK_OUT);
     const [m2x, m2y] = f === undefined ? [0, 0] : this.at(f, r - MARK_IN);
     return {
@@ -276,6 +289,7 @@ export class RamsDial extends Piece<DialConfig> {
         ${minors.map((t) => tick(t, MINOR, ""))}
         ${majors.map((t) => tick(t, MAJOR, "major"))}
         ${f === undefined ? nothing : svg`<line class="mark" x1=${m1x} y1=${m1y} x2=${m2x} y2=${m2y} />`}
+        ${sp === undefined ? nothing : pointer(sp)}
         ${endLabel(a0, min)}${endLabel(a1, max)}
         ${this.inside() && this.text() ? svg`<text class="lab" x=${(sx + ex) / 2} y=${top - 10}>${this.text()}</text>` : nothing}`}
       </svg>`,
