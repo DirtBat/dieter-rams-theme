@@ -26,8 +26,12 @@ export interface ShelfConfig extends PieceConfig {
   kind?: string;
   /** Tiles per row. */
   per_row?: number;
-  /** Player that plays a tapped tile. */
+  /** Player that plays a tapped tile. With player_from set, this is only the fallback. */
   player?: string;
+  /** An input_select or select that says where to play, for example the music output selector. */
+  player_from?: string;
+  /** Which player goes with which option. Empty: an option is matched by name (Kitchen: media_player.kitchen_ma or media_player.kitchen). */
+  players?: Array<{ option: string; player: string }>;
 }
 
 @customElement("rams-shelf")
@@ -58,6 +62,21 @@ export class RamsShelf extends Piece<ShelfConfig> {
         { name: "entity", selector: { entity: {} } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "player", selector: { entity: { domain: "media_player" } } },
+        { name: "player_from", selector: { entity: { domain: ["input_select", "select"] } } },
+        {
+          name: "players",
+          selector: {
+            object: {
+              multiple: true,
+              label_field: "option",
+              description_field: "player",
+              fields: {
+                option: { label: "Option", required: true, selector: { text: {} } },
+                player: { label: "Player", required: true, selector: { entity: { domain: "media_player" } } },
+              },
+            },
+          },
+        },
         {
           type: "grid",
           name: "",
@@ -102,11 +121,25 @@ export class RamsShelf extends Piece<ShelfConfig> {
     return c.kind ? list.filter((i) => i.kind === c.kind) : list;
   }
 
-  private play(item: ShelfItem): void {
+  /** The player a tile plays on: the one the selector names, else the fixed player. */
+  private target(): string | undefined {
     const c = this.config;
-    if (!c?.player || !this.hass || !item.media_content_id) return;
+    const sel = c?.player_from ? this.hass?.states[c.player_from]?.state : undefined;
+    if (sel) {
+      const mapped = c?.players?.find((p) => p.option === sel)?.player;
+      if (mapped) return mapped;
+      const slug = sel.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      const guess = [`media_player.${slug}_ma`, `media_player.${slug}`].find((id) => this.hass?.states[id]);
+      if (guess) return guess;
+    }
+    return c?.player;
+  }
+
+  private play(item: ShelfItem): void {
+    const player = this.target();
+    if (!player || !this.hass || !item.media_content_id) return;
     void this.hass.callService("media_player", "play_media", {
-      entity_id: c.player,
+      entity_id: player,
       media_content_id: item.media_content_id,
       media_content_type: item.media_content_type ?? "music",
     });
@@ -121,8 +154,9 @@ export class RamsShelf extends Piece<ShelfConfig> {
     const c = this.config;
     if (!c) return nothing;
     const items = this.items();
-    const playingId = c.player ? this.hass?.states[c.player]?.attributes.media_content_id : undefined;
-    const playing = c.player && this.hass?.states[c.player]?.state === "playing";
+    const player = this.target();
+    const playingId = player ? this.hass?.states[player]?.attributes.media_content_id : undefined;
+    const playing = player && this.hass?.states[player]?.state === "playing";
     if (items.length === 0) {
       const why = !c.entity ? "Choose an entity" : !this.hass?.states[c.entity] ? `${c.entity} not found` : `No items in ${c.entity}`;
       return html`<div class="empty">${why}</div>`;

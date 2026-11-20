@@ -960,6 +960,8 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  player_from: "Optional. An input_select that says where to play, for example your music output selector. A tapped tile then plays on the player it names; the player above is the fallback.",
+  players: "Optional. Which player goes with which option. Left empty, an option is matched by name: Kitchen finds media_player.kitchen_ma or media_player.kitchen.",
   entities: "Optional, instead of the entity: several at once, for example all your speakers. The ruler shows the one that is playing; a touch sets the value on every one of them.",
   options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named.",
   labels_position: "Above or below a horizontal lever, left or right of a vertical one. A side that does not fit is turned to the nearest that does.",
@@ -2942,6 +2944,21 @@ let RamsShelf = class extends Piece {
         { name: "entity", selector: { entity: {} } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "player", selector: { entity: { domain: "media_player" } } },
+        { name: "player_from", selector: { entity: { domain: ["input_select", "select"] } } },
+        {
+          name: "players",
+          selector: {
+            object: {
+              multiple: true,
+              label_field: "option",
+              description_field: "player",
+              fields: {
+                option: { label: "Option", required: true, selector: { text: {} } },
+                player: { label: "Player", required: true, selector: { entity: { domain: "media_player" } } }
+              }
+            }
+          }
+        },
         {
           type: "grid",
           name: "",
@@ -2983,11 +3000,28 @@ let RamsShelf = class extends Piece {
     }
     return c2.kind ? list.filter((i2) => i2.kind === c2.kind) : list;
   }
-  play(item) {
+  /** The player a tile plays on: the one the selector names, else the fixed player. */
+  target() {
+    var _a2, _b, _c, _d;
     const c2 = this.config;
-    if (!(c2 == null ? void 0 : c2.player) || !this.hass || !item.media_content_id) return;
+    const sel = (c2 == null ? void 0 : c2.player_from) ? (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.player_from]) == null ? void 0 : _b.state : void 0;
+    if (sel) {
+      const mapped = (_d = (_c = c2 == null ? void 0 : c2.players) == null ? void 0 : _c.find((p2) => p2.option === sel)) == null ? void 0 : _d.player;
+      if (mapped) return mapped;
+      const slug = sel.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+      const guess = [`media_player.${slug}_ma`, `media_player.${slug}`].find((id) => {
+        var _a3;
+        return (_a3 = this.hass) == null ? void 0 : _a3.states[id];
+      });
+      if (guess) return guess;
+    }
+    return c2 == null ? void 0 : c2.player;
+  }
+  play(item) {
+    const player = this.target();
+    if (!player || !this.hass || !item.media_content_id) return;
     void this.hass.callService("media_player", "play_media", {
-      entity_id: c2.player,
+      entity_id: player,
       media_content_id: item.media_content_id,
       media_content_type: item.media_content_type ?? "music"
     });
@@ -3001,8 +3035,9 @@ let RamsShelf = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const items = this.items();
-    const playingId = c2.player ? (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.player]) == null ? void 0 : _b.attributes.media_content_id : void 0;
-    const playing = c2.player && ((_d = (_c = this.hass) == null ? void 0 : _c.states[c2.player]) == null ? void 0 : _d.state) === "playing";
+    const player = this.target();
+    const playingId = player ? (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[player]) == null ? void 0 : _b.attributes.media_content_id : void 0;
+    const playing = player && ((_d = (_c = this.hass) == null ? void 0 : _c.states[player]) == null ? void 0 : _d.state) === "playing";
     if (items.length === 0) {
       const why = !c2.entity ? "Choose an entity" : !((_e = this.hass) == null ? void 0 : _e.states[c2.entity]) ? `${c2.entity} not found` : `No items in ${c2.entity}`;
       return b`<div class="empty">${why}</div>`;
@@ -3320,7 +3355,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 12:14 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 12:29 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

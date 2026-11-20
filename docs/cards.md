@@ -89,3 +89,6 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 ## Ruler and dial: several entities, gauge options (2026-11-20)
 - `entities` (ruler and dial) stands for several entities as one: the one that is playing is shown, a touch sets all of them. Use it for one volume over several speakers.
 - The ruler took the gauge's options: `title` + `title_position`, `interval` (small ticks), `major` (thick ticks), `value` (fixed), `number` (the value under the scale) + `align`. Left empty it looks as before.
+
+## Shelf: play where the selector says (2026-11-20)
+- `player_from` (an input_select or select) makes a tapped tile play on the player that option names; `player` is the fallback. An option is matched by name (Kitchen finds media_player.kitchen_ma or media_player.kitchen); `players` maps options to players when the names differ. The playing LED follows the same player.
