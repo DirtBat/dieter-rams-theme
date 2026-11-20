@@ -1855,7 +1855,7 @@ let RamsDisplay = class extends Piece {
     const cls = [c2.align ?? "start", c2.size ?? "medium", showTitle && light !== "only" ? "has-title" : "", notext ? "notext" : "", !showValue ? "noval" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c2.entity, c2).signal : void 0;
     const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
-    return b`<div class="wrap ${outside ? c2.title_position : ""}">
+    return b`<div class="wrap ${outside ? c2.title_position : ""} ${light === "only" ? "lamp-only" : ""}">
       ${outside ? b`<span class="outer">${title}</span>` : A}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
@@ -1887,6 +1887,11 @@ RamsDisplay.styles = [
       .noval .ico { margin: 0; }
       .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
       .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
+      /* a lamp with its label beside it: the lamp keeps a fixed column, so lamps line up from card to card, and the label takes all the room that is left, next to its lamp */
+      .wrap.lamp-only.left .face, .wrap.lamp-only.right .face { flex: none; width: 28px; }
+      .wrap.lamp-only.left .outer, .wrap.lamp-only.right .outer { flex: 1; max-width: none; }
+      .wrap.lamp-only.right .outer { text-align: left; }
+      .wrap.lamp-only.left .outer { text-align: right; }
       .has-title { padding: 8px 0; }
       .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
       .lamp-only .lamp { width: 16px; height: 16px; }
@@ -3430,7 +3435,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:09 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:33 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

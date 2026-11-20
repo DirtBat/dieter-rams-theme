@@ -73,6 +73,11 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       .noval .ico { margin: 0; }
       .notext.start { justify-content: flex-start; } .notext.center { justify-content: center; } .notext.end { justify-content: flex-end; }
       .notext.lamp-right.start { justify-content: flex-end; } .notext.lamp-right.end { justify-content: flex-start; }
+      /* a lamp with its label beside it: the lamp keeps a fixed column, so lamps line up from card to card, and the label takes all the room that is left, next to its lamp */
+      .wrap.lamp-only.left .face, .wrap.lamp-only.right .face { flex: none; width: 28px; }
+      .wrap.lamp-only.left .outer, .wrap.lamp-only.right .outer { flex: 1; max-width: none; }
+      .wrap.lamp-only.right .outer { text-align: left; }
+      .wrap.lamp-only.left .outer { text-align: right; }
       .has-title { padding: 8px 0; }
       .lamp { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
       .lamp-only .lamp { width: 16px; height: 16px; }
@@ -189,7 +194,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const cls = [c.align ?? "start", c.size ?? "medium", showTitle && light !== "only" ? "has-title" : "", notext ? "notext" : "", !showValue ? "noval" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
-    return html`<div class="wrap ${outside ? c.title_position : ""}">
+    return html`<div class="wrap ${outside ? c.title_position : ""} ${light === "only" ? "lamp-only" : ""}">
       ${outside ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
