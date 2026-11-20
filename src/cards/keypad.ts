@@ -30,9 +30,12 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     tokens,
     keyStyles,
     css`
-      :host { display: block; min-width: 0; }
-      /* one centred block: the screen and the keys share the same width and margins */
-      .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
+      :host { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+      /* a framed keypad has the same margin above and below as at the sides */
+      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="raised"]) { padding-block: var(--_gap); }
+      /* one centred block: the screen and the keys share the same width and margins (12px all round) */
+      .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
+      .key:disabled { opacity: 0.4; pointer-events: none; }
       /* the screen is the display: the same recessed LCD, filled with a tone for a state */
       .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
@@ -69,7 +72,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
             },
           },
         },
-        ...layoutFields(false),
+        ...layoutFields(),
       ],
       computeLabel,
       computeHelper,
@@ -86,7 +89,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     this.touch();
   }
 
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The code is sent only when one was typed. */
+  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
   private confirm(): void {
     const c = this.config;
     if (!c?.entity || !this.hass) return;
@@ -98,11 +101,14 @@ export class RamsKeypad extends Piece<KeypadConfig> {
   }
 
   protected updated(_c: PropertyValues): void {
-    this.reportRows(5);
+    const pad = this.renderRoot.querySelector<HTMLElement>(".pad");
+    const gap = parseFloat(getComputedStyle(this).getPropertyValue("--_gap")) || 8;
+    const framed = !!this.getAttribute("frame") && this.getAttribute("frame") !== "none";
+    if (pad) this.reportRows(this.rowsFor(pad.offsetHeight + (framed ? 2 * gap + 2 : 0)));
   }
 
-  private cap(legend: string, onTap: () => void, tone = ""): TemplateResult {
-    return html`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" @click=${onTap}><span class="legend">${legend}</span></button></div>`;
+  private cap(legend: string, onTap: () => void, tone = "", disabled = false): TemplateResult {
+    return html`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend">${legend}</span></button></div>`;
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -120,7 +126,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => this.cap(d, () => this.press(d)))}
       ${this.cap("✕", () => (this.code = ""))}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green")}
+      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
     </div>`;
   }
 }

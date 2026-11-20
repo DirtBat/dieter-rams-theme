@@ -20,7 +20,7 @@ Principle: as few card types as possible. Anything that is only a combination of
 ## Dynamic and stateful cards (decided 13 Nov: all three are in; all built 13 Nov)
 | Card | Role | Design notes | Open |
 |---|---|---|---|
-| `rams-keypad` | Code entry after the default Alarmo keypad: code field with the alarm state, round keys 1-9, clear, 0, confirm | entity, arm_mode, colour by state | alarm panel | rebuilt 2026-11-17, in lab only. Confirm disarms an armed alarm and arms a disarmed one; the code is sent only when typed. Triggered, pending and armed away are red by default. |
+| `rams-keypad` | Code entry after the default Alarmo keypad: code field with the alarm state, round keys 1-9, clear, 0, confirm | entity, arm_mode, colour by state | alarm panel | rebuilt 2026-11-17, in lab only. Confirm is dead until a digit has been typed; it then disarms an armed alarm and arms a disarmed one. Frame option like the other cards; margins above and below match the sides. Triggered, pending and armed away are red by default. |
 | `rams-shelf` | Radio / album / podcast / playlist tiles from data | Reads items from an entity (state or attribute, JSON list). Each item becomes an artwork tile. Options: source entity and attribute, kind filter, tiles per row, target media player, tap action (play item on the player). Outlined / LED while that item plays. | Needs the real format of `input_select.music_favourites_data` (see below) |
 | `rams-list` | Dynamic text list | Reads a list from an entity attribute (e.g. `sensor.health_offline_list`, attribute `devices` = list of name / area). Options: entity, attribute, which keys give the main and second line, empty text, max items ("+n more"), optional tap action. Item height is half a grid row (two items per row unit). | none |
 
@@ -78,6 +78,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - `shape: square` (default) is always a square: the biggest that fits the card minus its lamp and name, centred. It no longer stretches into a pill when the card is wide or tall. `tall` and `round` are unchanged.
 - A square key sits in a black cut-out (token `--rams-cutout`, default #17110c). The cut-out reaches half a panel gap past the key on each side, so keys whose columns are no wider than the key itself touch and form one block: the black between two keys is twice the black round the outside.
 - `icon_tone` colours the icon with the same colours as `tone` (neutral keeps the key ink). Works on any shape, also on a toned key.
+- `light` sets the lamp above the key: automatic (default; a lamp only where warning states are set), none, lit on a warning, lit while on or selected, or both. A state rule gives the lit lamp its colour, otherwise red.
 
 ## Panel screws (2026-11-20)
 - `screws: true` puts a cross-head screw in each corner of the plate (not with `frame: none`). The padding grows by 18px so no piece touches a screw. Off by default; editor toggle "screws".

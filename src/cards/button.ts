@@ -27,6 +27,8 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   tone?: Tone;
   /** Colours the icon (same colours as tone). Neutral keeps the key's ink. */
   icon_tone?: Tone;
+  /** The lamp above the key. Automatic (default): a lens that lights on a warning, only where "warning when" states are set. None: no lamp. Warning: lit on a warning. On: lit while the entity is on or selected. Both: lit on either. A state rule gives it its colour. */
+  light?: "auto" | "none" | "alert" | "on" | "both";
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
   adjust_by?: number;
 }
@@ -103,6 +105,7 @@ export class RamsButton extends Piece<ButtonConfig> {
             dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
             dropdown("tone", TONES),
             dropdown("icon_tone", TONES),
+            dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]]),
           ],
         },
         ...layoutFields(false),
@@ -169,6 +172,14 @@ export class RamsButton extends Piece<ButtonConfig> {
     return `--u:${u}px; width:${(shape === "tall" ? n / 2 : n) * u}px; height:${m * u}px`;
   }
 
+  /** The lamp's classes: hidden, dark, or lit (in the colour a state rule gives it). */
+  private lamp(view: ReturnType<typeof readState>, c: ButtonConfig): string {
+    const mode = c.light ?? "auto";
+    if (mode === "none" || (mode === "auto" && !canWarn(this.hass, c.entity, c))) return "off";
+    const lit = mode === "on" ? view.active : mode === "both" ? view.active || view.alert : view.alert;
+    return lit ? `on ${view.signal ?? ""}` : "";
+  }
+
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
@@ -182,7 +193,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "tall" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
+        <i class="led ${this.lamp(view, c)}"></i>
         <div class="keyarea" style=${this.areaSize()}>${square ? html`<i class="plate"></i>` : nothing}<button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico ${c.icon_tone && c.icon_tone !== "neutral" ? `tinted ${c.icon_tone}` : ""}" .icon=${c.icon}></ha-icon>` : nothing}

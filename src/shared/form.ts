@@ -11,6 +11,7 @@ const LABELS: Record<string, string> = {
 export const computeLabel = (s: { name: string }): string => LABELS[s.name] ?? s.name.replace(/_/g, " ");
 
 const HELPERS: Record<string, string> = {
+  light: "The lamp above the key. Automatic shows a lamp only when you set warning states; the others always show it.",
   options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named. To turn on HA scenes instead, leave the entity empty and give each option a scene: the current option is then the scene turned on last.",
   player_from: "Optional. An input_select that says where to play, for example your music output selector. A tapped tile then plays on the player it names; the player above is the fallback.",
   players: "Optional. Which player goes with which option. Left empty, an option is matched by name: Kitchen finds media_player.kitchen_ma or media_player.kitchen.",

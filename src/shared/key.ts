@@ -26,6 +26,7 @@ export const keyStyles = css`
   .cell.left .txt, .cell.right .txt { max-width: 45%; margin-top: 13px; }
   .cell.left .txt { text-align: right; } .cell.right .txt { text-align: left; }
   .led.off { visibility: hidden; }
+  .led.on.orange { --_alert: var(--_orange); } .led.on.blue { --_alert: var(--_blue); } .led.on.green { --_alert: var(--_green); } .led.on.grey { --_alert: var(--_grey); }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -887,6 +887,7 @@ const keyStyles = i$3`
   .cell.left .txt, .cell.right .txt { max-width: 45%; margin-top: 13px; }
   .cell.left .txt { text-align: right; } .cell.right .txt { text-align: left; }
   .led.off { visibility: hidden; }
+  .led.on.orange { --_alert: var(--_orange); } .led.on.blue { --_alert: var(--_blue); } .led.on.green { --_alert: var(--_green); } .led.on.grey { --_alert: var(--_grey); }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
   .led.on { background: var(--_alert); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--_alert) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -960,6 +961,7 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  light: "The lamp above the key. Automatic shows a lamp only when you set warning states; the others always show it.",
   options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named. To turn on HA scenes instead, leave the entity empty and give each option a scene: the current option is then the scene turned on last.",
   player_from: "Optional. An input_select that says where to play, for example your music output selector. A tapped tile then plays on the player it names; the player above is the fallback.",
   players: "Optional. Which player goes with which option. Left empty, an option is matched by name: Kitchen finds media_player.kitchen_ma or media_player.kitchen.",
@@ -1124,7 +1126,8 @@ let RamsButton = class extends Piece {
             dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
             dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
             dropdown("tone", TONES),
-            dropdown("icon_tone", TONES)
+            dropdown("icon_tone", TONES),
+            dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]])
           ]
         },
         ...layoutFields(false),
@@ -1188,6 +1191,13 @@ let RamsButton = class extends Piece {
     if (shape !== "tall") return `--u:${u2}px; width:${u2}px; height:${u2}px`;
     return `--u:${u2}px; width:${(shape === "tall" ? n3 / 2 : n3) * u2}px; height:${m2 * u2}px`;
   }
+  /** The lamp's classes: hidden, dark, or lit (in the colour a state rule gives it). */
+  lamp(view, c2) {
+    const mode = c2.light ?? "auto";
+    if (mode === "none" || mode === "auto" && !canWarn(this.hass, c2.entity, c2)) return "off";
+    const lit = mode === "on" ? view.active : mode === "both" ? view.active || view.alert : view.alert;
+    return lit ? `on ${view.signal ?? ""}` : "";
+  }
   render() {
     var _a2, _b;
     const c2 = this.config;
@@ -1201,7 +1211,7 @@ let RamsButton = class extends Piece {
     const cls = ["key", square ? "sq" : "", c2.shape === "round" || c2.shape === "tall" ? c2.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
+        <i class="led ${this.lamp(view, c2)}"></i>
         <div class="keyarea" style=${this.areaSize()}>${square ? b`<i class="plate"></i>` : A}<button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico ${c2.icon_tone && c2.icon_tone !== "neutral" ? `tinted ${c2.icon_tone}` : ""}" .icon=${c2.icon}></ha-icon>` : A}
@@ -2890,7 +2900,7 @@ let RamsKeypad = class extends Piece {
             }
           }
         },
-        ...layoutFields(false)
+        ...layoutFields()
       ],
       computeLabel,
       computeHelper
@@ -2904,7 +2914,7 @@ let RamsKeypad = class extends Piece {
     this.code = (this.code + d2).slice(0, 8);
     this.touch();
   }
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The code is sent only when one was typed. */
+  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
   confirm() {
     var _a2;
     const c2 = this.config;
@@ -2916,10 +2926,13 @@ let RamsKeypad = class extends Piece {
     this.code = "";
   }
   updated(_c) {
-    this.reportRows(5);
+    const pad = this.renderRoot.querySelector(".pad");
+    const gap = parseFloat(getComputedStyle(this).getPropertyValue("--_gap")) || 8;
+    const framed = !!this.getAttribute("frame") && this.getAttribute("frame") !== "none";
+    if (pad) this.reportRows(this.rowsFor(pad.offsetHeight + (framed ? 2 * gap + 2 : 0)));
   }
-  cap(legend, onTap, tone = "") {
-    return b`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" @click=${onTap}><span class="legend">${legend}</span></button></div>`;
+  cap(legend, onTap, tone = "", disabled = false) {
+    return b`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend">${legend}</span></button></div>`;
   }
   render() {
     var _a2, _b;
@@ -2936,7 +2949,7 @@ let RamsKeypad = class extends Piece {
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d2) => this.cap(d2, () => this.press(d2)))}
       ${this.cap("✕", () => this.code = "")}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green")}
+      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
     </div>`;
   }
 };
@@ -2944,9 +2957,12 @@ RamsKeypad.styles = [
   tokens,
   keyStyles,
   i$3`
-      :host { display: block; min-width: 0; }
-      /* one centred block: the screen and the keys share the same width and margins */
-      .pad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
+      :host { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+      /* a framed keypad has the same margin above and below as at the sides */
+      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="raised"]) { padding-block: var(--_gap); }
+      /* one centred block: the screen and the keys share the same width and margins (12px all round) */
+      .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
+      .key:disabled { opacity: 0.4; pointer-events: none; }
       /* the screen is the display: the same recessed LCD, filled with a tone for a state */
       .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
@@ -3402,7 +3418,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 14:23 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:25 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
