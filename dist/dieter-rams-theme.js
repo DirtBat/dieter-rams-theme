@@ -2895,7 +2895,7 @@ let RamsKeypad = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
-        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"]]),
+        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"], ["none", "None: confirm only disarms"]]),
         {
           name: "state_colours",
           selector: {
@@ -2929,6 +2929,10 @@ let RamsKeypad = class extends Piece {
     const c2 = this.config;
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
     const disarmed = ((_a2 = this.hass.states[c2.entity]) == null ? void 0 : _a2.state) === "disarmed";
+    if (disarmed && c2.arm_mode === "none") {
+      this.code = "";
+      return;
+    }
     const data = { entity_id: c2.entity };
     if (this.code) data.code = this.code;
     void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c2.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
@@ -3427,7 +3431,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:41 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:48 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

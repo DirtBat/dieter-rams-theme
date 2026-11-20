@@ -7,7 +7,7 @@ import { keyStyles } from "../shared/key";
 import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
-type ArmMode = "arm_away" | "arm_home" | "arm_night";
+type ArmMode = "arm_away" | "arm_home" | "arm_night" | "none";
 
 export interface KeypadConfig extends PieceConfig, Pick<StateRules, "state_colours"> {
   entity?: string;
@@ -58,7 +58,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
-        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"]]),
+        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"], ["none", "None: confirm only disarms"]]),
         {
           name: "state_colours",
           selector: {
@@ -94,6 +94,10 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     const c = this.config;
     if (!c?.entity || !this.hass) return;
     const disarmed = this.hass.states[c.entity]?.state === "disarmed";
+    if (disarmed && c.arm_mode === "none") {
+      this.code = "";
+      return;
+    }
     const data: Record<string, unknown> = { entity_id: c.entity };
     if (this.code) data.code = this.code;
     void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
