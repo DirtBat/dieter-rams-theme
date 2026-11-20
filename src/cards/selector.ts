@@ -14,6 +14,8 @@ export interface SelectorOption {
   /** What is printed instead of the option. */
   label?: string;
   icon?: string;
+  /** A Home Assistant scene this option turns on. With scenes on the options the entity is not needed: the current option is the scene turned on last. */
+  scene?: string;
 }
 
 export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_entity" | "alert_when" | "state_colours"> {
@@ -201,6 +203,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
                 option: { label: "Option", required: true, selector: { text: {} } },
                 label: { label: "Label", selector: { text: {} } },
                 icon: { label: "Icon", selector: { icon: {} } },
+                scene: { label: "Scene to turn on", selector: { entity: { domain: "scene" } } },
               },
             },
           },
@@ -235,22 +238,45 @@ export class RamsSelector extends Piece<SelectorConfig> {
   }
 
   protected actionable(): boolean {
-    return !!this.config?.entity || super.actionable();
+    return !!this.config?.entity || this.sceneMode() || super.actionable();
   }
 
   /** The stops in the entity's order (or as the options list gives them). */
-  private stops(): Array<Required<Pick<SelectorOption, "option" | "label">> & { icon?: string }> {
+  private stops(): Array<Required<Pick<SelectorOption, "option" | "label">> & { icon?: string; scene?: string }> {
     const c = this.config!;
-    if (c.options?.length) return c.options.filter((o) => o?.option !== undefined).map((o) => ({ option: String(o.option), label: o.label?.trim() ? o.label : String(o.option), icon: o.icon || undefined }));
+    if (c.options?.length) return c.options.filter((o) => o?.option !== undefined).map((o) => ({ option: String(o.option), label: o.label?.trim() ? o.label : String(o.option), icon: o.icon || undefined, scene: o.scene || undefined }));
     if (this.isBoolean()) return [{ option: "off", label: "off" }, { option: "on", label: "on" }];
     const options = c.entity ? this.hass?.states[c.entity]?.attributes.options : undefined;
     return Array.isArray(options) ? options.map((o) => ({ option: String(o), label: String(o) })) : [];
   }
 
+  /** True when the options turn on HA scenes instead of setting an entity. */
+  private sceneMode(): boolean {
+    return !this.config?.entity && !!this.config?.options?.some((o) => o?.scene);
+  }
+
+  /** In scene mode the current option is the scene turned on last: a scene's state is the time it was last turned on. */
+  private sceneCurrent(): number {
+    let best = -1;
+    let at = 0;
+    this.stops().forEach((st, i) => {
+      const t = st.scene ? Date.parse(this.hass?.states[st.scene]?.state ?? "") : NaN;
+      if (!Number.isNaN(t) && t > at) { at = t; best = i; }
+    });
+    return best;
+  }
+
+  /** The option the rules judge: the entity's state, or in scene mode the current scene's option. */
+  private judgedOption(): string | undefined {
+    const c = this.config!;
+    if (this.sceneMode()) return this.stops()[this.sceneCurrent()]?.option;
+    return this.hass?.states[c.rules_entity ?? c.entity ?? ""]?.state;
+  }
+
   /** The colour of an option's own lamp: lit on the current option, in the colour its state rule gives it. With rules set, an option without one stays dark. */
   private lampTone(option: string): string | undefined {
     const c = this.config!;
-    const judged = this.hass?.states[c.rules_entity ?? c.entity ?? ""]?.state;
+    const judged = this.judgedOption();
     if (judged !== option) return undefined;
     if (!c.state_colours?.length) return "red";
     const tone = c.state_colours.find((r) => r.state === option)?.tone;
@@ -266,6 +292,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
   }
 
   private current(): number {
+    if (this.sceneMode()) return this.sceneCurrent();
     const state = this.config?.entity ? this.hass?.states[this.config.entity]?.state : undefined;
     return state === undefined ? -1 : this.stops().findIndex((s) => s.option === state);
   }
@@ -277,6 +304,11 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private select(option: string): void {
     const c = this.config;
     const domain = c?.entity?.split(".")[0];
+    if (this.sceneMode()) {
+      const scene = this.stops().find((st) => st.option === option)?.scene;
+      if (scene && this.hass) void this.hass.callService("scene", "turn_on", { entity_id: scene });
+      return;
+    }
     if (!c?.entity || !this.hass) return;
     if (this.isBoolean()) void this.hass.callService("homeassistant", option === "on" ? "turn_on" : "turn_off", { entity_id: c.entity });
     else if (domain === "input_select" || domain === "select") void this.hass.callService(domain, "select_option", { entity_id: c.entity, option });
@@ -466,6 +498,11 @@ export class RamsSelector extends Piece<SelectorConfig> {
     // above/below on a vertical lever mean left/right, left/right on a horizontal one mean above/below
     const before = vertical ? side === "left" || side === "above" : side === "above" || side === "left";
     const view = readState(this.hass, c.entity, c);
+    if (this.sceneMode()) {
+      const cur = this.judgedOption();
+      const tone = c.state_colours?.find((r) => r.state === cur)?.tone;
+      view.signal = cur === undefined ? undefined : tone && tone !== "neutral" ? tone : tone === "neutral" ? undefined : "red";
+    }
     const lamp = c.light === "above" || c.light === "below" ? html`<i class="lamp ${view.signal ? `on ${view.signal}` : ""}"></i>` : nothing;
     const title = c.title?.trim() ?? "";
     const pos = title ? (c.title_position ?? "below") : "";

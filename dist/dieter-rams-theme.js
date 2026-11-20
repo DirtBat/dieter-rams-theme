@@ -960,10 +960,10 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named. To turn on HA scenes instead, leave the entity empty and give each option a scene: the current option is then the scene turned on last.",
   player_from: "Optional. An input_select that says where to play, for example your music output selector. A tapped tile then plays on the player it names; the player above is the fallback.",
   players: "Optional. Which player goes with which option. Left empty, an option is matched by name: Kitchen finds media_player.kitchen_ma or media_player.kitchen.",
   entities: "Optional, instead of the entity: several at once, for example all your speakers. The ruler shows the one that is playing; a touch sets the value on every one of them.",
-  options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named.",
   labels_position: "Above or below a horizontal lever, left or right of a vertical one. A side that does not fit is turned to the nearest that does.",
   setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
   rules_entity: "Optional. Judge the rules below by another entity's state, for example a level sensor. The lists below then offer that entity's states.",
@@ -1309,7 +1309,8 @@ let RamsSelector = class extends Piece {
               fields: {
                 option: { label: "Option", required: true, selector: { text: {} } },
                 label: { label: "Label", selector: { text: {} } },
-                icon: { label: "Icon", selector: { icon: {} } }
+                icon: { label: "Icon", selector: { icon: {} } },
+                scene: { label: "Scene to turn on", selector: { entity: { domain: "scene" } } }
               }
             }
           }
@@ -1344,7 +1345,7 @@ let RamsSelector = class extends Piece {
   }
   actionable() {
     var _a2;
-    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || super.actionable();
+    return !!((_a2 = this.config) == null ? void 0 : _a2.entity) || this.sceneMode() || super.actionable();
   }
   /** The stops in the entity's order (or as the options list gives them). */
   stops() {
@@ -1352,20 +1353,46 @@ let RamsSelector = class extends Piece {
     const c2 = this.config;
     if ((_a2 = c2.options) == null ? void 0 : _a2.length) return c2.options.filter((o2) => (o2 == null ? void 0 : o2.option) !== void 0).map((o2) => {
       var _a3;
-      return { option: String(o2.option), label: ((_a3 = o2.label) == null ? void 0 : _a3.trim()) ? o2.label : String(o2.option), icon: o2.icon || void 0 };
+      return { option: String(o2.option), label: ((_a3 = o2.label) == null ? void 0 : _a3.trim()) ? o2.label : String(o2.option), icon: o2.icon || void 0, scene: o2.scene || void 0 };
     });
     if (this.isBoolean()) return [{ option: "off", label: "off" }, { option: "on", label: "on" }];
     const options = c2.entity ? (_c = (_b = this.hass) == null ? void 0 : _b.states[c2.entity]) == null ? void 0 : _c.attributes.options : void 0;
     return Array.isArray(options) ? options.map((o2) => ({ option: String(o2), label: String(o2) })) : [];
   }
+  /** True when the options turn on HA scenes instead of setting an entity. */
+  sceneMode() {
+    var _a2, _b, _c;
+    return !((_a2 = this.config) == null ? void 0 : _a2.entity) && !!((_c = (_b = this.config) == null ? void 0 : _b.options) == null ? void 0 : _c.some((o2) => o2 == null ? void 0 : o2.scene));
+  }
+  /** In scene mode the current option is the scene turned on last: a scene's state is the time it was last turned on. */
+  sceneCurrent() {
+    let best = -1;
+    let at2 = 0;
+    this.stops().forEach((st, i2) => {
+      var _a2, _b;
+      const t2 = st.scene ? Date.parse(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[st.scene]) == null ? void 0 : _b.state) ?? "") : NaN;
+      if (!Number.isNaN(t2) && t2 > at2) {
+        at2 = t2;
+        best = i2;
+      }
+    });
+    return best;
+  }
+  /** The option the rules judge: the entity's state, or in scene mode the current scene's option. */
+  judgedOption() {
+    var _a2, _b, _c;
+    const c2 = this.config;
+    if (this.sceneMode()) return (_a2 = this.stops()[this.sceneCurrent()]) == null ? void 0 : _a2.option;
+    return (_c = (_b = this.hass) == null ? void 0 : _b.states[c2.rules_entity ?? c2.entity ?? ""]) == null ? void 0 : _c.state;
+  }
   /** The colour of an option's own lamp: lit on the current option, in the colour its state rule gives it. With rules set, an option without one stays dark. */
   lampTone(option) {
-    var _a2, _b, _c, _d;
+    var _a2, _b;
     const c2 = this.config;
-    const judged = (_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.rules_entity ?? c2.entity ?? ""]) == null ? void 0 : _b.state;
+    const judged = this.judgedOption();
     if (judged !== option) return void 0;
-    if (!((_c = c2.state_colours) == null ? void 0 : _c.length)) return "red";
-    const tone = (_d = c2.state_colours.find((r2) => r2.state === option)) == null ? void 0 : _d.tone;
+    if (!((_a2 = c2.state_colours) == null ? void 0 : _a2.length)) return "red";
+    const tone = (_b = c2.state_colours.find((r2) => r2.state === option)) == null ? void 0 : _b.tone;
     return tone && tone !== "neutral" ? tone : void 0;
   }
   vertical() {
@@ -1378,6 +1405,7 @@ let RamsSelector = class extends Piece {
   }
   current() {
     var _a2, _b, _c;
+    if (this.sceneMode()) return this.sceneCurrent();
     const state = ((_a2 = this.config) == null ? void 0 : _a2.entity) ? (_c = (_b = this.hass) == null ? void 0 : _b.states[this.config.entity]) == null ? void 0 : _c.state : void 0;
     return state === void 0 ? -1 : this.stops().findIndex((s2) => s2.option === state);
   }
@@ -1386,9 +1414,14 @@ let RamsSelector = class extends Piece {
     return BOOLEAN.includes(((_b = (_a2 = this.config) == null ? void 0 : _a2.entity) == null ? void 0 : _b.split(".")[0]) ?? "");
   }
   select(option) {
-    var _a2;
+    var _a2, _b;
     const c2 = this.config;
     const domain = (_a2 = c2 == null ? void 0 : c2.entity) == null ? void 0 : _a2.split(".")[0];
+    if (this.sceneMode()) {
+      const scene = (_b = this.stops().find((st) => st.option === option)) == null ? void 0 : _b.scene;
+      if (scene && this.hass) void this.hass.callService("scene", "turn_on", { entity_id: scene });
+      return;
+    }
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
     if (this.isBoolean()) void this.hass.callService("homeassistant", option === "on" ? "turn_on" : "turn_off", { entity_id: c2.entity });
     else if (domain === "input_select" || domain === "select") void this.hass.callService(domain, "select_option", { entity_id: c2.entity, option });
@@ -1536,7 +1569,7 @@ let RamsSelector = class extends Piece {
     </div>`;
   }
   render() {
-    var _a2;
+    var _a2, _b, _c;
     const c2 = this.config;
     if (!c2) return A;
     const vertical = this.vertical();
@@ -1552,8 +1585,13 @@ let RamsSelector = class extends Piece {
     const side = c2.labels_position ?? (vertical ? "right" : "above");
     const before = vertical ? side === "left" || side === "above" : side === "above" || side === "left";
     const view = readState(this.hass, c2.entity, c2);
+    if (this.sceneMode()) {
+      const cur = this.judgedOption();
+      const tone = (_b = (_a2 = c2.state_colours) == null ? void 0 : _a2.find((r2) => r2.state === cur)) == null ? void 0 : _b.tone;
+      view.signal = cur === void 0 ? void 0 : tone && tone !== "neutral" ? tone : tone === "neutral" ? void 0 : "red";
+    }
     const lamp = c2.light === "above" || c2.light === "below" ? b`<i class="lamp ${view.signal ? `on ${view.signal}` : ""}"></i>` : A;
-    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) ?? "";
+    const title = ((_c = c2.title) == null ? void 0 : _c.trim()) ?? "";
     const pos = title ? c2.title_position ?? "below" : "";
     const own = c2.light === "options";
     const labels = show === "none" && !own && !lines ? A : b`<div class="labels ${before ? "before" : "after"}">${order.map((i2) => {
@@ -3355,7 +3393,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 12:29 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 14:02 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

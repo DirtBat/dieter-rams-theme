@@ -92,3 +92,6 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 ## Shelf: play where the selector says (2026-11-20)
 - `player_from` (an input_select or select) makes a tapped tile play on the player that option names; `player` is the fallback. An option is matched by name (Kitchen finds media_player.kitchen_ma or media_player.kitchen); `players` maps options to players when the names differ. The playing LED follows the same player.
+
+## Selector: scenes (2026-11-20)
+- An option can carry `scene:` (an HA scene). With scenes on the options and no `entity`, a tap calls `scene.turn_on`, and the current option is the scene turned on last (a scene state is its last-activated time). `light: options` lights that option; `state_colours` colour it. Stale after manual light changes, like any scene.
