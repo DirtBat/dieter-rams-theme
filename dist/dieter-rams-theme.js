@@ -2882,6 +2882,7 @@ var __decorateClass$2 = (decorators, target, key, kind) => {
   if (kind && result) __defProp$1(target, key, result);
   return result;
 };
+const MODES = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"]];
 const IDLE_MS = 3e4;
 let RamsKeypad = class extends Piece {
   constructor() {
@@ -2895,7 +2896,7 @@ let RamsKeypad = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
-        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"], ["none", "None: confirm only disarms"]]),
+        { name: "modes", selector: { select: { multiple: true, mode: "list", options: MODES.map(([value, label]) => ({ value, label })) } } },
         {
           name: "state_colours",
           selector: {
@@ -2923,19 +2924,12 @@ let RamsKeypad = class extends Piece {
     this.code = (this.code + d2).slice(0, 8);
     this.touch();
   }
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
-  confirm() {
-    var _a2;
+  call(service) {
     const c2 = this.config;
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
-    const disarmed = ((_a2 = this.hass.states[c2.entity]) == null ? void 0 : _a2.state) === "disarmed";
-    if (disarmed && c2.arm_mode === "none") {
-      this.code = "";
-      return;
-    }
     const data = { entity_id: c2.entity };
     if (this.code) data.code = this.code;
-    void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c2.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
+    void this.hass.callService("alarm_control_panel", service, data);
     this.code = "";
   }
   updated(_c) {
@@ -2944,16 +2938,18 @@ let RamsKeypad = class extends Piece {
     const framed = !!this.getAttribute("frame") && this.getAttribute("frame") !== "none";
     if (pad) this.reportRows(this.rowsFor(pad.offsetHeight + (framed ? 2 * gap + 2 : 0)));
   }
-  cap(legend, onTap, tone = "", disabled = false) {
-    return b`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend">${legend}</span></button></div>`;
+  cap(legend, onTap, tone = "", disabled = false, small = false) {
+    return b`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend ${small ? "sm" : ""}">${legend}</span></button></div>`;
   }
   render() {
-    var _a2, _b;
+    var _a2, _b, _c, _d;
     const c2 = this.config;
     if (!c2) return A;
     const alarm = c2.entity && ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity]) == null ? void 0 : _b.state) || "";
     const rows = [...c2.state_colours ?? [], ...["triggered", "pending", "armed_away"].map((state2) => ({ state: state2, tone: "red" }))];
     const view = readState(this.hass, c2.entity, { state_colours: rows });
+    const modes = MODES.filter(([m2]) => (c2.modes ?? ["home", "away", "night"]).includes(m2));
+    const needCode = !!((_d = (_c = this.hass) == null ? void 0 : _c.states[c2.entity ?? ""]) == null ? void 0 : _d.attributes.code_arm_required);
     return b`<div class="pad">
       <div class="screen ${view.signal ? `sig ${view.signal}` : ""}">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_2, i2) => b`<b class=${i2 < this.code.length ? "f" : ""}></b>`)}</div>
@@ -2962,7 +2958,8 @@ let RamsKeypad = class extends Piece {
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d2) => this.cap(d2, () => this.press(d2)))}
       ${this.cap("✕", () => this.code = "")}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
+      ${this.cap("✓", () => this.call("alarm_disarm"), "green", !this.code || alarm === "disarmed")}
+      ${modes.map(([m2, label]) => this.cap(label, () => this.call(`alarm_arm_${m2}`), alarm === `armed_${m2}` ? "orange" : "", alarm !== "disarmed" || needCode && !this.code, true))}
     </div>`;
   }
 };
@@ -2976,6 +2973,7 @@ RamsKeypad.styles = [
       /* one centred block: the screen and the keys share the same width and margins (12px all round) */
       .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
       .key:disabled { opacity: 0.4; pointer-events: none; }
+      .key.filled.orange:disabled { opacity: 1; }
       /* the screen is the display: the same recessed LCD, filled with a tone for a state */
       .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
@@ -2987,6 +2985,7 @@ RamsKeypad.styles = [
       /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
       .legend { font-size: 18px; font-weight: 400; }
+      .legend.sm { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
     `
 ];
 __decorateClass$2([
@@ -3431,7 +3430,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:48 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:03 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

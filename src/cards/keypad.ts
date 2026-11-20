@@ -4,15 +4,16 @@ import { Piece } from "../shared/piece";
 import { readState, TONES, type StateRules } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
 import { keyStyles } from "../shared/key";
-import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
-type ArmMode = "arm_away" | "arm_home" | "arm_night" | "none";
+type Mode = "home" | "away" | "night" | "vacation";
+const MODES: [Mode, string][] = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"]];
 
 export interface KeypadConfig extends PieceConfig, Pick<StateRules, "state_colours"> {
   entity?: string;
-  /** What the confirm key arms with when the alarm is disarmed. When it is armed, pending or triggered, confirm disarms. */
-  arm_mode?: ArmMode;
+  /** The arm keys under the keypad. Home, away and night when not set. */
+  modes?: Mode[];
 }
 
 const IDLE_MS = 30_000;
@@ -36,6 +37,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       /* one centred block: the screen and the keys share the same width and margins (12px all round) */
       .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
       .key:disabled { opacity: 0.4; pointer-events: none; }
+      .key.filled.orange:disabled { opacity: 1; }
       /* the screen is the display: the same recessed LCD, filled with a tone for a state */
       .screen { grid-column: 1 / -1; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-radius: var(--_radius); background: var(--_lcd-bg); color: var(--_lcd-ink); border: var(--_border); box-shadow: var(--_inset); font-size: 12px; }
       .screen.sig { background: var(--_sig); color: var(--_ink-on); border-color: rgba(0, 0, 0, 0.25); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
@@ -47,6 +49,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
       .legend { font-size: 18px; font-weight: 400; }
+      .legend.sm { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; }
     `,
   ];
 
@@ -58,7 +61,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: { domain: "alarm_control_panel" } } },
-        dropdown("arm_mode", [["arm_away", "Arm away"], ["arm_home", "Arm home"], ["arm_night", "Night mode"], ["none", "None: confirm only disarms"]]),
+        { name: "modes", selector: { select: { multiple: true, mode: "list", options: MODES.map(([value, label]) => ({ value, label })) } } },
         {
           name: "state_colours",
           selector: {
@@ -89,18 +92,12 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     this.touch();
   }
 
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
-  private confirm(): void {
+  private call(service: string): void {
     const c = this.config;
     if (!c?.entity || !this.hass) return;
-    const disarmed = this.hass.states[c.entity]?.state === "disarmed";
-    if (disarmed && c.arm_mode === "none") {
-      this.code = "";
-      return;
-    }
     const data: Record<string, unknown> = { entity_id: c.entity };
     if (this.code) data.code = this.code;
-    void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
+    void this.hass.callService("alarm_control_panel", service, data);
     this.code = "";
   }
 
@@ -111,8 +108,8 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     if (pad) this.reportRows(this.rowsFor(pad.offsetHeight + (framed ? 2 * gap + 2 : 0)));
   }
 
-  private cap(legend: string, onTap: () => void, tone = "", disabled = false): TemplateResult {
-    return html`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend">${legend}</span></button></div>`;
+  private cap(legend: string, onTap: () => void, tone = "", disabled = false, small = false): TemplateResult {
+    return html`<div class="keyarea"><button class="key round ${tone ? `filled ${tone}` : ""}" ?disabled=${disabled} @click=${onTap}><span class="legend ${small ? "sm" : ""}">${legend}</span></button></div>`;
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -122,6 +119,8 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     // Triggered, pending and armed away are red unless "colour by state" says otherwise.
     const rows = [...(c.state_colours ?? []), ...["triggered", "pending", "armed_away"].map((state) => ({ state, tone: "red" as const }))];
     const view = readState(this.hass, c.entity, { state_colours: rows });
+    const modes = MODES.filter(([m]) => (c.modes ?? ["home", "away", "night"]).includes(m));
+    const needCode = !!this.hass?.states[c.entity ?? ""]?.attributes.code_arm_required;
     return html`<div class="pad">
       <div class="screen ${view.signal ? `sig ${view.signal}` : ""}">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_, i) => html`<b class=${i < this.code.length ? "f" : ""}></b>`)}</div>
@@ -130,7 +129,8 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => this.cap(d, () => this.press(d)))}
       ${this.cap("✕", () => (this.code = ""))}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
+      ${this.cap("✓", () => this.call("alarm_disarm"), "green", !this.code || alarm === "disarmed")}
+      ${modes.map(([m, label]) => this.cap(label, () => this.call(`alarm_arm_${m}`), alarm === `armed_${m}` ? "orange" : "", alarm !== "disarmed" || (needCode && !this.code), true))}
     </div>`;
   }
 }
