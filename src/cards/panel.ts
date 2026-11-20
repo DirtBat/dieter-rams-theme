@@ -12,6 +12,8 @@ export interface PanelConfig extends PieceConfig {
   /** Space between pieces and around them, in px. The corner radius follows it. */
   spacing?: number;
   title?: string;
+  /** A screw in each corner of the plate. The plate's padding grows so the pieces never touch them. */
+  screws?: boolean;
   cards?: PieceConfig[];
 }
 
@@ -32,6 +34,13 @@ export class RamsPanel extends Piece<PanelConfig> {
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
+      .plate.screwed { position: relative; padding: calc(var(--_gap) + 18px); }
+      .screw { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box; pointer-events: none;
+        background: radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--_cap) 70%, #fff), color-mix(in srgb, var(--_cap) 85%, #000) 80%);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--_ink) 30%, transparent), 0 1px 1px rgba(255, 255, 255, 0.7), inset 0 -1px 1px rgba(0, 0, 0, 0.18); }
+      .screw::before, .screw::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 1.5px; margin: -0.75px 0 0 -3.5px; border-radius: 1px; background: color-mix(in srgb, var(--_ink) 78%, transparent); transform: rotate(45deg); }
+      .screw::after { transform: rotate(-45deg); }
+      .screw.tl { top: 9px; left: 9px; } .screw.tr { top: 9px; right: 9px; } .screw.bl { bottom: 9px; left: 9px; } .screw.br { bottom: 9px; right: 9px; }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
       .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
@@ -153,7 +162,10 @@ export class RamsPanel extends Piece<PanelConfig> {
     const c = this.config;
     if (!c) return nothing;
     const cols = c.columns ?? 12;
-    return html`<div class="plate f-${c.frame ?? this.defaultFrame}" @rams-rows=${this.onRows} @click=${this.onClick} @pointerdown=${this.onDown} @pointerup=${this.press.up} @pointerleave=${this.press.up}>
+    const frame = c.frame ?? this.defaultFrame;
+    const screws = !!c.screws && frame !== "none";
+    return html`<div class="plate f-${frame} ${screws ? "screwed" : ""}" @rams-rows=${this.onRows} @click=${this.onClick} @pointerdown=${this.onDown} @pointerup=${this.press.up} @pointerleave=${this.press.up}>
+      ${screws ? html`<i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>` : nothing}
       ${c.title ? html`<div class="title">${c.title}</div>` : nothing}
       <div class="grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${(c.cards ?? []).map(

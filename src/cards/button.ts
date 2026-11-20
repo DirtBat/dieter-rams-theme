@@ -69,7 +69,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w = Math.max(aw, 24), h = Math.max(ah, 24);
     // a round key is always a circle: its room is the biggest square
-    const sq = !this.config?.shape || this.config.shape === "square";
+    const sq = this.isSquare();
     const f = this.config?.shape === "tall" ? fitKey(w, h) : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
     if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
   }
@@ -150,10 +150,15 @@ export class RamsButton extends Piece<ButtonConfig> {
     return true;
   }
 
+  /** Anything that is not round or tall is a square key (an old or unknown shape such as "key" included). */
+  private isSquare(): boolean {
+    return this.config?.shape !== "round" && this.config?.shape !== "tall";
+  }
+
   private areaSize(): string {
     const { n, m, u } = this.fit;
     if (!u) return "width:0; height:0";
-    const sq = !this.config?.shape || this.config.shape === "square";
+    const sq = this.isSquare();
     return `width:${n * u}px; height:${m * u + (sq ? 2 * FRAME : 0)}px`;
   }
 
@@ -173,8 +178,8 @@ export class RamsButton extends Piece<ButtonConfig> {
     const own = c.tone && c.tone !== "neutral" ? c.tone : "";
     // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
     const tone = own ? (view.tone ?? own) : "";
-    const square = !c.shape || c.shape === "square";
-    const cls = ["key", square ? "sq" : "", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const square = this.isSquare();
+    const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "tall" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>

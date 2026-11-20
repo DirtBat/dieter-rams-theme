@@ -78,3 +78,6 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - `shape: square` (default) is always a square: the biggest that fits the card minus its lamp and name, centred. It no longer stretches into a pill when the card is wide or tall. `tall` and `round` are unchanged.
 - A square key sits in a black cut-out (token `--rams-cutout`, default #17110c). The cut-out reaches half a panel gap past the key on each side, so keys whose columns are no wider than the key itself touch and form one block: the black between two keys is twice the black round the outside.
 - `icon_tone` colours the icon with the same colours as `tone` (neutral keeps the key ink). Works on any shape, also on a toned key.
+
+## Panel screws (2026-11-20)
+- `screws: true` puts a cross-head screw in each corner of the plate (not with `frame: none`). The padding grows by 18px so no piece touches a screw. Off by default; editor toggle "screws".

@@ -63,7 +63,7 @@ class RamsPanelEditor extends LitElement {
 
   /** The panel's columns double as its width when it sits inside another panel. */
   private helper = (s: { name: string }): string | undefined =>
-    s.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : undefined;
+    s.name === "screws" ? "A screw in each corner. The panel gets a wider margin so the pieces keep clear of them." : s.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : undefined;
 
   protected render(): TemplateResult | typeof nothing {
     if (!this.config || !this.hass) return nothing;
@@ -71,6 +71,7 @@ class RamsPanelEditor extends LitElement {
     const schema = [
       { name: "title", selector: { text: {} } },
       { type: "grid", name: "", schema: [num("columns", 1, 24), num("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      { name: "screws", selector: { boolean: {} } },
       {
         type: "expandable",
         name: "",

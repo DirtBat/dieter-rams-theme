@@ -1082,7 +1082,7 @@ let RamsButton = class extends Piece {
     this.measure();
   }
   measure() {
-    var _a2, _b;
+    var _a2;
     const cell = this.renderRoot.querySelector(".cell");
     if (!cell) return;
     const side = cell.classList.contains("left") || cell.classList.contains("right");
@@ -1092,8 +1092,8 @@ let RamsButton = class extends Piece {
     const aw = cell.clientWidth - (side && txt ? txt.offsetWidth + gap : 0);
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w2 = Math.max(aw, 24), h2 = Math.max(ah, 24);
-    const sq = !((_a2 = this.config) == null ? void 0 : _a2.shape) || this.config.shape === "square";
-    const f2 = ((_b = this.config) == null ? void 0 : _b.shape) === "tall" ? fitKey(w2, h2) : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
+    const sq = this.isSquare();
+    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "tall" ? fitKey(w2, h2) : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
     if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
   }
   disconnectedCallback() {
@@ -1167,11 +1167,15 @@ let RamsButton = class extends Piece {
     if (now !== void 0) void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, defaultRange(this.hass, c2.entity)));
     return true;
   }
+  /** Anything that is not round or tall is a square key (an old or unknown shape such as "key" included). */
+  isSquare() {
+    var _a2, _b;
+    return ((_a2 = this.config) == null ? void 0 : _a2.shape) !== "round" && ((_b = this.config) == null ? void 0 : _b.shape) !== "tall";
+  }
   areaSize() {
-    var _a2;
     const { n: n3, m: m2, u: u2 } = this.fit;
     if (!u2) return "width:0; height:0";
-    const sq = !((_a2 = this.config) == null ? void 0 : _a2.shape) || this.config.shape === "square";
+    const sq = this.isSquare();
     return `width:${n3 * u2}px; height:${m2 * u2 + (sq ? 2 * FRAME : 0)}px`;
   }
   keySize(shape) {
@@ -1189,8 +1193,8 @@ let RamsButton = class extends Piece {
     const pos = c2.label_position ?? "below";
     const own = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
     const tone = own ? view.tone ?? own : "";
-    const square = !c2.shape || c2.shape === "square";
-    const cls = ["key", square ? "sq" : "", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const square = this.isSquare();
+    const cls = ["key", square ? "sq" : "", c2.shape === "round" || c2.shape === "tall" ? c2.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
@@ -1862,7 +1866,7 @@ class RamsPanelEditor extends i {
       e2.stopPropagation();
       this.emit({ ...this.config, cards: e2.detail.config.cards ?? [] });
     };
-    this.helper = (s2) => s2.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s2.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : void 0;
+    this.helper = (s2) => s2.name === "screws" ? "A screw in each corner. The panel gets a wider margin so the pieces keep clear of them." : s2.name === "columns" ? "Inside another panel this is also the panel's width, in the parent's grid units." : s2.name === "rows" ? "Only used inside another panel: the height in the parent's grid units. Left empty, it takes what its content needs." : void 0;
   }
   setConfig(config) {
     this.config = config;
@@ -1897,6 +1901,7 @@ class RamsPanelEditor extends i {
     const schema = [
       { name: "title", selector: { text: {} } },
       { type: "grid", name: "", schema: [num$1("columns", 1, 24), num$1("spacing", 0, 24), dropdown("frame", FRAMES)] },
+      { name: "screws", selector: { boolean: {} } },
       {
         type: "expandable",
         name: "",
@@ -2050,7 +2055,10 @@ let RamsPanel = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const cols = c2.columns ?? 12;
-    return b`<div class="plate f-${c2.frame ?? this.defaultFrame}" @rams-rows=${this.onRows} @click=${this.onClick} @pointerdown=${this.onDown} @pointerup=${this.press.up} @pointerleave=${this.press.up}>
+    const frame = c2.frame ?? this.defaultFrame;
+    const screws = !!c2.screws && frame !== "none";
+    return b`<div class="plate f-${frame} ${screws ? "screwed" : ""}" @rams-rows=${this.onRows} @click=${this.onClick} @pointerdown=${this.onDown} @pointerup=${this.press.up} @pointerleave=${this.press.up}>
+      ${screws ? b`<i class="screw tl"></i><i class="screw tr"></i><i class="screw bl"></i><i class="screw br"></i>` : A}
       ${c2.title ? b`<div class="title">${c2.title}</div>` : A}
       <div class="grid" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr))">
         ${(c2.cards ?? []).map(
@@ -2071,6 +2079,13 @@ RamsPanel.styles = [
       .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-raised { box-shadow: var(--_raised); }
+      .plate.screwed { position: relative; padding: calc(var(--_gap) + 18px); }
+      .screw { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box; pointer-events: none;
+        background: radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--_cap) 70%, #fff), color-mix(in srgb, var(--_cap) 85%, #000) 80%);
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--_ink) 30%, transparent), 0 1px 1px rgba(255, 255, 255, 0.7), inset 0 -1px 1px rgba(0, 0, 0, 0.18); }
+      .screw::before, .screw::after { content: ""; position: absolute; left: 50%; top: 50%; width: 7px; height: 1.5px; margin: -0.75px 0 0 -3.5px; border-radius: 1px; background: color-mix(in srgb, var(--_ink) 78%, transparent); transform: rotate(45deg); }
+      .screw::after { transform: rotate(-45deg); }
+      .screw.tl { top: 9px; left: 9px; } .screw.tr { top: 9px; right: 9px; } .screw.bl { bottom: 9px; left: 9px; } .screw.br { bottom: 9px; right: 9px; }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
       .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
@@ -3101,7 +3116,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 10:09 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 10:22 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
