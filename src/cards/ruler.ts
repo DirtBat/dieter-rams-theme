@@ -3,11 +3,13 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
+import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface RulerConfig extends PieceConfig {
   entity?: string;
+  /** Several entities as one: the ruler shows the first that is playing (else the first), and a touch sets the value on all of them. Replaces entity. */
+  entities?: string[];
   attribute?: string;
   /** Horizontal (default) or vertical: the lowest value at the bottom. */
   orientation?: "horizontal" | "vertical";
@@ -24,6 +26,19 @@ export interface RulerConfig extends PieceConfig {
   /** Show min / middle / max under the scale. */
   labels?: boolean;
   unit?: string;
+  /** A fixed value, used when no entity is set. */
+  value?: number;
+  /** Distance between the small tick marks. Empty: twenty steps over the scale. */
+  interval?: number;
+  /** Distance between the thick tick marks, counted from the minimum. Empty: first, middle and last. */
+  major?: number;
+  /** Printed with the ruler: above, below, left or right of it. */
+  title?: string;
+  title_position?: "above" | "below" | "left" | "right";
+  /** The value as a number under the scale. */
+  number?: boolean;
+  /** Where that number sits. */
+  align?: "start" | "center" | "end";
 }
 
 @customElement("rams-ruler")
@@ -34,6 +49,14 @@ export class RamsRuler extends Piece<RulerConfig> {
     tokens,
     css`
       :host { display: block; height: 100%; min-width: 0; }
+      .t { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+      .t.below { flex-direction: column-reverse; }
+      .t.left { flex-direction: row; align-items: center; } .t.right { flex-direction: row-reverse; align-items: center; }
+      .t > .wrap { flex: 1; min-width: 0; min-height: 0; }
+      .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .left .outer, .right .outer { max-width: 40%; }
+      .num { font-size: 12px; color: var(--_ink); line-height: 1.1; }
+      .num.start { text-align: left; } .num.center { text-align: center; } .num.end { text-align: right; }
       .wrap { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 2px; }
       .track { position: relative; height: 24px; touch-action: none; }
       .track.interactive { cursor: pointer; }
@@ -65,6 +88,7 @@ export class RamsRuler extends Piece<RulerConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
+        { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
         {
@@ -77,7 +101,20 @@ export class RamsRuler extends Piece<RulerConfig> {
             { name: "unit", selector: { text: {} } },
           ],
         },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            num("value", undefined, undefined, { step: "any" }),
+            num("interval", undefined, undefined, { step: "any" }),
+            num("major", undefined, undefined, { step: "any" }),
+            { name: "title", selector: { text: {} } },
+            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
+          ],
+        },
         dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
+        { name: "number", selector: { boolean: {} } },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
@@ -88,9 +125,21 @@ export class RamsRuler extends Piece<RulerConfig> {
     };
   }
 
+  /** The entities the ruler stands for. */
+  private all(): string[] {
+    const c = this.config;
+    return c?.entities?.length ? c.entities : c?.entity ? [c.entity] : [];
+  }
+
+  /** The one whose value is shown: the first that is playing or on, else the first. */
+  private lead(): string | undefined {
+    const list = this.all();
+    return list.find((e) => ["playing", "paused", "buffering", "on"].includes(this.hass?.states[e]?.state ?? "")) ?? list[0];
+  }
+
   private range() {
     const c = this.config!;
-    const d = defaultRange(this.hass, c.entity);
+    const d = defaultRange(this.hass, this.lead());
     return { min: c.min ?? d.min, max: c.max ?? d.max, step: c.step ?? d.step };
   }
 
@@ -119,7 +168,7 @@ export class RamsRuler extends Piece<RulerConfig> {
   };
   private onUp = () => {
     const c = this.config;
-    if (this.drag !== undefined && c?.entity && this.hass) void writeNumber(this.hass, c.entity, this.drag);
+    if (this.drag !== undefined && this.hass) for (const e of this.all()) void writeNumber(this.hass, e, this.drag);
     this.drag = undefined;
   };
 
@@ -132,25 +181,31 @@ export class RamsRuler extends Piece<RulerConfig> {
     const c = this.config;
     if (!c) return nothing;
     const { min, max } = this.range();
-    const value = this.drag ?? readNumber(this.hass, c.entity, c.attribute);
+    const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c.attribute) : c.value);
     const f = this.frac(value, min, max);
     const tf = this.frac(readNumber(this.hass, c.target_entity, c.target_attribute), min, max);
-    const ticks = Array.from({ length: 21 }, (_, i) => i / 20);
+    const span = max - min;
+    const steps = c.interval && c.interval > 0 && span > 0 ? Math.min(200, Math.max(1, Math.round(span / c.interval))) : 20;
+    const ticks = Array.from({ length: steps + 1 }, (_, i) => i / steps);
+    const isMajor = (t: number) => (c.major && c.major > 0 ? Math.abs(Math.round((t * span) / c.major) * c.major - t * span) < span * 1e-6 || t === 0 || t === 1 : t === 0 || t === 0.5 || t === 1);
     const vertical = c.orientation === "vertical";
     const pct = (x: number) => `${x * 100}%`;
     // along the scale: left for horizontal, bottom for vertical
     const at = (x: number) => `${vertical ? "bottom" : "left"}:${pct(x)}`;
     const bar = f === undefined || !c.centre ? nothing
       : html`<div class="bar" style="${at(Math.min(f, 0.5))};${vertical ? "height" : "width"}:${pct(Math.abs(f - 0.5))}"></div>`;
-    return html`<div class="wrap ${vertical ? "v" : ""}">
+    const title = c.title?.trim() ?? "";
+    const ruler = html`<div class="wrap ${vertical ? "v" : ""}">
       <div class="track ${c.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         <div class="line"></div>
-        ${ticks.map((t) => html`<div class="tick ${t === 0 || t === 0.5 || t === 1 ? "major" : ""}" style="${at(t)}"></div>`)}
+        ${ticks.map((t) => html`<div class="tick ${isMajor(t) ? "major" : ""}" style="${at(t)}"></div>`)}
         ${bar}
         ${tf === undefined ? nothing : html`<div class="target" style="${at(tf)}"></div>`}
         ${f === undefined || c.centre ? nothing : html`<div class="pointer" style="${at(f)}"></div>`}
       </div>
+      ${c.number && value !== undefined ? html`<div class="num ${c.align ?? "center"}">${this.fmt(value)}</div>` : nothing}
       ${c.labels ? html`<div class="labels"><span>${this.fmt(min)}</span>${c.centre ? html`<span>${this.fmt(0)}</span>` : nothing}<span>${this.fmt(max)}</span></div>` : nothing}
     </div>`;
+    return title ? html`<div class="t ${c.title_position ?? "above"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
   }
 }

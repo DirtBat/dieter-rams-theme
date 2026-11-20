@@ -601,7 +601,7 @@ function r(r2) {
   return n2({ ...r2, state: true, attribute: false });
 }
 var __defProp$7 = Object.defineProperty;
-var __decorateClass$d = (decorators, target, key, kind) => {
+var __decorateClass$e = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
@@ -674,14 +674,14 @@ class Piece extends i {
     return ((_a2 = this.config) == null ? void 0 : _a2.rows) ?? 1;
   }
 }
-__decorateClass$d([
+__decorateClass$e([
   n2({ attribute: false })
 ], Piece.prototype, "hass");
-__decorateClass$d([
+__decorateClass$e([
   n2({ attribute: false })
 ], Piece.prototype, "config");
 var __defProp$6 = Object.defineProperty;
-var __decorateClass$c = (decorators, target, key, kind) => {
+var __decorateClass$d = (decorators, target, key, kind) => {
   var result = void 0;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
@@ -713,13 +713,13 @@ class RamsFormEditor extends i {
     return b`<ha-form .hass=${this.hass} .data=${this.config} .schema=${retarget(this.form.schema, from)} .computeLabel=${this.form.computeLabel} .computeHelper=${this.form.computeHelper} @value-changed=${this.changed}></ha-form>`;
   }
 }
-__decorateClass$c([
+__decorateClass$d([
   n2({ attribute: false })
 ], RamsFormEditor.prototype, "hass");
-__decorateClass$c([
+__decorateClass$d([
   n2({ attribute: false })
 ], RamsFormEditor.prototype, "lovelace");
-__decorateClass$c([
+__decorateClass$d([
   n2({ attribute: false })
 ], RamsFormEditor.prototype, "config");
 if (!customElements.get("rams-form-editor")) customElements.define("rams-form-editor", RamsFormEditor);
@@ -960,6 +960,7 @@ const LABELS = {
 };
 const computeLabel = (s2) => LABELS[s2.name] ?? s2.name.replace(/_/g, " ");
 const HELPERS = {
+  entities: "Optional, instead of the entity: several at once, for example all your speakers. The ruler shows the one that is playing; a touch sets the value on every one of them.",
   options: "Optional. Rename an option, give it an icon, put them in another order or leave one out. Type each option exactly as the entity names it. Left empty: all of the entity's options, as named.",
   labels_position: "Above or below a horizontal lever, left or right of a vertical one. A side that does not fit is turned to the nearest that does.",
   setpoint: "Optional. A second entity, for example the heating setpoint: a dark pointer outside the scale. A climate entity gives its target temperature.",
@@ -984,6 +985,7 @@ const dropdown = (name, options) => ({
   selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } }
 });
 const FRAMES = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
+const SIZES$1 = [["small", "Small"], ["medium", "Medium"], ["large", "Large"]];
 const layoutFields = (frame = true) => [
   {
     type: "expandable",
@@ -1050,9 +1052,9 @@ async function writeNumber(hass, entity, value) {
   }
 }
 var __defProp$5 = Object.defineProperty;
-var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
-var __decorateClass$b = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
+var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
+var __decorateClass$c = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$b(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = (kind ? decorator(target, key, result) : decorator(result)) || result;
@@ -1209,10 +1211,10 @@ let RamsButton = class extends Piece {
   }
 };
 RamsButton.styles = [tokens, keyStyles, i$3`:host { display: block; }`];
-__decorateClass$b([
+__decorateClass$c([
   r()
 ], RamsButton.prototype, "fit", 2);
-RamsButton = __decorateClass$b([
+RamsButton = __decorateClass$c([
   t("rams-button")
 ], RamsButton);
 const faceStyles = i$3`
@@ -1232,9 +1234,9 @@ const faceStyles = i$3`
   .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
 `;
-var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
-var __decorateClass$a = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
+var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
+var __decorateClass$b = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$a(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -1500,7 +1502,7 @@ let RamsSelector = class extends Piece {
     const sgn = c2.order === "reversed" ? -1 : 1;
     const tb = c2.labels_position === "left" || c2.labels_position === "right";
     const S2 = KNOB[c2.size ?? "small"];
-    const cap = now < 0 ? 0 : angle(now);
+    const cap = now < 0 ? (angles[0] + angles[n3 - 1]) / 2 : angle(now);
     const at2 = (a2, r2) => `${(50 + r2 * Math.sin(a2 * Math.PI / 180)).toFixed(2)} ${(50 - r2 * Math.cos(a2 * Math.PI / 180)).toFixed(2)}`;
     const rm = ptr ? 38 : 33;
     const arc = n3 > 1 && !own ? w$1`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at2(angle(0), rm)} A ${rm} ${rm} 0 ${step * (n3 - 1) > 180 ? 1 : 0} ${turn} ${at2(angle(n3 - 1), rm)}" />${stops.map((_2, i2) => w$1`<line x1=${at2(angle(i2), rm).split(" ")[0]} y1=${at2(angle(i2), rm).split(" ")[1]} x2=${at2(angle(i2), rm - 2.5).split(" ")[0]} y2=${at2(angle(i2), rm - 2.5).split(" ")[1]} />`)}</svg>` : A;
@@ -1670,12 +1672,12 @@ RamsSelector.styles = [
       .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
     `
 ];
-RamsSelector = __decorateClass$a([
+RamsSelector = __decorateClass$b([
   t("rams-selector")
 ], RamsSelector);
-var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
-var __decorateClass$9 = (decorators, target, key, kind) => {
-  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+var __getOwnPropDesc$9 = Object.getOwnPropertyDescriptor;
+var __decorateClass$a = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$9(target, key) : target;
   for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
     if (decorator = decorators[i2])
       result = decorator(result) || result;
@@ -1842,9 +1844,148 @@ RamsDisplay.styles = [
       .unit { font-size: 0.4em; color: var(--_muted); letter-spacing: 0; }
     `
 ];
-RamsDisplay = __decorateClass$9([
+RamsDisplay = __decorateClass$a([
   t("rams-display")
 ], RamsDisplay);
+var __getOwnPropDesc$8 = Object.getOwnPropertyDescriptor;
+var __decorateClass$9 = (decorators, target, key, kind) => {
+  var result = kind > 1 ? void 0 : kind ? __getOwnPropDesc$8(target, key) : target;
+  for (var i2 = decorators.length - 1, decorator; i2 >= 0; i2--)
+    if (decorator = decorators[i2])
+      result = decorator(result) || result;
+  return result;
+};
+let RamsLabel = class extends Piece {
+  constructor() {
+    super(...arguments);
+    this.hostFrame = false;
+    this.press = new Press(this, () => this.actionable() ? this.config : void 0);
+  }
+  signal() {
+    var _a2;
+    return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).signal;
+  }
+  static getStubConfig() {
+    return { type: "custom:rams-label", text: "Section", line: "below" };
+  }
+  static getConfigElement() {
+    return formEditor(this.getConfigForm());
+  }
+  static getConfigForm() {
+    const tones = TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label }));
+    return {
+      schema: [
+        { name: "text", selector: { text: {} } },
+        { name: "entity", selector: { entity: {} } },
+        { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
+            { name: "unit", selector: { text: {} } },
+            dropdown("size", SIZES$1),
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
+            dropdown("line", [["none", "None"], ["below", "Below the text"], ["above", "Above the text"], ["beside", "Both sides of the text"]])
+          ]
+        },
+        {
+          type: "expandable",
+          name: "",
+          title: "Size in panel",
+          schema: [{ type: "grid", name: "", schema: [num$1("columns", 1, 24), num$1("rows", 0.5, 12, { step: 0.5 })] }]
+        },
+        ...actionFields(),
+        {
+          type: "expandable",
+          name: "",
+          title: "State rules",
+          schema: [
+            { name: "rules_entity", selector: { entity: {} } },
+            {
+              name: "value_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "value",
+                  description_field: "when",
+                  fields: {
+                    when: { label: "When the number is", required: true, selector: { select: { mode: "dropdown", options: [{ value: "above", label: "Above" }, { value: "below", label: "Below" }] } } },
+                    value: { label: "Value", required: true, selector: { number: { mode: "box", step: "any" } } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: tones } } }
+                  }
+                }
+              }
+            },
+            {
+              name: "state_colours",
+              selector: {
+                object: {
+                  multiple: true,
+                  label_field: "state",
+                  fields: {
+                    state: { label: "State", required: true, selector: { text: {} } },
+                    tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: tones } } }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      computeLabel,
+      computeHelper: (s2) => s2.name === "rows" ? "Only used inside a Rams panel. A label is half a row high (0.5) unless you say otherwise." : computeHelper(s2)
+    };
+  }
+  /** A label defaults to half a row; the panel reads this. */
+  getGridOptions() {
+    return { columns: 12, rows: "auto", min_columns: 1, min_rows: 1 };
+  }
+  value() {
+    var _a2;
+    const c2 = this.config;
+    if (!c2.entity) return c2.text ?? "";
+    const e2 = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity];
+    if (!e2) return "";
+    return c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : e2.state;
+  }
+  render() {
+    const c2 = this.config;
+    if (!c2) return A;
+    const line = c2.line ?? "none";
+    const beside = line === "beside";
+    const align = beside ? "center" : c2.align ?? "start";
+    const cls = [align, c2.size ?? "small", line === "below" || line === "above" ? line : ""].filter(Boolean).join(" ");
+    return b`<div class="lab ${cls}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+      ${beside ? b`<i class="rule"></i>` : A}
+      <span class="t">${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}${this.value()}${c2.unit ? b`<span class="unit">${c2.unit}</span>` : A}</span>
+      ${beside ? b`<i class="rule"></i>` : A}
+    </div>`;
+  }
+};
+RamsLabel.styles = [
+  tokens,
+  i$3`
+      :host { display: block; min-width: 0; }
+      .lab { box-sizing: border-box; height: 100%; min-height: 0; display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--_ink); }
+      .lab.start { justify-content: flex-start; } .lab.center { justify-content: center; } .lab.end { justify-content: flex-end; }
+      .t { display: inline-flex; align-items: baseline; gap: 3px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.1em; color: var(--_muted); }
+      :host([signal]) .t { color: var(--_sig); }
+      .ico { --mdc-icon-size: 1.2em; flex: none; align-self: center; margin-right: 4px; }
+      .unit { font-size: 0.85em; letter-spacing: 0; }
+      .small .t { font-size: 11px; }
+      .medium .t { font-size: 14px; }
+      .large .t { font-size: 18px; letter-spacing: 0.06em; }
+      .rule { flex: 1; min-width: 12px; height: 1px; background: color-mix(in srgb, var(--_muted) 55%, transparent); }
+      .lab.below, .lab.above { position: relative; }
+      .lab.below::after, .lab.above::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: color-mix(in srgb, var(--_muted) 55%, transparent); }
+      .lab.below::after { bottom: 0; } .lab.above::after { top: 0; }
+      :host([actionable]) .lab { cursor: pointer; }
+    `
+];
+RamsLabel = __decorateClass$9([
+  t("rams-label")
+], RamsLabel);
 var __defProp$4 = Object.defineProperty;
 var __decorateClass$8 = (decorators, target, key, kind) => {
   var result = void 0;
@@ -1985,7 +2126,7 @@ let RamsPanel = class extends Piece {
     };
     this.onRows = (e2) => {
       const card = e2.composedPath().find((n3) => n3.localName === "hui-card");
-      if (card) card.style.gridRow = `span ${e2.detail.rows}`;
+      if (card) card.style.gridRow = `span ${e2.detail.rows * 2}`;
       e2.stopPropagation();
     };
     this.fits = (e2) => !e2.composedPath().some((n3) => {
@@ -2051,6 +2192,10 @@ let RamsPanel = class extends Piece {
     (_a2 = this.watcher) == null ? void 0 : _a2.disconnect();
     this.watcher = void 0;
   }
+  /** Rows a card takes: what it says, else one (a label: half a row). */
+  rowsOf(card) {
+    return typeof card.rows === "number" ? card.rows : card.type === "custom:rams-label" ? 0.5 : 1;
+  }
   render() {
     const c2 = this.config;
     if (!c2) return A;
@@ -2065,7 +2210,7 @@ let RamsPanel = class extends Piece {
       (card) => b`<hui-card
             .config=${card}
             .hass=${this.hass}
-            style="grid-column: ${card.columns ? `span ${Math.min(card.columns, cols)}` : "1 / -1"}; grid-row: span ${typeof card.rows === "number" ? card.rows : 1}"
+            style="grid-column: ${card.columns ? `span ${Math.min(card.columns, cols)}` : "1 / -1"}; grid-row: span ${Math.max(1, Math.round(2 * this.rowsOf(card)))}"
           ></hui-card>`
     )}
       </div>
@@ -2088,10 +2233,11 @@ RamsPanel.styles = [
       .screw.tl { top: 9px; left: 9px; } .screw.tr { top: 9px; right: 9px; } .screw.bl { bottom: 9px; left: 9px; } .screw.br { bottom: 9px; right: 9px; }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
-      .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
+      /* the grid counts in half rows: two of them and the gap between make one row, so a label (half a row) and a whole row line up */
+      .grid { --_half: calc((var(--_row) - var(--_gap)) / 2); display: grid; gap: var(--_gap); grid-auto-rows: var(--_half); }
       /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
-      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
-      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
+      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_half), 1fr); }
+      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_half); }
       /* a nested panel with rows set is exactly that many rows, like any piece next to it: its own rows share what is left */
       :host([nested][fixed]) .grid { grid-auto-rows: minmax(0, 1fr); }
       hui-card { min-width: 0; }
@@ -2125,8 +2271,8 @@ let RamsRuler = class extends Piece {
       this.drag = this.fromPointer(e2, e2.currentTarget);
     };
     this.onUp = () => {
-      const c2 = this.config;
-      if (this.drag !== void 0 && (c2 == null ? void 0 : c2.entity) && this.hass) void writeNumber(this.hass, c2.entity, this.drag);
+      this.config;
+      if (this.drag !== void 0 && this.hass) for (const e2 of this.all()) void writeNumber(this.hass, e2, this.drag);
       this.drag = void 0;
     };
   }
@@ -2137,6 +2283,7 @@ let RamsRuler = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
+        { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
         {
@@ -2149,7 +2296,20 @@ let RamsRuler = class extends Piece {
             { name: "unit", selector: { text: {} } }
           ]
         },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            num$1("value", void 0, void 0, { step: "any" }),
+            num$1("interval", void 0, void 0, { step: "any" }),
+            num$1("major", void 0, void 0, { step: "any" }),
+            { name: "title", selector: { text: {} } },
+            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
+          ]
+        },
         dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
+        { name: "number", selector: { boolean: {} } },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         { name: "interactive", selector: { boolean: {} } },
@@ -2159,9 +2319,23 @@ let RamsRuler = class extends Piece {
       computeHelper
     };
   }
+  /** The entities the ruler stands for. */
+  all() {
+    var _a2;
+    const c2 = this.config;
+    return ((_a2 = c2 == null ? void 0 : c2.entities) == null ? void 0 : _a2.length) ? c2.entities : (c2 == null ? void 0 : c2.entity) ? [c2.entity] : [];
+  }
+  /** The one whose value is shown: the first that is playing or on, else the first. */
+  lead() {
+    const list = this.all();
+    return list.find((e2) => {
+      var _a2, _b;
+      return ["playing", "paused", "buffering", "on"].includes(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[e2]) == null ? void 0 : _b.state) ?? "");
+    }) ?? list[0];
+  }
   range() {
     const c2 = this.config;
-    const d2 = defaultRange(this.hass, c2.entity);
+    const d2 = defaultRange(this.hass, this.lead());
     return { min: c2.min ?? d2.min, max: c2.max ?? d2.max, step: c2.step ?? d2.step };
   }
   frac(v2, min, max) {
@@ -2180,33 +2354,48 @@ let RamsRuler = class extends Piece {
     return `${v2 > 0 && ((_a2 = this.config) == null ? void 0 : _a2.centre) ? "+" : ""}${s2}${((_b = this.config) == null ? void 0 : _b.unit) ?? ""}`;
   }
   render() {
+    var _a2;
     const c2 = this.config;
     if (!c2) return A;
     const { min, max } = this.range();
-    const value = this.drag ?? readNumber(this.hass, c2.entity, c2.attribute);
+    const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c2.attribute) : c2.value);
     const f2 = this.frac(value, min, max);
     const tf = this.frac(readNumber(this.hass, c2.target_entity, c2.target_attribute), min, max);
-    const ticks = Array.from({ length: 21 }, (_2, i2) => i2 / 20);
+    const span = max - min;
+    const steps = c2.interval && c2.interval > 0 && span > 0 ? Math.min(200, Math.max(1, Math.round(span / c2.interval))) : 20;
+    const ticks = Array.from({ length: steps + 1 }, (_2, i2) => i2 / steps);
+    const isMajor = (t2) => c2.major && c2.major > 0 ? Math.abs(Math.round(t2 * span / c2.major) * c2.major - t2 * span) < span * 1e-6 || t2 === 0 || t2 === 1 : t2 === 0 || t2 === 0.5 || t2 === 1;
     const vertical = c2.orientation === "vertical";
     const pct = (x2) => `${x2 * 100}%`;
     const at2 = (x2) => `${vertical ? "bottom" : "left"}:${pct(x2)}`;
     const bar = f2 === void 0 || !c2.centre ? A : b`<div class="bar" style="${at2(Math.min(f2, 0.5))};${vertical ? "height" : "width"}:${pct(Math.abs(f2 - 0.5))}"></div>`;
-    return b`<div class="wrap ${vertical ? "v" : ""}">
+    const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) ?? "";
+    const ruler = b`<div class="wrap ${vertical ? "v" : ""}">
       <div class="track ${c2.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
         <div class="line"></div>
-        ${ticks.map((t2) => b`<div class="tick ${t2 === 0 || t2 === 0.5 || t2 === 1 ? "major" : ""}" style="${at2(t2)}"></div>`)}
+        ${ticks.map((t2) => b`<div class="tick ${isMajor(t2) ? "major" : ""}" style="${at2(t2)}"></div>`)}
         ${bar}
         ${tf === void 0 ? A : b`<div class="target" style="${at2(tf)}"></div>`}
         ${f2 === void 0 || c2.centre ? A : b`<div class="pointer" style="${at2(f2)}"></div>`}
       </div>
+      ${c2.number && value !== void 0 ? b`<div class="num ${c2.align ?? "center"}">${this.fmt(value)}</div>` : A}
       ${c2.labels ? b`<div class="labels"><span>${this.fmt(min)}</span>${c2.centre ? b`<span>${this.fmt(0)}</span>` : A}<span>${this.fmt(max)}</span></div>` : A}
     </div>`;
+    return title ? b`<div class="t ${c2.title_position ?? "above"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
   }
 };
 RamsRuler.styles = [
   tokens,
   i$3`
       :host { display: block; height: 100%; min-width: 0; }
+      .t { height: 100%; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+      .t.below { flex-direction: column-reverse; }
+      .t.left { flex-direction: row; align-items: center; } .t.right { flex-direction: row-reverse; align-items: center; }
+      .t > .wrap { flex: 1; min-width: 0; min-height: 0; }
+      .outer { flex: none; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .left .outer, .right .outer { max-width: 40%; }
+      .num { font-size: 12px; color: var(--_ink); line-height: 1.1; }
+      .num.start { text-align: left; } .num.center { text-align: center; } .num.end { text-align: right; }
       .wrap { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 2px; }
       .track { position: relative; height: 24px; touch-action: none; }
       .track.interactive { cursor: pointer; }
@@ -2875,8 +3064,8 @@ let RamsDial = class extends Piece {
       if (this.drag !== void 0) this.drag = this.fromPointer(e2);
     };
     this.onUp = () => {
-      const c2 = this.config;
-      if (this.drag !== void 0 && (c2 == null ? void 0 : c2.entity) && this.hass) void writeNumber(this.hass, c2.entity, this.drag);
+      this.config;
+      if (this.drag !== void 0 && this.hass) for (const e2 of this.all()) void writeNumber(this.hass, e2, this.drag);
       this.drag = void 0;
     };
   }
@@ -2887,6 +3076,7 @@ let RamsDial = class extends Piece {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
+        { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "setpoint", selector: { entity: {} } },
         {
@@ -3068,10 +3258,24 @@ let RamsDial = class extends Piece {
       </svg>`
     };
   }
+  /** The entities the dial stands for. */
+  all() {
+    var _a2;
+    const c2 = this.config;
+    return ((_a2 = c2 == null ? void 0 : c2.entities) == null ? void 0 : _a2.length) ? c2.entities : (c2 == null ? void 0 : c2.entity) ? [c2.entity] : [];
+  }
+  /** The one whose value is shown: the first that is playing or on, else the first. */
+  lead() {
+    const list = this.all();
+    return list.find((e2) => {
+      var _a2, _b;
+      return ["playing", "paused", "buffering", "on"].includes(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[e2]) == null ? void 0 : _b.state) ?? "");
+    }) ?? list[0];
+  }
   render() {
     const c2 = this.config;
     if (!c2) return A;
-    const value = this.drag ?? (c2.entity ? readNumber(this.hass, c2.entity, c2.attribute) : c2.value);
+    const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c2.attribute) : c2.value);
     const showNumber = c2.show !== "none";
     const { w: w2, h: h2 } = this.room;
     const shown = value === void 0 ? "–" : String(Math.round(value * 10) / 10);
@@ -3116,12 +3320,13 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 10:22 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 12:14 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
   { type: "rams-panel", name: "Dieter Rams Panel", description: "Container: a plate with pieces on an N-column grid", preview: true },
   { type: "rams-display", name: "Dieter Rams Display", description: "Text block: one or two lines, optional frame", preview: true },
+  { type: "rams-label", name: "Dieter Rams Label", description: "Heading for a group of pieces: half a row high, optional hairline", preview: true },
   { type: "rams-ruler", name: "Dieter Rams Ruler", description: "Scale with pointer or centre bar; optional touch to set", preview: true },
   { type: "rams-artwork", name: "Dieter Rams Artwork", description: "Picture with playing LED and optional media keys", preview: true },
   { type: "rams-clock", name: "Dieter Rams Clock", description: "Analog or digital clock", preview: true },

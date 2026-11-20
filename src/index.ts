@@ -1,6 +1,7 @@
 import "./cards/button";
 import "./cards/selector";
 import "./cards/display";
+import "./cards/label";
 import "./cards/panel";
 import "./cards/ruler";
 import "./cards/artwork";
@@ -19,6 +20,7 @@ w.customCards = w.customCards ?? [];
 w.customCards.push(
   { type: "rams-panel", name: "Dieter Rams Panel", description: "Container: a plate with pieces on an N-column grid", preview: true },
   { type: "rams-display", name: "Dieter Rams Display", description: "Text block: one or two lines, optional frame", preview: true },
+  { type: "rams-label", name: "Dieter Rams Label", description: "Heading for a group of pieces: half a row high, optional hairline", preview: true },
   { type: "rams-ruler", name: "Dieter Rams Ruler", description: "Scale with pointer or centre bar; optional touch to set", preview: true },
   { type: "rams-artwork", name: "Dieter Rams Artwork", description: "Picture with playing LED and optional media keys", preview: true },
   { type: "rams-clock", name: "Dieter Rams Clock", description: "Analog or digital clock", preview: true },

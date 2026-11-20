@@ -409,7 +409,8 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const sgn = c.order === "reversed" ? -1 : 1;
     const tb = c.labels_position === "left" || c.labels_position === "right";
     const S = KNOB[c.size ?? "small"];
-    const cap = now < 0 ? 0 : angle(now);
+    // no option matches the entity's state (unknown, unavailable, or a different spelling): rest in the middle of the fan, dimmed
+    const cap = now < 0 ? (angles[0] + angles[n - 1]) / 2 : angle(now);
     const at = (a: number, r: number) => `${(50 + r * Math.sin((a * Math.PI) / 180)).toFixed(2)} ${(50 - r * Math.cos((a * Math.PI) / 180)).toFixed(2)}`;
     // the scale arc, on both caps (not when each option has its own lamp); the lamps sit on the same circle
     const rm = ptr ? 38 : 33;

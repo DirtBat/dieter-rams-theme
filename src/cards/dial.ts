@@ -10,6 +10,8 @@ import type { PieceConfig } from "../shared/types";
 export interface DialConfig extends PieceConfig {
   /** Value from an entity (a sensor, or a helper) ... */
   entity?: string;
+  /** Several entities as one: shows the first that is playing (else the first); a touch sets the value on all of them. Replaces entity. */
+  entities?: string[];
   attribute?: string;
   /** A second entity, such as a setpoint: a dark pointer outside the scale. A climate entity gives its target temperature. */
   setpoint?: string;
@@ -92,6 +94,7 @@ export class RamsDial extends Piece<DialConfig> {
     return {
       schema: [
         { name: "entity", selector: { entity: {} } },
+        { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "setpoint", selector: { entity: {} } },
         {
@@ -237,7 +240,7 @@ export class RamsDial extends Piece<DialConfig> {
   };
   private onUp = () => {
     const c = this.config;
-    if (this.drag !== undefined && c?.entity && this.hass) void writeNumber(this.hass, c.entity, this.drag);
+    if (this.drag !== undefined && this.hass) for (const e of this.all()) void writeNumber(this.hass, e, this.drag);
     this.drag = undefined;
   };
 
@@ -296,10 +299,22 @@ export class RamsDial extends Piece<DialConfig> {
     };
   }
 
+  /** The entities the dial stands for. */
+  private all(): string[] {
+    const c = this.config;
+    return c?.entities?.length ? c.entities : c?.entity ? [c.entity] : [];
+  }
+
+  /** The one whose value is shown: the first that is playing or on, else the first. */
+  private lead(): string | undefined {
+    const list = this.all();
+    return list.find((e) => ["playing", "paused", "buffering", "on"].includes(this.hass?.states[e]?.state ?? "")) ?? list[0];
+  }
+
   protected render(): TemplateResult | typeof nothing {
     const c = this.config;
     if (!c) return nothing;
-    const value = this.drag ?? (c.entity ? readNumber(this.hass, c.entity, c.attribute) : c.value);
+    const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c.attribute) : c.value);
     const showNumber = c.show !== "none";
     const { w, h } = this.room;
     const shown = value === undefined ? "\u2013" : String(Math.round(value * 10) / 10);

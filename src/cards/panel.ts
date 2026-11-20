@@ -43,10 +43,11 @@ export class RamsPanel extends Piece<PanelConfig> {
       .screw.tl { top: 9px; left: 9px; } .screw.tr { top: 9px; right: 9px; } .screw.bl { bottom: 9px; left: 9px; } .screw.br { bottom: 9px; right: 9px; }
       .plate.f-none { padding: 0; border-radius: 0; }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
-      .grid { display: grid; gap: var(--_gap); grid-auto-rows: var(--_row); }
+      /* the grid counts in half rows: two of them and the gap between make one row, so a label (half a row) and a whole row line up */
+      .grid { --_half: calc((var(--_row) - var(--_gap)) / 2); display: grid; gap: var(--_gap); grid-auto-rows: var(--_half); }
       /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
-      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_row), 1fr); }
-      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_row); }
+      :host([nested]) .grid { flex: 1; grid-auto-rows: minmax(var(--_half), 1fr); }
+      :host([nested]) .grid.natural { flex: none; grid-auto-rows: var(--_half); }
       /* a nested panel with rows set is exactly that many rows, like any piece next to it: its own rows share what is left */
       :host([nested][fixed]) .grid { grid-auto-rows: minmax(0, 1fr); }
       hui-card { min-width: 0; }
@@ -146,10 +147,15 @@ export class RamsPanel extends Piece<PanelConfig> {
     this.watcher = undefined;
   }
 
+  /** Rows a card takes: what it says, else one (a label: half a row). */
+  private rowsOf(card: PieceConfig): number {
+    return typeof card.rows === "number" ? card.rows : card.type === "custom:rams-label" ? 0.5 : 1;
+  }
+
   /** A data-driven piece reports its row count; set the span on its hui-card wrapper. */
   private onRows = (e: Event) => {
     const card = e.composedPath().find((n) => (n as HTMLElement).localName === "hui-card") as HTMLElement | undefined;
-    if (card) card.style.gridRow = `span ${(e as CustomEvent<{ rows: number }>).detail.rows}`;
+    if (card) card.style.gridRow = `span ${(e as CustomEvent<{ rows: number }>).detail.rows * 2}`;
     e.stopPropagation(); // a nested panel's own pieces must not reach the outer panel
   };
 
@@ -172,7 +178,7 @@ export class RamsPanel extends Piece<PanelConfig> {
           (card) => html`<hui-card
             .config=${card}
             .hass=${this.hass}
-            style="grid-column: ${card.columns ? `span ${Math.min(card.columns, cols)}` : "1 / -1"}; grid-row: span ${typeof card.rows === "number" ? card.rows : 1}"
+            style="grid-column: ${card.columns ? `span ${Math.min(card.columns, cols)}` : "1 / -1"}; grid-row: span ${Math.max(1, Math.round(2 * this.rowsOf(card)))}"
           ></hui-card>`,
         )}
       </div>

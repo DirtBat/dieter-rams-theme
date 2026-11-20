@@ -81,3 +81,11 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 ## Panel screws (2026-11-20)
 - `screws: true` puts a cross-head screw in each corner of the plate (not with `frame: none`). The padding grows by 18px so no piece touches a screw. Off by default; editor toggle "screws".
+
+## Label (2026-11-20)
+- `rams-label`: a heading for a group in a panel. Half a row high (24px on the default grid) instead of a whole row. Options: `text` or `entity` (+ `attribute`, `unit`), `icon`, `size` (small caps 11px, medium 14, large 18), `align`, `line` (none / below / above / beside the text), tap and hold actions, and the state rules (`rules_entity`, `state_colours`, `value_colours`) colour the text.
+- The panel grid now counts in half rows (two plus the gap make one row), so existing cards keep their size. `rows: 0.5` or `1.5` works on any card inside a panel; a label defaults to 0.5.
+
+## Ruler and dial: several entities, gauge options (2026-11-20)
+- `entities` (ruler and dial) stands for several entities as one: the one that is playing is shown, a touch sets all of them. Use it for one volume over several speakers.
+- The ruler took the gauge's options: `title` + `title_position`, `interval` (small ticks), `major` (thick ticks), `value` (fixed), `number` (the value under the scale) + `align`. Left empty it looks as before.
