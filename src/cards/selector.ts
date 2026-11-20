@@ -49,7 +49,12 @@ const KNOB = { small: 104, medium: 128, large: 156 } as const;
 /** On/off entities: two stops, off then on, switched with turn_off / turn_on. */
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
 /** Degrees between two options on a knob. The pointer is a big control: six options fill a half circle, fewer use less of it. */
-const knobStep = (n: number, pointer: boolean): number => (n < 2 ? 0 : pointer ? Math.min(36, 270 / (n - 1)) : Math.min(60, n === 2 ? 90 : 270 / (n - 1)));
+/** Degrees between options. Labels at the side stand in one column, so their fan must not pass 180 degrees or the column would fold back on itself. */
+const knobStep = (n: number, pointer: boolean, side = false): number => {
+  if (n < 2) return 0;
+  const step = pointer ? Math.min(36, 270 / (n - 1)) : Math.min(60, n === 2 ? 90 : 270 / (n - 1));
+  return side ? Math.min(step, 180 / (n - 1)) : step;
+};
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } } as const;
 
 /** A selector for an input_select, select or on/off entity: a lever on a slot, or a knob, with one stop per option. Tap the lever to step, tap another stop to go there. With two options it is an on/off switch. */
@@ -330,12 +335,19 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private knobAngles(): number[] {
     const c = this.config;
     const n = this.stops().length;
-    const step = knobStep(n, c?.cap === "pointer");
+    const step = knobStep(n, c?.cap === "pointer", c?.labels_position === "left" || c?.labels_position === "right");
     const side = c?.labels_position ?? "above";
     const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
     // reading order: first on the left (labels above or below) or on top (left or right); reversed turns it round
     const dir = (side === "below" || side === "left" ? -1 : 1) * (c?.order === "reversed" ? -1 : 1);
-    return Array.from({ length: n }, (_, i) => centre + dir * (-(step * (n - 1)) / 2 + i * step));
+    const half = (step * (n - 1)) / 2;
+    // labels at the side stand in a column: space the options evenly down it (not evenly round the arc), so that the labels at
+    // the ends of a long fan do not pile up. With two or three options both ways give the same angles.
+    if (side === "left" || side === "right") {
+      const k = Math.sin((half * Math.PI) / 180);
+      return Array.from({ length: n }, (_, i) => centre + dir * (n < 2 ? 0 : (Math.asin(k * ((2 * i) / (n - 1) - 1)) * 180) / Math.PI));
+    }
+    return Array.from({ length: n }, (_, i) => centre + dir * (-half + i * step));
   }
 
   /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
@@ -433,7 +445,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private knob(c: SelectorConfig, stops: ReturnType<RamsSelector["stops"]>, now: number, show: string, z: (typeof SIZES)[keyof typeof SIZES], lamp: TemplateResult | typeof nothing, title: string, pos: string, own: boolean, lines: boolean): TemplateResult {
     const n = stops.length;
     const ptr = c.cap === "pointer";
-    const step = knobStep(n, ptr);
+    const step = knobStep(n, ptr, c.labels_position === "left" || c.labels_position === "right");
     const angles = this.knobAngles();
     const angle = (i: number) => angles[i];
     const turn = n > 1 && angles[n - 1] > angles[0] ? 1 : 0;

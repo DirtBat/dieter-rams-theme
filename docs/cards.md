@@ -95,3 +95,5 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 
 ## Selector: scenes (2026-11-20)
 - An option can carry `scene:` (an HA scene). With scenes on the options and no `entity`, a tap calls `scene.turn_on`, and the current option is the scene turned on last (a scene state is its last-activated time). `light: options` lights that option; `state_colours` colour it. Stale after manual light changes, like any scene.
+
+- Knob with labels at the side: the options are spaced evenly down the label column and the fan stays within 180 degrees, so six or more options do not pile up at the ends (two and three options look as before).

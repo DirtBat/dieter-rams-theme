@@ -1246,7 +1246,11 @@ var __decorateClass$b = (decorators, target, key, kind) => {
 };
 const KNOB = { small: 104, medium: 128, large: 156 };
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
-const knobStep = (n3, pointer) => n3 < 2 ? 0 : pointer ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
+const knobStep = (n3, pointer, side = false) => {
+  if (n3 < 2) return 0;
+  const step = pointer ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
+  return side ? Math.min(step, 180 / (n3 - 1)) : step;
+};
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } };
 let RamsSelector = class extends Piece {
   constructor() {
@@ -1438,11 +1442,16 @@ let RamsSelector = class extends Piece {
   knobAngles() {
     const c2 = this.config;
     const n3 = this.stops().length;
-    const step = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer");
+    const step = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer", (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right");
     const side = (c2 == null ? void 0 : c2.labels_position) ?? "above";
     const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
     const dir = (side === "below" || side === "left" ? -1 : 1) * ((c2 == null ? void 0 : c2.order) === "reversed" ? -1 : 1);
-    return Array.from({ length: n3 }, (_2, i2) => centre + dir * (-(step * (n3 - 1)) / 2 + i2 * step));
+    const half = step * (n3 - 1) / 2;
+    if (side === "left" || side === "right") {
+      const k2 = Math.sin(half * Math.PI / 180);
+      return Array.from({ length: n3 }, (_2, i2) => centre + dir * (n3 < 2 ? 0 : Math.asin(k2 * (2 * i2 / (n3 - 1) - 1)) * 180 / Math.PI));
+    }
+    return Array.from({ length: n3 }, (_2, i2) => centre + dir * (-half + i2 * step));
   }
   /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
   knobExtent() {
@@ -1530,7 +1539,7 @@ let RamsSelector = class extends Piece {
   knob(c2, stops, now, show, z2, lamp, title, pos, own, lines) {
     const n3 = stops.length;
     const ptr = c2.cap === "pointer";
-    const step = knobStep(n3, ptr);
+    const step = knobStep(n3, ptr, c2.labels_position === "left" || c2.labels_position === "right");
     const angles = this.knobAngles();
     const angle = (i2) => angles[i2];
     const turn = n3 > 1 && angles[n3 - 1] > angles[0] ? 1 : 0;
@@ -3393,7 +3402,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 14:02 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 14:23 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
