@@ -24,6 +24,8 @@ const IDLE_MS = 30_000;
 @customElement("rams-keypad")
 export class RamsKeypad extends Piece<KeypadConfig> {
   @state() private code = "";
+  /** The Disarm key has been pressed: the next confirm disarms. */
+  @state() private disarming = false;
   private idle?: number;
 
   static styles = [
@@ -46,6 +48,9 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       .state { text-transform: lowercase; opacity: 0.8; }
       /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
+      .wide { grid-column: 1 / -1; display: flex; }
+      .wide .key.round { width: 100%; height: 36px; border-radius: 999px; }
+      .wide .key.round.on { box-shadow: 0 0 0 3px var(--_ring), inset 0 2px 4px rgba(0, 0, 0, 0.3); }
       .legend { font-size: 18px; font-weight: 400; }
     `,
   ];
@@ -81,7 +86,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
 
   private touch(): void {
     window.clearTimeout(this.idle);
-    this.idle = window.setTimeout(() => (this.code = ""), IDLE_MS);
+    this.idle = window.setTimeout(() => { this.code = ""; this.disarming = false; }, IDLE_MS);
   }
 
   private press(d: string): void {
@@ -89,15 +94,17 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     this.touch();
   }
 
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
+  /** Confirm arms a disarmed alarm. To disarm, the Disarm key is pressed first, then a code, then confirm. Confirm is dead until a digit has been typed. */
   private confirm(): void {
     const c = this.config;
     if (!c?.entity || !this.hass) return;
     const disarmed = this.hass.states[c.entity]?.state === "disarmed";
+    if (!disarmed && !this.disarming) return;
     const data: Record<string, unknown> = { entity_id: c.entity };
     if (this.code) data.code = this.code;
     void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
     this.code = "";
+    this.disarming = false;
   }
 
   protected updated(_c: PropertyValues): void {
@@ -124,9 +131,10 @@ export class RamsKeypad extends Piece<KeypadConfig> {
         <span class="state">${alarm.replace(/_/g, " ")}</span>
       </div>
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => this.cap(d, () => this.press(d)))}
-      ${this.cap("✕", () => (this.code = ""))}
+      ${this.cap("✕", () => { this.code = ""; this.disarming = false; })}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
+      ${this.cap("✓", () => this.confirm(), "green", !this.code || (alarm !== "disarmed" && !this.disarming))}
+      <div class="wide"><button class="key round ${this.disarming ? "filled red on" : ""}" ?disabled=${alarm === "disarmed"} @click=${() => { this.disarming = !this.disarming; this.touch(); }}><span class="legend">Disarm</span></button></div>
     </div>`;
   }
 }

@@ -2491,6 +2491,7 @@ var __decorateClass$5 = (decorators, target, key, kind) => {
       result = decorator(result) || result;
   return result;
 };
+const RATIO = { square: 1, "4:3": 4 / 3, "3:2": 3 / 2, "16:9": 16 / 9, "3:4": 3 / 4, "2:3": 2 / 3 };
 let RamsArtwork = class extends Piece {
   constructor() {
     super(...arguments);
@@ -2510,6 +2511,9 @@ let RamsArtwork = class extends Piece {
         { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
         { name: "controls", selector: { boolean: {} } },
+        dropdown("proportion", [["square", "Square"], ["4:3", "4:3"], ["3:2", "3:2"], ["16:9", "16:9"], ["3:4", "3:4 portrait"], ["2:3", "2:3 portrait"]]),
+        { name: "live", selector: { boolean: {} } },
+        { name: "screen", selector: { boolean: {} } },
         ...layoutFields(),
         ...actionFields()
       ],
@@ -2534,7 +2538,7 @@ let RamsArtwork = class extends Piece {
     this.fit();
   }
   fit() {
-    if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth + 8) / 64)));
+    if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth / (RATIO[this.config.proportion ?? "square"] ?? 1) + 8) / 64)));
   }
   media(service) {
     var _a2, _b;
@@ -2542,12 +2546,14 @@ let RamsArtwork = class extends Piece {
     if (e2) void ((_b = this.hass) == null ? void 0 : _b.callService("media_player", service, { entity_id: e2 }));
   }
   render() {
-    var _a2, _b, _c, _d;
+    var _a2, _b, _c, _d, _e;
     const c2 = this.config;
     if (!c2) return A;
     const picture = c2.entity && ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity]) == null ? void 0 : _b.attributes.entity_picture) || c2.image || "";
     const playing = ((_d = (_c = this.hass) == null ? void 0 : _c.states[c2.playing_entity ?? c2.entity ?? ""]) == null ? void 0 : _d.state) === "playing";
-    return b`<div class="art" style=${picture ? `background-image:url('${picture}')` : ""} @click=${this.onTap}>
+    const stream = c2.live && ((_e = c2.entity) == null ? void 0 : _e.startsWith("camera.")) && picture ? picture.replace("/camera_proxy/", "/camera_proxy_stream/") : "";
+    return b`<div class="art ${c2.screen ? "screen" : ""}" style=${picture && !stream ? `background-image:url('${picture}')` : ""} @click=${this.onTap}>
+      ${stream ? b`<img src=${stream} alt="" />` : A}
       ${c2.caption ? b`<span class="cap">${c2.caption}</span>` : A}
       ${playing ? b`<span class="led"></span>` : A}
       ${c2.controls ? b`<div class="ctl" @click=${(e2) => e2.stopPropagation()}>
@@ -2563,6 +2569,9 @@ RamsArtwork.styles = [
   i$3`
       :host { --_fpad: 0px; overflow: hidden; }
       .art { position: relative; box-sizing: border-box; height: 100%; background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
+      .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
       .ctl { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
       .ctl button { flex: 1; max-width: 56px; height: 28px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); color: var(--_ink); box-shadow: var(--_raised); font: inherit; font-size: 10px; cursor: pointer; }
@@ -2878,6 +2887,7 @@ let RamsKeypad = class extends Piece {
   constructor() {
     super(...arguments);
     this.code = "";
+    this.disarming = false;
   }
   static getStubConfig() {
     return { type: "custom:rams-keypad", columns: 12 };
@@ -2908,22 +2918,27 @@ let RamsKeypad = class extends Piece {
   }
   touch() {
     window.clearTimeout(this.idle);
-    this.idle = window.setTimeout(() => this.code = "", IDLE_MS);
+    this.idle = window.setTimeout(() => {
+      this.code = "";
+      this.disarming = false;
+    }, IDLE_MS);
   }
   press(d2) {
     this.code = (this.code + d2).slice(0, 8);
     this.touch();
   }
-  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
+  /** Confirm arms a disarmed alarm. To disarm, the Disarm key is pressed first, then a code, then confirm. Confirm is dead until a digit has been typed. */
   confirm() {
     var _a2;
     const c2 = this.config;
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
     const disarmed = ((_a2 = this.hass.states[c2.entity]) == null ? void 0 : _a2.state) === "disarmed";
+    if (!disarmed && !this.disarming) return;
     const data = { entity_id: c2.entity };
     if (this.code) data.code = this.code;
     void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c2.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
     this.code = "";
+    this.disarming = false;
   }
   updated(_c) {
     const pad = this.renderRoot.querySelector(".pad");
@@ -2947,9 +2962,16 @@ let RamsKeypad = class extends Piece {
         <span class="state">${alarm.replace(/_/g, " ")}</span>
       </div>
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d2) => this.cap(d2, () => this.press(d2)))}
-      ${this.cap("✕", () => this.code = "")}
+      ${this.cap("✕", () => {
+      this.code = "";
+      this.disarming = false;
+    })}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
+      ${this.cap("✓", () => this.confirm(), "green", !this.code || alarm !== "disarmed" && !this.disarming)}
+      <div class="wide"><button class="key round ${this.disarming ? "filled red on" : ""}" ?disabled=${alarm === "disarmed"} @click=${() => {
+      this.disarming = !this.disarming;
+      this.touch();
+    }}><span class="legend">Disarm</span></button></div>
     </div>`;
   }
 };
@@ -2973,12 +2995,18 @@ RamsKeypad.styles = [
       .state { text-transform: lowercase; opacity: 0.8; }
       /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
+      .wide { grid-column: 1 / -1; display: flex; }
+      .wide .key.round { width: 100%; height: 36px; border-radius: 999px; }
+      .wide .key.round.on { box-shadow: 0 0 0 3px var(--_ring), inset 0 2px 4px rgba(0, 0, 0, 0.3); }
       .legend { font-size: 18px; font-weight: 400; }
     `
 ];
 __decorateClass$2([
   r()
 ], RamsKeypad.prototype, "code", 2);
+__decorateClass$2([
+  r()
+], RamsKeypad.prototype, "disarming", 2);
 RamsKeypad = __decorateClass$2([
   t("rams-keypad")
 ], RamsKeypad);
@@ -3418,7 +3446,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:25 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:35 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
