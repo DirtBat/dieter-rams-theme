@@ -830,6 +830,7 @@ const tokens = i$3`
     --_row: var(--rams-row, 56px);
     --_down: var(--rams-down, #cfcbc1);
     --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
+    --_cutout: var(--rams-cutout, #17110c);
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
@@ -891,7 +892,11 @@ const keyStyles = i$3`
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* the key's room. In a card (.cell) its size is set from the fit, so the group stays compact; in the keypad it fills its grid cell. */
-  .cell .keyarea { flex: none; min-height: 0; width: auto; }
+  .cell .keyarea { flex: none; min-height: 0; width: auto; position: relative; align-items: center; }
+  /* A square key sits in a black cut-out in the panel. The cut-out is square-cornered (no dips where plates meet) and reaches half a gap past the key at the sides and 3px above and below, so keys side by side
+     share one black block: the black between two keys is twice the black round the outside. */
+  .plate { position: absolute; top: 0; bottom: 0; left: calc(var(--_gap, 8px) / -2); right: calc(var(--_gap, 8px) / -2); border-radius: 0; background: var(--_cutout); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.5); pointer-events: none; }
+  .key.sq { flex: none; border-radius: 3px; margin: auto; }
   .keyarea { flex: 1; min-height: 24px; min-width: 0; width: 100%; display: flex; justify-content: center; container-type: size; }
   .key {
     position: relative; box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 0;
@@ -919,6 +924,7 @@ const keyStyles = i$3`
   .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
+  .ico.tinted { color: var(--t); }
   .key.round .ico { --mdc-icon-size: 18px; }
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
@@ -1053,6 +1059,7 @@ var __decorateClass$b = (decorators, target, key, kind) => {
   if (kind && result) __defProp$5(target, key, result);
   return result;
 };
+const FRAME = 3;
 let RamsButton = class extends Piece {
   constructor() {
     super(...arguments);
@@ -1075,7 +1082,7 @@ let RamsButton = class extends Piece {
     this.measure();
   }
   measure() {
-    var _a2;
+    var _a2, _b;
     const cell = this.renderRoot.querySelector(".cell");
     if (!cell) return;
     const side = cell.classList.contains("left") || cell.classList.contains("right");
@@ -1085,7 +1092,8 @@ let RamsButton = class extends Piece {
     const aw = cell.clientWidth - (side && txt ? txt.offsetWidth + gap : 0);
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w2 = Math.max(aw, 24), h2 = Math.max(ah, 24);
-    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "round" ? { n: 1, m: 1, u: Math.min(w2, h2) } : fitKey(w2, h2);
+    const sq = !((_a2 = this.config) == null ? void 0 : _a2.shape) || this.config.shape === "square";
+    const f2 = ((_b = this.config) == null ? void 0 : _b.shape) === "tall" ? fitKey(w2, h2) : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
     if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
   }
   disconnectedCallback() {
@@ -1111,7 +1119,8 @@ let RamsButton = class extends Piece {
           schema: [
             dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
             dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
-            dropdown("tone", TONES)
+            dropdown("tone", TONES),
+            dropdown("icon_tone", TONES)
           ]
         },
         ...layoutFields(false),
@@ -1159,12 +1168,16 @@ let RamsButton = class extends Piece {
     return true;
   }
   areaSize() {
+    var _a2;
     const { n: n3, m: m2, u: u2 } = this.fit;
-    return u2 ? `width:${n3 * u2}px; height:${m2 * u2}px` : "width:0; height:0";
+    if (!u2) return "width:0; height:0";
+    const sq = !((_a2 = this.config) == null ? void 0 : _a2.shape) || this.config.shape === "square";
+    return `width:${n3 * u2}px; height:${m2 * u2 + (sq ? 2 * FRAME : 0)}px`;
   }
   keySize(shape) {
     const { n: n3, m: m2, u: u2 } = this.fit;
     if (shape === "round" || !u2) return "";
+    if (shape !== "tall") return `--u:${u2}px; width:${u2}px; height:${u2}px`;
     return `--u:${u2}px; width:${(shape === "tall" ? n3 / 2 : n3) * u2}px; height:${m2 * u2}px`;
   }
   render() {
@@ -1176,13 +1189,14 @@ let RamsButton = class extends Piece {
     const pos = c2.label_position ?? "below";
     const own = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
     const tone = own ? view.tone ?? own : "";
-    const cls = ["key", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const square = !c2.shape || c2.shape === "square";
+    const cls = ["key", square ? "sq" : "", c2.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c2.entity, c2) ? view.alert ? "on" : "" : "off"}"></i>
-        <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea" style=${this.areaSize()}>${square ? b`<i class="plate"></i>` : A}<button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? b`<i class="dot ${view.tone}"></i>` : A}
-          ${c2.icon ? b`<ha-icon class="ico" .icon=${c2.icon}></ha-icon>` : A}
+          ${c2.icon ? b`<ha-icon class="ico ${c2.icon_tone && c2.icon_tone !== "neutral" ? `tinted ${c2.icon_tone}` : ""}" .icon=${c2.icon}></ha-icon>` : A}
           ${pos === "inside" && name ? b`<span class="legend">${name}</span>` : A}
         </button></div>
       </div>
@@ -1233,16 +1247,15 @@ let RamsSelector = class extends Piece {
     this.minRows = true;
     this.fitKnob = () => {
       var _a2, _b;
-      const face = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".kslot");
-      if (!face) return;
-      const lamp = 0;
+      const slot = (_a2 = this.shadowRoot) == null ? void 0 : _a2.querySelector(".kslot");
+      if (!slot) return;
       const e2 = this.knobExtent();
       const floor = KNOB[((_b = this.config) == null ? void 0 : _b.size) ?? "small"] * 0.6;
-      const k2 = Math.floor(Math.max(floor, Math.min(face.clientWidth / e2.w, (face.clientHeight - lamp) / (e2.top + e2.bottom))));
-      const dy = Math.round((e2.top - e2.bottom) / 2 * k2);
+      const k2 = Math.floor(Math.max(floor, Math.min(slot.clientWidth / (e2.maxX - e2.minX), slot.clientHeight / (e2.maxY - e2.minY))));
       const set = (name, v2) => this.style.getPropertyValue(name) !== v2 && this.style.setProperty(name, v2);
       set("--_K", `${k2}px`);
-      set("--_dy", `${dy}px`);
+      set("--_dx", `${Math.round(-((e2.minX + e2.maxX) / 2) * k2)}px`);
+      set("--_dy", `${Math.round(-((e2.minY + e2.maxY) / 2) * k2)}px`);
     };
   }
   static getStubConfig() {
@@ -1275,7 +1288,7 @@ let RamsSelector = class extends Piece {
             dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
             { name: "lines", selector: { boolean: {} } },
-            dropdown("cycle", [["forward", "Toward the last option"], ["backward", "Toward the first option"]])
+            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]])
           ]
         },
         {
@@ -1374,29 +1387,50 @@ let RamsSelector = class extends Piece {
   }
   /** A tap on the current stop steps on; a tap on another stop goes there. */
   choose(i2) {
-    var _a2;
     const stops = this.stops();
     if (!stops.length) return;
     const now = this.current();
     if (i2 !== now) return this.select(stops[i2].option);
-    const step = ((_a2 = this.config) == null ? void 0 : _a2.cycle) === "backward" ? -1 : 1;
-    this.select(stops[(now + step + stops.length) % stops.length].option);
+    this.select(stops[(now + 1) % stops.length].option);
   }
-  /** What the knob's drawing covers, as fractions of its square: how far right/left (w), up (top) and down (bottom) from the centre, labels included. */
-  knobExtent() {
-    var _a2;
+  /** The angle of each option round the knob, in degrees clockwise from straight up. The fan is centred on the side the labels are on. */
+  knobAngles() {
+    const c2 = this.config;
     const n3 = this.stops().length;
-    const ptr = ((_a2 = this.config) == null ? void 0 : _a2.cap) === "pointer";
-    const step = knobStep(n3, ptr);
-    let sin = 0, up = 0, down = 0;
-    for (let i2 = 0; i2 < n3; i2++) {
-      const a2 = (-(step * (n3 - 1)) / 2 + i2 * step) * Math.PI / 180;
-      sin = Math.max(sin, Math.abs(Math.sin(a2)));
-      up = Math.max(up, Math.cos(a2));
-      down = Math.max(down, -Math.cos(a2));
+    const step = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer");
+    const side = (c2 == null ? void 0 : c2.labels_position) ?? "above";
+    const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
+    const dir = (side === "below" || side === "left" ? -1 : 1) * ((c2 == null ? void 0 : c2.order) === "reversed" ? -1 : 1);
+    return Array.from({ length: n3 }, (_2, i2) => centre + dir * (-(step * (n3 - 1)) / 2 + i2 * step));
+  }
+  /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
+  knobExtent() {
+    const c2 = this.config;
+    const ptr = (c2 == null ? void 0 : c2.cap) === "pointer";
+    const show = (c2 == null ? void 0 : c2.show) ?? "auto";
+    const stops = this.stops();
+    const chars = show === "none" ? 0 : Math.max(0, ...stops.map((x2) => show === "labels" || show === "both" || !x2.icon ? x2.label.length : 0));
+    const lw = chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14;
+    const lh = 0.1;
+    const reach = ptr ? (c2 == null ? void 0 : c2.light) === "options" ? 0.49 : 0.42 : (c2 == null ? void 0 : c2.light) === "options" ? 0.44 : 0.38;
+    let minX = ptr ? -0.13 : -0.27, maxX = -minX, minY = minX, maxY = maxX;
+    for (const a2 of this.knobAngles()) {
+      const sx = Math.sin(a2 * Math.PI / 180), sy = -Math.cos(a2 * Math.PI / 180);
+      const tb = (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right";
+      const col = (c2 == null ? void 0 : c2.labels_position) === "left" ? -1 : 1;
+      const cx = tb ? col * (reach + lw / 2) : reach * sx + sx * lw / 2, cy = tb ? (ptr ? 0.38 : 0.33) * sy : reach * sy + sy * lh / 2;
+      minX = Math.min(minX, cx - lw / 2);
+      maxX = Math.max(maxX, cx + lw / 2);
+      minY = Math.min(minY, cy - lh / 2);
+      maxY = Math.max(maxY, cy + lh / 2);
+      if (ptr) {
+        minX = Math.min(minX, 0.34 * sx - 0.03);
+        maxX = Math.max(maxX, 0.34 * sx + 0.03);
+        minY = Math.min(minY, 0.34 * sy - 0.03);
+        maxY = Math.max(maxY, 0.34 * sy + 0.03);
+      }
     }
-    const reach = ptr ? 0.42 : 0.38;
-    return { w: 2 * (reach * sin + 0.5 * (n3 > 1 ? 1 : 0.4)), top: reach * up + 0.1, bottom: Math.max(ptr ? 0.17 : 0.3, reach * down + 0.08) };
+    return { minX, maxX, minY, maxY: maxY + 0.03 };
   }
   disconnectedCallback() {
     var _a2;
@@ -1434,7 +1468,7 @@ let RamsSelector = class extends Piece {
     const labels = body || own ? body + (own ? 15 : 0) + (c2.lines && !own ? 8 : 0) + 4 : 0;
     if (c2.shape === "knob") {
       const e2 = this.knobExtent();
-      return this.reportRows(this.rowsFor(KNOB[c2.size ?? "small"] * (e2.top + e2.bottom) + light + title + 4));
+      return this.reportRows(this.rowsFor(KNOB[c2.size ?? "small"] * (e2.maxY - e2.minY) + light + title + 4));
     }
     const need = this.vertical() ? n3 * z2.p + light + title + 4 : z2.p + labels + light + title + 4;
     this.reportRows(this.rowsFor(need));
@@ -1456,32 +1490,40 @@ let RamsSelector = class extends Piece {
     const n3 = stops.length;
     const ptr = c2.cap === "pointer";
     const step = knobStep(n3, ptr);
-    const dir = c2.orientation === "left" || c2.orientation === "up" ? -1 : 1;
-    const angle = (i2) => (-(step * (n3 - 1)) / 2 + i2 * step) * dir;
+    const angles = this.knobAngles();
+    const angle = (i2) => angles[i2];
+    const turn = n3 > 1 && angles[n3 - 1] > angles[0] ? 1 : 0;
+    const sgn = c2.order === "reversed" ? -1 : 1;
+    const tb = c2.labels_position === "left" || c2.labels_position === "right";
     const S2 = KNOB[c2.size ?? "small"];
     const cap = now < 0 ? 0 : angle(now);
     const at2 = (a2, r2) => `${(50 + r2 * Math.sin(a2 * Math.PI / 180)).toFixed(2)} ${(50 - r2 * Math.cos(a2 * Math.PI / 180)).toFixed(2)}`;
-    const arc = ptr && n3 > 1 ? w$1`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at2(angle(0), 38)} A 38 38 0 ${step * (n3 - 1) > 180 ? 1 : 0} ${dir === 1 ? 1 : 0} ${at2(angle(n3 - 1), 38)}" />${stops.map((_2, i2) => w$1`<line x1=${at2(angle(i2), 38).split(" ")[0]} y1=${at2(angle(i2), 38).split(" ")[1]} x2=${at2(angle(i2), 35.5).split(" ")[0]} y2=${at2(angle(i2), 35.5).split(" ")[1]} />`)}</svg>` : A;
+    const rm = ptr ? 38 : 33;
+    const arc = n3 > 1 && !own ? w$1`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at2(angle(0), rm)} A ${rm} ${rm} 0 ${step * (n3 - 1) > 180 ? 1 : 0} ${turn} ${at2(angle(n3 - 1), rm)}" />${stops.map((_2, i2) => w$1`<line x1=${at2(angle(i2), rm).split(" ")[0]} y1=${at2(angle(i2), rm).split(" ")[1]} x2=${at2(angle(i2), rm - 2.5).split(" ")[0]} y2=${at2(angle(i2), rm - 2.5).split(" ")[1]} />`)}</svg>` : A;
     const drop = ptr ? w$1`<svg viewBox="-31 -31 62 62"><defs><linearGradient id="rams-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9d8d3" /><stop offset="0.55" stop-color="#a9a8a3" /><stop offset="1" stop-color="#8f8e89" /></linearGradient></defs><path d="M10.05 -5.8 L3.35 -17.57 Q1.86 -20.18 1.86 -23.18 L1.86 -31.9 A1.86 1.86 0 0 0 -1.86 -31.9 L-1.86 -23.18 Q-1.86 -20.18 -3.35 -17.57 L-10.05 -5.8 A11.6 11.6 0 1 0 10.05 -5.8 Z" fill="url(#rams-metal)" stroke="rgba(0,0,0,0.25)" stroke-width="0.4" stroke-linejoin="round" /></svg>` : A;
     const pts = stops.map((s2, i2) => {
       const a2 = angle(i2);
       const rad2 = a2 * Math.PI / 180;
-      const ux = Math.round(Math.sin(rad2) * 1e3) / 1e3;
-      const uy = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
+      const ax = Math.round(Math.sin(rad2) * 1e3) / 1e3;
+      const ay = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
+      const sideSign = c2.labels_position === "left" ? -1 : 1;
+      const ux = tb ? sideSign : ax;
+      const uy = tb ? 0 : ay;
+      const bx = tb ? sideSign : ax;
+      const reach = ptr ? own ? 49 : 42 : own ? 44 : 38;
+      const ayv = tb ? ay * rm / reach : ay;
       const hasIcon = show !== "labels" && show !== "none" && !!s2.icon;
       const icon = hasIcon ? b`<ha-icon class="ico" .icon=${s2.icon}></ha-icon>` : A;
       const text = show === "labels" || show === "both" || show === "auto" && !hasIcon ? b`<span>${s2.label}</span>` : A;
       const tone = own ? this.lampTone(s2.option) : void 0;
-      const lampEl = own ? b`<span class="ray" style="--r:${a2}deg"><span class="pip" style=${ptr ? "top: calc(-38cqmin - 4px)" : ""}><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : A;
-      const tick = lines && !ptr ? b`<span class="ray" style="--r:${a2}deg"><i class="tick"></i></span>` : A;
-      const reach = ptr ? own ? 45 : 42 : own ? 41 : lines ? 39 : 35;
+      const lampEl = own ? b`<span class="ray" style="--r:${a2}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : A;
       const side = ux < -0.3 ? "ux-l" : "ux-1";
-      return b`${lampEl}${tick}<span class="pt ${side}" style="--ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${icon}${text}</button></span>`;
+      return b`${lampEl}<span class="pt ${side}" style="--ax:${bx}; --ay:${ayv}; --ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${icon}${text}</button></span>`;
     });
     return b`<div class="wrap ${pos}">
       ${pos ? b`<span class="outer">${title}</span>` : A}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S2}px">${c2.light === "below" ? A : lamp}
-        <div class="kslot"><div class="knobbox" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : b`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c2.light === "below" ? lamp : A}</div>
     </div>`;
   }
@@ -1561,29 +1603,36 @@ RamsSelector.styles = [
       /* the knob fills the room it is given (--S is the least it needs): a square as big as fits beside the lamp, with text and shadow scaling along */
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
-      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(-50%, calc(-50% + var(--_dy, 0px))); container-type: size; }
+      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
       .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
-      .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box; border: 0; padding: 0; cursor: pointer;
-        background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #d4d1ca) 0 58%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #bdbab4) 59% 100%);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 2.5cqmin var(--_slot, #2b2118); transform: rotate(var(--a)); transition: transform 0.15s ease-out; -webkit-tap-highlight-color: transparent; }
-      .knobbox .disc::after { content: ""; position: absolute; left: calc(50% - 1.5px); top: 10%; width: 3px; height: 30%; background: #fff; border-radius: 1px; box-shadow: 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 0.5px rgba(0, 0, 0, 0.25); }
+      /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */
+      .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box;
+        background:
+          radial-gradient(circle, transparent 0 62%, rgba(0, 0, 0, 0.1) 100%),
+          repeating-radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.03) 0 0.3cqmin, rgba(255, 255, 255, 0.04) 0.3cqmin 0.6cqmin),
+          conic-gradient(from 20deg, #d8d6d1, #eceae6 14%, #c4c2bc 28%, #e3e1dc 42%, #bbb9b3 56%, #dfddd8 70%, #c7c5bf 84%, #d8d6d1);
+        box-shadow: 0 4cqmin 4cqmin rgba(0, 0, 0, 0.28), 0 1cqmin 1cqmin rgba(0, 0, 0, 0.45), 0 0 0 0.3cqmin rgba(0, 0, 0, 0.3), inset 0 0.5cqmin 0.5cqmin rgba(255, 255, 255, 0.75), inset 0 -0.5cqmin 0.5cqmin rgba(0, 0, 0, 0.18); }
+      .disc .turn { position: absolute; inset: 0; transform: rotate(var(--a)); transition: transform 0.15s ease-out; }
+      /* a small red triangle pointing out to the rim */
+      .disc .dot { position: absolute; left: calc(50% - 3.2cqmin); top: 2.8cqmin; width: 6.4cqmin; height: 6.4cqmin; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, #e8685c, var(--_alert, #c8362b) 55%, #a82c22); }
       .knobbox .disc.none { opacity: 0.4; }
       /* pointer cap: a brushed-metal teardrop turning about its round end, the scale arc beyond its tip */
-      .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
-      .knobbox .disc.ptr::after { content: none; }
-      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 4cqmin 3cqmin rgba(0, 0, 0, 0.32)) drop-shadow(0 1cqmin 1cqmin rgba(0, 0, 0, 0.45)); }
+      .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; filter: drop-shadow(0 4cqmin 3cqmin rgba(0, 0, 0, 0.32)) drop-shadow(0 1cqmin 1cqmin rgba(0, 0, 0, 0.45)); }
+      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; }
       .arc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
       .arc path, .arc line { stroke: var(--_muted); stroke-width: 0.9; fill: none; stroke-linecap: round; }
-      /* two halves: left steps toward the left of the scale, right toward the right; nothing at either end */
+      /* two halves: left steps toward the left of the scale, right toward the right (top and bottom when the labels are at the side); nothing at either end */
       .half { all: unset; position: absolute; top: calc(50% - 28cqmin); width: 28cqmin; height: 56cqmin; cursor: pointer; -webkit-tap-highlight-color: transparent; }
       .half.l { left: calc(50% - 28cqmin); border-radius: 28cqmin 0 0 28cqmin; } .half.r { left: 50%; border-radius: 0 28cqmin 28cqmin 0; }
+      .knobbox.tb .half.l { left: calc(50% - 28cqmin); top: calc(50% - 28cqmin); width: 56cqmin; height: 28cqmin; border-radius: 28cqmin 28cqmin 0 0; }
+      .knobbox.tb .half.r { left: calc(50% - 28cqmin); top: 50%; width: 56cqmin; height: 28cqmin; border-radius: 0 0 28cqmin 28cqmin; }
       .half.off { cursor: default; }
       .ray { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: rotate(var(--r)); }
       .ray .tick { position: absolute; left: -0.5px; top: -33cqmin; width: 1px; height: 5cqmin; background: var(--_muted); }
       .ray .pip { position: absolute; left: -4px; top: calc(-33cqmin - 4px); display: flex; align-items: center; justify-content: center; width: 8px; height: 8px; }
-      .pt { position: absolute; left: calc(50% + var(--ux) * var(--pr) * 1cqmin); top: calc(50% + var(--uy) * var(--pr) * 1cqmin); transform: translate(calc(-50% + var(--ux) * 50%), calc(-50% + var(--uy) * 50%)); }
+      .pt { position: absolute; left: calc(50% + var(--ax) * var(--pr) * 1cqmin); top: calc(50% + var(--ay) * var(--pr) * 1cqmin); transform: translate(calc(-50% + var(--ux) * 50%), calc(-50% + var(--uy) * 50%)); }
       .pt .lab { flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
@@ -3052,7 +3101,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-19 18:38 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 10:09 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

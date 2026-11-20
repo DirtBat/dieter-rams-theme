@@ -10,6 +10,9 @@ import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } fro
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { PieceConfig } from "../shared/types";
 
+/** The black frame round a square key, in px. */
+const FRAME = 3;
+
 export interface ButtonConfig extends PieceConfig, StateRules {
   entity?: string;
   /** The key's text. Defaults to the entity name. */
@@ -18,10 +21,12 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   icon?: string;
   /** Where the text goes: below (default), above, left, right, or printed on the key. */
   label_position?: "below" | "above" | "left" | "right" | "inside";
-  /** Square (default) fills the size it is given; tall is half as wide, in the same box; round is a dome, always a circle. */
+  /** Square (default): always a square, the biggest that fits, in a black cut-out; tall is half as wide as high; round is a dome, always a circle. */
   shape?: "square" | "tall" | "round";
   /** Colours the whole key. A state rule's colour then replaces it while the rule matches; a key with no tone shows the rule's colour as a dot. */
   tone?: Tone;
+  /** Colours the icon (same colours as tone). Neutral keeps the key's ink. */
+  icon_tone?: Tone;
   /** Climate only: tap changes the target temperature by this amount. For other entities use a perform-action tap action. */
   adjust_by?: number;
 }
@@ -64,7 +69,8 @@ export class RamsButton extends Piece<ButtonConfig> {
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w = Math.max(aw, 24), h = Math.max(ah, 24);
     // a round key is always a circle: its room is the biggest square
-    const f = this.config?.shape === "round" ? { n: 1, m: 1, u: Math.min(w, h) } : fitKey(w, h);
+    const sq = !this.config?.shape || this.config.shape === "square";
+    const f = this.config?.shape === "tall" ? fitKey(w, h) : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
     if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
   }
 
@@ -96,6 +102,7 @@ export class RamsButton extends Piece<ButtonConfig> {
             dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
             dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
             dropdown("tone", TONES),
+            dropdown("icon_tone", TONES),
           ],
         },
         ...layoutFields(false),
@@ -145,12 +152,15 @@ export class RamsButton extends Piece<ButtonConfig> {
 
   private areaSize(): string {
     const { n, m, u } = this.fit;
-    return u ? `width:${n * u}px; height:${m * u}px` : "width:0; height:0";
+    if (!u) return "width:0; height:0";
+    const sq = !this.config?.shape || this.config.shape === "square";
+    return `width:${n * u}px; height:${m * u + (sq ? 2 * FRAME : 0)}px`;
   }
 
   private keySize(shape?: string): string {
     const { n, m, u } = this.fit;
     if (shape === "round" || !u) return "";
+    if (shape !== "tall") return `--u:${u}px; width:${u}px; height:${u}px`;
     return `--u:${u}px; width:${(shape === "tall" ? n / 2 : n) * u}px; height:${m * u}px`;
   }
 
@@ -163,13 +173,14 @@ export class RamsButton extends Piece<ButtonConfig> {
     const own = c.tone && c.tone !== "neutral" ? c.tone : "";
     // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
     const tone = own ? (view.tone ?? own) : "";
-    const cls = ["key", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const square = !c.shape || c.shape === "square";
+    const cls = ["key", square ? "sq" : "", c.shape ?? "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${canWarn(this.hass, c.entity, c) ? (view.alert ? "on" : "") : "off"}"></i>
-        <div class="keyarea" style=${this.areaSize()}><button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
+        <div class="keyarea" style=${this.areaSize()}>${square ? html`<i class="plate"></i>` : nothing}<button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? html`<i class="dot ${view.tone}"></i>` : nothing}
-          ${c.icon ? html`<ha-icon class="ico" .icon=${c.icon}></ha-icon>` : nothing}
+          ${c.icon ? html`<ha-icon class="ico ${c.icon_tone && c.icon_tone !== "neutral" ? `tinted ${c.icon_tone}` : ""}" .icon=${c.icon}></ha-icon>` : nothing}
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
         </button></div>
       </div>

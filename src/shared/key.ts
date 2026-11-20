@@ -31,7 +31,11 @@ export const keyStyles = css`
   .txt { flex: none; min-height: 13px; max-width: 100%; box-sizing: border-box; padding: 0 2px; font-size: 10px; line-height: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* the key's room. In a card (.cell) its size is set from the fit, so the group stays compact; in the keypad it fills its grid cell. */
-  .cell .keyarea { flex: none; min-height: 0; width: auto; }
+  .cell .keyarea { flex: none; min-height: 0; width: auto; position: relative; align-items: center; }
+  /* A square key sits in a black cut-out in the panel. The cut-out is square-cornered (no dips where plates meet) and reaches half a gap past the key at the sides and 3px above and below, so keys side by side
+     share one black block: the black between two keys is twice the black round the outside. */
+  .plate { position: absolute; top: 0; bottom: 0; left: calc(var(--_gap, 8px) / -2); right: calc(var(--_gap, 8px) / -2); border-radius: 0; background: var(--_cutout); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.5); pointer-events: none; }
+  .key.sq { flex: none; border-radius: 3px; margin: auto; }
   .keyarea { flex: 1; min-height: 24px; min-width: 0; width: 100%; display: flex; justify-content: center; container-type: size; }
   .key {
     position: relative; box-sizing: border-box; width: 100%; height: 100%; min-width: 0; padding: 0;
@@ -59,6 +63,7 @@ export const keyStyles = css`
   .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
   .ico { --mdc-icon-size: 22px; flex: none; }
+  .ico.tinted { color: var(--t); }
   .key.round .ico { --mdc-icon-size: 18px; }
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }

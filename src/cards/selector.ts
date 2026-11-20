@@ -30,16 +30,17 @@ export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_ent
   /** What each stop prints: its icon if it has one, else its label (default); labels only; icon and label; or nothing. */
   show?: "auto" | "labels" | "both" | "none";
   size?: "small" | "medium" | "large";
-  /** A lever on a slot (default), or a rotary knob with the options around it. A knob only uses right or left of the orientation: the direction it turns from the first option. */
+  /** A lever on a slot (default), or a rotary knob with the options around it. A knob puts its labels where `labels_position` says (above by default) and turns its axis to match; `orientation` is for the lever. */
   shape?: "lever" | "knob";
   /** Knob only: a round cap with a stripe (default), or a pointer: a round body with a slim tab, as measured from a Braun knob, that points at the option, with a thin scale arc round the options. */
   cap?: "round" | "pointer";
+  /** Knob only: normal reads first option on the left (labels above or below) or on top (labels left or right); reversed turns that round. */
+  order?: "normal" | "reversed";
   /** A status lamp: one above or below the lever, lit in the colour the state rules give the current option; or one on each option, lit on the current one. Not both. */
   light?: "none" | "above" | "below" | "options";
   /** A line from each label to its stop (hooked on a horizontal lever). Ignored when each option has its own lamp. */
   lines?: boolean;
   /** A tap on the lever (a knob has left and right halves instead, and does not wrap) moves it one stop, toward the last option (default) or toward the first, and wraps around. */
-  cycle?: "forward" | "backward";
 }
 
 const KNOB = { small: 104, medium: 128, large: 156 } as const;
@@ -90,29 +91,36 @@ export class RamsSelector extends Piece<SelectorConfig> {
       /* the knob fills the room it is given (--S is the least it needs): a square as big as fits beside the lamp, with text and shadow scaling along */
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
-      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(-50%, calc(-50% + var(--_dy, 0px))); container-type: size; }
+      .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
       .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
-      .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box; border: 0; padding: 0; cursor: pointer;
-        background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #d4d1ca) 0 58%, color-mix(in srgb, var(--_slot, #2b2118) 38%, #bdbab4) 59% 100%);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 0 0 2.5cqmin var(--_slot, #2b2118); transform: rotate(var(--a)); transition: transform 0.15s ease-out; -webkit-tap-highlight-color: transparent; }
-      .knobbox .disc::after { content: ""; position: absolute; left: calc(50% - 1.5px); top: 10%; width: 3px; height: 30%; background: #fff; border-radius: 1px; box-shadow: 0 0 1px rgba(255, 255, 255, 0.6), 0 0 0 0.5px rgba(0, 0, 0, 0.25); }
+      /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */
+      .knobbox .disc { pointer-events: none; position: absolute; left: calc(50% - 24cqmin); top: calc(50% - 24cqmin); width: 48cqmin; height: 48cqmin; border-radius: 50%; box-sizing: border-box;
+        background:
+          radial-gradient(circle, transparent 0 62%, rgba(0, 0, 0, 0.1) 100%),
+          repeating-radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.03) 0 0.3cqmin, rgba(255, 255, 255, 0.04) 0.3cqmin 0.6cqmin),
+          conic-gradient(from 20deg, #d8d6d1, #eceae6 14%, #c4c2bc 28%, #e3e1dc 42%, #bbb9b3 56%, #dfddd8 70%, #c7c5bf 84%, #d8d6d1);
+        box-shadow: 0 4cqmin 4cqmin rgba(0, 0, 0, 0.28), 0 1cqmin 1cqmin rgba(0, 0, 0, 0.45), 0 0 0 0.3cqmin rgba(0, 0, 0, 0.3), inset 0 0.5cqmin 0.5cqmin rgba(255, 255, 255, 0.75), inset 0 -0.5cqmin 0.5cqmin rgba(0, 0, 0, 0.18); }
+      .disc .turn { position: absolute; inset: 0; transform: rotate(var(--a)); transition: transform 0.15s ease-out; }
+      /* a small red triangle pointing out to the rim */
+      .disc .dot { position: absolute; left: calc(50% - 3.2cqmin); top: 2.8cqmin; width: 6.4cqmin; height: 6.4cqmin; clip-path: polygon(50% 0, 100% 100%, 0 100%); background: linear-gradient(180deg, #e8685c, var(--_alert, #c8362b) 55%, #a82c22); }
       .knobbox .disc.none { opacity: 0.4; }
       /* pointer cap: a brushed-metal teardrop turning about its round end, the scale arc beyond its tip */
-      .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; }
-      .knobbox .disc.ptr::after { content: none; }
-      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 4cqmin 3cqmin rgba(0, 0, 0, 0.32)) drop-shadow(0 1cqmin 1cqmin rgba(0, 0, 0, 0.45)); }
+      .knobbox .disc.ptr { left: calc(50% - 31cqmin); top: calc(50% - 31cqmin); width: 62cqmin; height: 62cqmin; border-radius: 0; background: none; box-shadow: none; overflow: visible; filter: drop-shadow(0 4cqmin 3cqmin rgba(0, 0, 0, 0.32)) drop-shadow(0 1cqmin 1cqmin rgba(0, 0, 0, 0.45)); }
+      .disc.ptr svg { width: 100%; height: 100%; overflow: visible; }
       .arc { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
       .arc path, .arc line { stroke: var(--_muted); stroke-width: 0.9; fill: none; stroke-linecap: round; }
-      /* two halves: left steps toward the left of the scale, right toward the right; nothing at either end */
+      /* two halves: left steps toward the left of the scale, right toward the right (top and bottom when the labels are at the side); nothing at either end */
       .half { all: unset; position: absolute; top: calc(50% - 28cqmin); width: 28cqmin; height: 56cqmin; cursor: pointer; -webkit-tap-highlight-color: transparent; }
       .half.l { left: calc(50% - 28cqmin); border-radius: 28cqmin 0 0 28cqmin; } .half.r { left: 50%; border-radius: 0 28cqmin 28cqmin 0; }
+      .knobbox.tb .half.l { left: calc(50% - 28cqmin); top: calc(50% - 28cqmin); width: 56cqmin; height: 28cqmin; border-radius: 28cqmin 28cqmin 0 0; }
+      .knobbox.tb .half.r { left: calc(50% - 28cqmin); top: 50%; width: 56cqmin; height: 28cqmin; border-radius: 0 0 28cqmin 28cqmin; }
       .half.off { cursor: default; }
       .ray { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: rotate(var(--r)); }
       .ray .tick { position: absolute; left: -0.5px; top: -33cqmin; width: 1px; height: 5cqmin; background: var(--_muted); }
       .ray .pip { position: absolute; left: -4px; top: calc(-33cqmin - 4px); display: flex; align-items: center; justify-content: center; width: 8px; height: 8px; }
-      .pt { position: absolute; left: calc(50% + var(--ux) * var(--pr) * 1cqmin); top: calc(50% + var(--uy) * var(--pr) * 1cqmin); transform: translate(calc(-50% + var(--ux) * 50%), calc(-50% + var(--uy) * 50%)); }
+      .pt { position: absolute; left: calc(50% + var(--ax) * var(--pr) * 1cqmin); top: calc(50% + var(--ay) * var(--pr) * 1cqmin); transform: translate(calc(-50% + var(--ux) * 50%), calc(-50% + var(--uy) * 50%)); }
       .pt .lab { flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
@@ -179,7 +187,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
             dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
             { name: "lines", selector: { boolean: {} } },
-            dropdown("cycle", [["forward", "Toward the last option"], ["backward", "Toward the first option"]]),
+            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]]),
           ],
         },
         {
@@ -280,41 +288,58 @@ export class RamsSelector extends Piece<SelectorConfig> {
     if (!stops.length) return;
     const now = this.current();
     if (i !== now) return this.select(stops[i].option);
-    const step = this.config?.cycle === "backward" ? -1 : 1;
-    this.select(stops[(now + step + stops.length) % stops.length].option);
+    this.select(stops[(now + 1) % stops.length].option);
   }
 
   private watched?: Element;
   private watcher?: ResizeObserver;
 
-  /** What the knob's drawing covers, as fractions of its square: how far right/left (w), up (top) and down (bottom) from the centre, labels included. */
-  private knobExtent(): { w: number; top: number; bottom: number } {
+  /** The angle of each option round the knob, in degrees clockwise from straight up. The fan is centred on the side the labels are on. */
+  private knobAngles(): number[] {
+    const c = this.config;
     const n = this.stops().length;
-    const ptr = this.config?.cap === "pointer";
-    const step = knobStep(n, ptr);
-    let sin = 0, up = 0, down = 0;
-    for (let i = 0; i < n; i++) {
-      const a = ((-(step * (n - 1)) / 2 + i * step) * Math.PI) / 180;
-      sin = Math.max(sin, Math.abs(Math.sin(a)));
-      up = Math.max(up, Math.cos(a));
-      down = Math.max(down, -Math.cos(a));
-    }
-    const reach = ptr ? 0.42 : 0.38;
-    return { w: 2 * (reach * sin + 0.5 * (n > 1 ? 1 : 0.4)), top: reach * up + 0.1, bottom: Math.max(ptr ? 0.17 : 0.3, reach * down + 0.08) };
+    const step = knobStep(n, c?.cap === "pointer");
+    const side = c?.labels_position ?? "above";
+    const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
+    // reading order: first on the left (labels above or below) or on top (left or right); reversed turns it round
+    const dir = (side === "below" || side === "left" ? -1 : 1) * (c?.order === "reversed" ? -1 : 1);
+    return Array.from({ length: n }, (_, i) => centre + dir * (-(step * (n - 1)) / 2 + i * step));
   }
 
-  /** The knob is the biggest square whose drawing fits the card beside the lamp, centred. Measured, as the card's own height is not known to CSS in every layout. */
+  /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
+  private knobExtent(): { minX: number; maxX: number; minY: number; maxY: number } {
+    const c = this.config;
+    const ptr = c?.cap === "pointer";
+    const show = c?.show ?? "auto";
+    const stops = this.stops();
+    const chars = show === "none" ? 0 : Math.max(0, ...stops.map((x) => (show === "labels" || show === "both" || !x.icon ? x.label.length : 0)));
+    const lw = chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14;
+    const lh = 0.1;
+    const reach = ptr ? (c?.light === "options" ? 0.49 : 0.42) : c?.light === "options" ? 0.44 : 0.38;
+    let minX = ptr ? -0.13 : -0.27, maxX = -minX, minY = minX, maxY = maxX;
+    for (const a of this.knobAngles()) {
+      const sx = Math.sin((a * Math.PI) / 180), sy = -Math.cos((a * Math.PI) / 180);
+      const tb = c?.labels_position === "left" || c?.labels_position === "right";
+      const col = c?.labels_position === "left" ? -1 : 1;
+      const cx = tb ? col * (reach + lw / 2) : reach * sx + (sx * lw) / 2, cy = tb ? (ptr ? 0.38 : 0.33) * sy : reach * sy + (sy * lh) / 2;
+      minX = Math.min(minX, cx - lw / 2); maxX = Math.max(maxX, cx + lw / 2);
+      minY = Math.min(minY, cy - lh / 2); maxY = Math.max(maxY, cy + lh / 2);
+      if (ptr) { minX = Math.min(minX, 0.34 * sx - 0.03); maxX = Math.max(maxX, 0.34 * sx + 0.03); minY = Math.min(minY, 0.34 * sy - 0.03); maxY = Math.max(maxY, 0.34 * sy + 0.03); }
+    }
+    return { minX, maxX, minY, maxY: maxY + 0.03 };
+  }
+
+  /** The knob is the biggest square whose drawing fits the card, centred. Measured, as the card's own height is not known to CSS in every layout. */
   private fitKnob = (): void => {
-    const face = this.shadowRoot?.querySelector<HTMLElement>(".kslot");
-    if (!face) return;
-    const lamp = 0;
+    const slot = this.shadowRoot?.querySelector<HTMLElement>(".kslot");
+    if (!slot) return;
     const e = this.knobExtent();
     const floor = KNOB[this.config?.size ?? "small"] * 0.6;
-    const k = Math.floor(Math.max(floor, Math.min(face.clientWidth / e.w, (face.clientHeight - lamp) / (e.top + e.bottom))));
-    const dy = Math.round(((e.top - e.bottom) / 2) * k);
+    const k = Math.floor(Math.max(floor, Math.min(slot.clientWidth / (e.maxX - e.minX), slot.clientHeight / (e.maxY - e.minY))));
     const set = (name: string, v: string) => this.style.getPropertyValue(name) !== v && this.style.setProperty(name, v);
     set("--_K", `${k}px`);
-    set("--_dy", `${dy}px`);
+    set("--_dx", `${Math.round(-((e.minX + e.maxX) / 2) * k)}px`);
+    set("--_dy", `${Math.round(-((e.minY + e.maxY) / 2) * k)}px`);
   };
 
   disconnectedCallback(): void {
@@ -352,7 +377,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const labels = body || own ? body + (own ? 15 : 0) + (c.lines && !own ? 8 : 0) + 4 : 0;
     if (c.shape === "knob") {
       const e = this.knobExtent();
-      return this.reportRows(this.rowsFor(KNOB[c.size ?? "small"] * (e.top + e.bottom) + light + title + 4));
+      return this.reportRows(this.rowsFor(KNOB[c.size ?? "small"] * (e.maxY - e.minY) + light + title + 4));
     }
     const need = this.vertical() ? n * z.p + light + title + 4 : z.p + labels + light + title + 4;
     this.reportRows(this.rowsFor(need));
@@ -377,13 +402,19 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const n = stops.length;
     const ptr = c.cap === "pointer";
     const step = knobStep(n, ptr);
-    const dir = c.orientation === "left" || c.orientation === "up" ? -1 : 1;
-    const angle = (i: number) => (-(step * (n - 1)) / 2 + i * step) * dir;
+    const angles = this.knobAngles();
+    const angle = (i: number) => angles[i];
+    const turn = n > 1 && angles[n - 1] > angles[0] ? 1 : 0;
+    // nudging: toward the left (or the top, with labels at the side) is the previous option, unless the order is reversed
+    const sgn = c.order === "reversed" ? -1 : 1;
+    const tb = c.labels_position === "left" || c.labels_position === "right";
     const S = KNOB[c.size ?? "small"];
     const cap = now < 0 ? 0 : angle(now);
     const at = (a: number, r: number) => `${(50 + r * Math.sin((a * Math.PI) / 180)).toFixed(2)} ${(50 - r * Math.cos((a * Math.PI) / 180)).toFixed(2)}`;
-    const arc = ptr && n > 1
-      ? svg`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at(angle(0), 38)} A 38 38 0 ${step * (n - 1) > 180 ? 1 : 0} ${dir === 1 ? 1 : 0} ${at(angle(n - 1), 38)}" />${stops.map((_, i) => svg`<line x1=${at(angle(i), 38).split(" ")[0]} y1=${at(angle(i), 38).split(" ")[1]} x2=${at(angle(i), 35.5).split(" ")[0]} y2=${at(angle(i), 35.5).split(" ")[1]} />`)}</svg>`
+    // the scale arc, on both caps (not when each option has its own lamp); the lamps sit on the same circle
+    const rm = ptr ? 38 : 33;
+    const arc = n > 1 && !own
+      ? svg`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at(angle(0), rm)} A ${rm} ${rm} 0 ${step * (n - 1) > 180 ? 1 : 0} ${turn} ${at(angle(n - 1), rm)}" />${stops.map((_, i) => svg`<line x1=${at(angle(i), rm).split(" ")[0]} y1=${at(angle(i), rm).split(" ")[1]} x2=${at(angle(i), rm - 2.5).split(" ")[0]} y2=${at(angle(i), rm - 2.5).split(" ")[1]} />`)}</svg>`
       : nothing;
     const drop = ptr
       ? svg`<svg viewBox="-31 -31 62 62"><defs><linearGradient id="rams-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9d8d3" /><stop offset="0.55" stop-color="#a9a8a3" /><stop offset="1" stop-color="#8f8e89" /></linearGradient></defs><path d="M10.05 -5.8 L3.35 -17.57 Q1.86 -20.18 1.86 -23.18 L1.86 -31.9 A1.86 1.86 0 0 0 -1.86 -31.9 L-1.86 -23.18 Q-1.86 -20.18 -3.35 -17.57 L-10.05 -5.8 A11.6 11.6 0 1 0 10.05 -5.8 Z" fill="url(#rams-metal)" stroke="rgba(0,0,0,0.25)" stroke-width="0.4" stroke-linejoin="round" /></svg>`
@@ -391,22 +422,28 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const pts = stops.map((s, i) => {
       const a = angle(i);
       const rad = (a * Math.PI) / 180;
-      const ux = Math.round(Math.sin(rad) * 1000) / 1000;
-      const uy = Math.round(-Math.cos(rad) * 1000) / 1000;
+      const ax = Math.round(Math.sin(rad) * 1000) / 1000;
+      const ay = Math.round(-Math.cos(rad) * 1000) / 1000;
+      // labels at the side stand in a straight column, text flush against it; above and below they follow the arc
+      const sideSign = c.labels_position === "left" ? -1 : 1;
+      const ux = tb ? sideSign : ax;
+      const uy = tb ? 0 : ay;
+      const bx = tb ? sideSign : ax;
+      // at the side a label is centred on its marker (the tick of the arc or the lamp), which sits on the circle of radius rm
+      const reach = ptr ? (own ? 49 : 42) : own ? 44 : 38;
+      const ayv = tb ? (ay * rm) / reach : ay;
       const hasIcon = show !== "labels" && show !== "none" && !!s.icon;
       const icon = hasIcon ? html`<ha-icon class="ico" .icon=${s.icon}></ha-icon>` : nothing;
       const text = show === "labels" || show === "both" || (show === "auto" && !hasIcon) ? html`<span>${s.label}</span>` : nothing;
       const tone = own ? this.lampTone(s.option) : undefined;
-      const lampEl = own ? html`<span class="ray" style="--r:${a}deg"><span class="pip" style=${ptr ? "top: calc(-38cqmin - 4px)" : ""}><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : nothing;
-      const tick = lines && !ptr ? html`<span class="ray" style="--r:${a}deg"><i class="tick"></i></span>` : nothing;
-      const reach = ptr ? (own ? 45 : 42) : own ? 41 : lines ? 39 : 35;
+      const lampEl = own ? html`<span class="ray" style="--r:${a}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : nothing;
       const side = ux < -0.3 ? "ux-l" : "ux-1";
-      return html`${lampEl}${tick}<span class="pt ${side}" style="--ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i === now ? "on" : ""}" title=${s.label} @click=${() => this.choose(i)}>${icon}${text}</button></span>`;
+      return html`${lampEl}<span class="pt ${side}" style="--ax:${bx}; --ay:${ayv}; --ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i === now ? "on" : ""}" title=${s.label} @click=${() => this.choose(i)}>${icon}${text}</button></span>`;
     });
     return html`<div class="wrap ${pos}">
       ${pos ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px">${c.light === "below" ? nothing : lamp}
-        <div class="kslot"><div class="knobbox" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}">${drop}</span><button class="half l ${this.nudgeTo(-1, dir) < 0 ? "off" : ""}" aria-label="Previous" @click=${() => this.nudge(-1, dir)}></button><button class="half r ${this.nudgeTo(1, dir) < 0 ? "off" : ""}" aria-label="Next" @click=${() => this.nudge(1, dir)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : html`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c.light === "below" ? lamp : nothing}</div>
     </div>`;
   }

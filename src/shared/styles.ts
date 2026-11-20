@@ -30,6 +30,7 @@ export const tokens = css`
     --_row: var(--rams-row, 56px);
     --_down: var(--rams-down, #cfcbc1);
     --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
+    --_cutout: var(--rams-cutout, #17110c);
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
