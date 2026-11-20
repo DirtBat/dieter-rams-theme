@@ -2887,7 +2887,6 @@ let RamsKeypad = class extends Piece {
   constructor() {
     super(...arguments);
     this.code = "";
-    this.disarming = false;
   }
   static getStubConfig() {
     return { type: "custom:rams-keypad", columns: 12 };
@@ -2918,27 +2917,22 @@ let RamsKeypad = class extends Piece {
   }
   touch() {
     window.clearTimeout(this.idle);
-    this.idle = window.setTimeout(() => {
-      this.code = "";
-      this.disarming = false;
-    }, IDLE_MS);
+    this.idle = window.setTimeout(() => this.code = "", IDLE_MS);
   }
   press(d2) {
     this.code = (this.code + d2).slice(0, 8);
     this.touch();
   }
-  /** Confirm arms a disarmed alarm. To disarm, the Disarm key is pressed first, then a code, then confirm. Confirm is dead until a digit has been typed. */
+  /** Like Alarmo: confirm disarms an armed alarm, and arms a disarmed one. The confirm key is dead until a digit has been typed. */
   confirm() {
     var _a2;
     const c2 = this.config;
     if (!(c2 == null ? void 0 : c2.entity) || !this.hass) return;
     const disarmed = ((_a2 = this.hass.states[c2.entity]) == null ? void 0 : _a2.state) === "disarmed";
-    if (!disarmed && !this.disarming) return;
     const data = { entity_id: c2.entity };
     if (this.code) data.code = this.code;
     void this.hass.callService("alarm_control_panel", disarmed ? `alarm_${c2.arm_mode ?? "arm_away"}` : "alarm_disarm", data);
     this.code = "";
-    this.disarming = false;
   }
   updated(_c) {
     const pad = this.renderRoot.querySelector(".pad");
@@ -2962,16 +2956,9 @@ let RamsKeypad = class extends Piece {
         <span class="state">${alarm.replace(/_/g, " ")}</span>
       </div>
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d2) => this.cap(d2, () => this.press(d2)))}
-      ${this.cap("✕", () => {
-      this.code = "";
-      this.disarming = false;
-    })}
+      ${this.cap("✕", () => this.code = "")}
       ${this.cap("0", () => this.press("0"))}
-      ${this.cap("✓", () => this.confirm(), "green", !this.code || alarm !== "disarmed" && !this.disarming)}
-      <div class="wide"><button class="key round ${this.disarming ? "filled red on" : ""}" ?disabled=${alarm === "disarmed"} @click=${() => {
-      this.disarming = !this.disarming;
-      this.touch();
-    }}><span class="legend">Disarm</span></button></div>
+      ${this.cap("✓", () => this.confirm(), "green", !this.code)}
     </div>`;
   }
 };
@@ -2995,18 +2982,12 @@ RamsKeypad.styles = [
       .state { text-transform: lowercase; opacity: 0.8; }
       /* each key in its own cell; the key is always a circle, the biggest that fits */
       .keyarea { min-height: 0; }
-      .wide { grid-column: 1 / -1; display: flex; }
-      .wide .key.round { width: 100%; height: 36px; border-radius: 999px; }
-      .wide .key.round.on { box-shadow: 0 0 0 3px var(--_ring), inset 0 2px 4px rgba(0, 0, 0, 0.3); }
       .legend { font-size: 18px; font-weight: 400; }
     `
 ];
 __decorateClass$2([
   r()
 ], RamsKeypad.prototype, "code", 2);
-__decorateClass$2([
-  r()
-], RamsKeypad.prototype, "disarming", 2);
 RamsKeypad = __decorateClass$2([
   t("rams-keypad")
 ], RamsKeypad);
@@ -3446,7 +3427,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:35 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 16:41 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
