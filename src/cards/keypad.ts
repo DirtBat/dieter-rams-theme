@@ -7,12 +7,12 @@ import { keyStyles } from "../shared/key";
 import { computeLabel, computeHelper, layoutFields } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
-type Mode = "home" | "away" | "night" | "vacation";
-const MODES: [Mode, string][] = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"]];
+type Mode = "home" | "away" | "night" | "vacation" | "disarm";
+const MODES: [Mode, string][] = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"], ["disarm", "Disarm"]];
 
 export interface KeypadConfig extends PieceConfig, Pick<StateRules, "state_colours"> {
   entity?: string;
-  /** The arm keys under the keypad. Home, away and night when not set. */
+  /** The keys under the keypad: arm modes, and a Disarm key. Home, away and night when not set. */
   modes?: Mode[];
 }
 
@@ -130,7 +130,9 @@ export class RamsKeypad extends Piece<KeypadConfig> {
       ${this.cap("✕", () => (this.code = ""))}
       ${this.cap("0", () => this.press("0"))}
       ${this.cap("✓", () => this.call("alarm_disarm"), "green", !this.code || alarm === "disarmed")}
-      ${modes.map(([m, label]) => this.cap(label, () => this.call(`alarm_arm_${m}`), alarm === `armed_${m}` ? "orange" : "", alarm !== "disarmed" || (needCode && !this.code), true))}
+      ${modes.map(([m, label]) => m === "disarm"
+        ? this.cap(label, () => this.call("alarm_disarm"), "", alarm === "disarmed" || !this.code, true)
+        : this.cap(label, () => this.call(`alarm_arm_${m}`), alarm === `armed_${m}` ? "orange" : "", alarm !== "disarmed" || (needCode && !this.code), true))}
     </div>`;
   }
 }

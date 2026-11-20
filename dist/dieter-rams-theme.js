@@ -2882,7 +2882,7 @@ var __decorateClass$2 = (decorators, target, key, kind) => {
   if (kind && result) __defProp$1(target, key, result);
   return result;
 };
-const MODES = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"]];
+const MODES = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"], ["disarm", "Disarm"]];
 const IDLE_MS = 3e4;
 let RamsKeypad = class extends Piece {
   constructor() {
@@ -2959,7 +2959,7 @@ let RamsKeypad = class extends Piece {
       ${this.cap("✕", () => this.code = "")}
       ${this.cap("0", () => this.press("0"))}
       ${this.cap("✓", () => this.call("alarm_disarm"), "green", !this.code || alarm === "disarmed")}
-      ${modes.map(([m2, label]) => this.cap(label, () => this.call(`alarm_arm_${m2}`), alarm === `armed_${m2}` ? "orange" : "", alarm !== "disarmed" || needCode && !this.code, true))}
+      ${modes.map(([m2, label]) => m2 === "disarm" ? this.cap(label, () => this.call("alarm_disarm"), "", alarm === "disarmed" || !this.code, true) : this.cap(label, () => this.call(`alarm_arm_${m2}`), alarm === `armed_${m2}` ? "orange" : "", alarm !== "disarmed" || needCode && !this.code, true))}
     </div>`;
   }
 };
@@ -3430,7 +3430,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:03 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:09 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
