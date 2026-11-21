@@ -177,7 +177,10 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     if (!c.entity) return c.text ?? "";
     const entity = this.hass?.states[c.entity];
     if (!entity) return "";
-    return c.attribute ? String(entity.attributes[c.attribute] ?? "") : entity.state;
+    if (c.attribute) return String(entity.attributes[c.attribute] ?? "");
+    // a timestamp (last boot, last seen) prints as a date and time in the user's format, not as ISO text
+    if (entity.attributes.device_class === "timestamp" && this.hass?.formatEntityState) return this.hass.formatEntityState(entity);
+    return entity.state;
   }
 
   protected render(): TemplateResult | typeof nothing {

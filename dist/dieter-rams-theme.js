@@ -1833,12 +1833,14 @@ let RamsDisplay = class extends Piece {
     };
   }
   value() {
-    var _a2;
+    var _a2, _b;
     const c2 = this.config;
     if (!c2.entity) return c2.text ?? "";
     const entity = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity];
     if (!entity) return "";
-    return c2.attribute ? String(entity.attributes[c2.attribute] ?? "") : entity.state;
+    if (c2.attribute) return String(entity.attributes[c2.attribute] ?? "");
+    if (entity.attributes.device_class === "timestamp" && ((_b = this.hass) == null ? void 0 : _b.formatEntityState)) return this.hass.formatEntityState(entity);
+    return entity.state;
   }
   render() {
     var _a2;
@@ -3458,7 +3460,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:27 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:41 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

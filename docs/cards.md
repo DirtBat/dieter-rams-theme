@@ -105,3 +105,4 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - `value_colours` colours the lamp by the row's number: above or below a value, the strictest match wins. A number that matches none lights the lamp grey. Battery example: below 5 red, below 15 orange, above 50 green, anything else grey.
 - Works with auto-entities (`card_param: entities`): one list of every battery, sorted by state.
 - `compact: true` drops the small device-class line above each name, for a compact list.
+- Display: an entity whose device class is timestamp (last boot) prints as a formatted date and time.
