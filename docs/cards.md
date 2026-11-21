@@ -106,3 +106,4 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Works with auto-entities (`card_param: entities`): one list of every battery, sorted by state.
 - `compact: true` drops the small device-class line above each name, for a compact list.
 - Display: an entity whose device class is timestamp (last boot) prints as a formatted date and time.
+- List: `value_attribute` prints an attribute of each entity as its value (a thermostat's `temperature` or `current_temperature`), numbers rounded to one decimal, with an optional `unit` after it. A row shows – when the attribute is missing.

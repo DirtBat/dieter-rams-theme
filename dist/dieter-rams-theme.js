@@ -2758,6 +2758,8 @@ let RamsList = class extends Piece {
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             { name: "attribute", selector: { text: {} } },
             { name: "compact", selector: { boolean: {} } },
+            { name: "value_attribute", selector: { text: {} } },
+            { name: "unit", selector: { text: {} } },
             dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
             num$1("max_items", 1, 50),
             { name: "empty_text", selector: { text: {} } }
@@ -2781,6 +2783,14 @@ let RamsList = class extends Piece {
     void ((_a2 = this.hass) == null ? void 0 : _a2.callService(domain, service, { entity_id: entity }));
   }
   value(hass, e2) {
+    var _a2, _b;
+    const a2 = (_a2 = this.config) == null ? void 0 : _a2.value_attribute;
+    if (a2) {
+      const v2 = e2.attributes[a2];
+      if (v2 === void 0 || v2 === null || v2 === "") return "–";
+      const n3 = typeof v2 === "number" ? Math.round(v2 * 10) / 10 : v2;
+      return `${n3}${((_b = this.config) == null ? void 0 : _b.unit) ?? ""}`;
+    }
     return hass.formatEntityState ? hass.formatEntityState(e2) : `${e2.state}${e2.attributes.unit_of_measurement ? ` ${e2.attributes.unit_of_measurement}` : ""}`;
   }
   firstUpdated() {
@@ -2864,7 +2874,8 @@ let RamsList = class extends Piece {
     if (!c2) return A;
     const all = c2.entities ?? [];
     const shown = all.slice(0, c2.max_items ?? all.length);
-    return b`<div class="list">
+    const valonly = all.length > 0 && all.every((e2) => parse(e2).show === "value");
+    return b`<div class="list ${valonly ? "valonly" : ""}">
       ${c2.title ? b`<div class="title">${c2.title}</div>` : A}
       ${shown.length === 0 && c2.empty_text ? b`<div class="empty">${c2.empty_text}</div>` : A}
       ${shown.map((id) => this.row(id))}
@@ -2882,6 +2893,8 @@ RamsList.styles = [
       /* the side padding keeps a lit lamp's glow inside the clipped area */
       .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 0 6px; margin: 0 -6px; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
+      /* a column of values only: its title sits over the numbers */
+      .list.valonly .title { text-align: right; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
       .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
       .lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
@@ -3460,7 +3473,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:41 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:55 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

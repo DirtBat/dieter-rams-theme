@@ -40,6 +40,10 @@ export interface ListConfig extends PieceConfig {
   keys?: "none" | "toggle" | "cover";
   max_items?: number;
   empty_text?: string;
+  /** Print this attribute of each entity as its value, instead of the state (e.g. temperature or current_temperature of a thermostat). */
+  value_attribute?: string;
+  /** Text after the value, such as °. Only with value_attribute. */
+  unit?: string;
   /** Compact rows: no small line (device class or attribute) above the name. */
   compact?: boolean;
   /** A lamp before every row (a row's own lamp setting wins). */
@@ -70,6 +74,8 @@ export class RamsList extends Piece<ListConfig> {
       /* the side padding keeps a lit lamp's glow inside the clipped area */
       .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 0 6px; margin: 0 -6px; font-size: var(--sz); }
       .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
+      /* a column of values only: its title sits over the numbers */
+      .list.valonly .title { text-align: right; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
       .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
       .lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
@@ -140,6 +146,8 @@ export class RamsList extends Piece<ListConfig> {
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             { name: "attribute", selector: { text: {} } },
             { name: "compact", selector: { boolean: {} } },
+            { name: "value_attribute", selector: { text: {} } },
+            { name: "unit", selector: { text: {} } },
             dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
             num("max_items", 1, 50),
             { name: "empty_text", selector: { text: {} } },
@@ -166,6 +174,13 @@ export class RamsList extends Piece<ListConfig> {
   }
 
   private value(hass: Hass, e: HassEntity): string {
+    const a = this.config?.value_attribute;
+    if (a) {
+      const v = e.attributes[a];
+      if (v === undefined || v === null || v === "") return "–";
+      const n = typeof v === "number" ? Math.round(v * 10) / 10 : v;
+      return `${n}${this.config?.unit ?? ""}`;
+    }
     return hass.formatEntityState ? hass.formatEntityState(e) : `${e.state}${e.attributes.unit_of_measurement ? ` ${e.attributes.unit_of_measurement}` : ""}`;
   }
 
@@ -256,7 +271,8 @@ export class RamsList extends Piece<ListConfig> {
     if (!c) return nothing;
     const all = c.entities ?? [];
     const shown = all.slice(0, c.max_items ?? all.length);
-    return html`<div class="list">
+    const valonly = all.length > 0 && all.every((e) => parse(e).show === "value");
+    return html`<div class="list ${valonly ? "valonly" : ""}">
       ${c.title ? html`<div class="title">${c.title}</div>` : nothing}
       ${shown.length === 0 && c.empty_text ? html`<div class="empty">${c.empty_text}</div>` : nothing}
       ${shown.map((id) => this.row(id))}
