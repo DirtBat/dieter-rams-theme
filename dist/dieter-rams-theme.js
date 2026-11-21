@@ -2731,12 +2731,31 @@ let RamsList = class extends Piece {
             }
           }
         },
+        { name: "lamp", label: "lamp on every row", selector: { boolean: {} } },
+        { name: "alert_when", label: "lamp lights when", selector: { text: {} } },
+        {
+          name: "value_colours",
+          label: "lamp colour by number",
+          selector: {
+            object: {
+              multiple: true,
+              label_field: "value",
+              description_field: "when",
+              fields: {
+                when: { label: "When the number is", required: true, selector: { select: { mode: "dropdown", options: [{ value: "above", label: "Above" }, { value: "below", label: "Below" }] } } },
+                value: { label: "Value", required: true, selector: { number: { mode: "box", step: "any" } } },
+                tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v2]) => v2 !== "neutral").map(([value, label]) => ({ value, label })) } } }
+              }
+            }
+          }
+        },
         {
           type: "grid",
           name: "",
           schema: [
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             { name: "attribute", selector: { text: {} } },
+            { name: "compact", selector: { boolean: {} } },
             dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
             num$1("max_items", 1, 50),
             { name: "empty_text", selector: { text: {} } }
@@ -2810,11 +2829,12 @@ let RamsList = class extends Piece {
     return (((_a2 = this.config) == null ? void 0 : _a2.entities) ?? []).some((e2) => !!parse(e2).category);
   }
   any(key) {
-    var _a2;
-    return (((_a2 = this.config) == null ? void 0 : _a2.entities) ?? []).some((e2) => !!parse(e2)[key]);
+    var _a2, _b;
+    if (key === "lamp" && ((_a2 = this.config) == null ? void 0 : _a2.lamp)) return true;
+    return (((_b = this.config) == null ? void 0 : _b.entities) ?? []).some((e2) => !!parse(e2)[key]);
   }
   row(entry) {
-    var _a2;
+    var _a2, _b;
     const c2 = this.config;
     const r2 = parse(entry);
     const { entity: id, name: own, category } = r2;
@@ -2824,9 +2844,12 @@ let RamsList = class extends Piece {
     const icon = r2.icon ? b`<ha-icon class="ico" .icon=${r2.icon}></ha-icon>` : this.any("icon") ? b`<span class="ico spacer"></span>` : A;
     if (!this.hass || !e2) return b`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
     const name = own || String(e2.attributes.friendly_name ?? id);
-    const small = c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
-    const alert = readState(this.hass, id, { alert_when: states(r2.alert_when) }).alert;
-    const lamp = r2.lamp ? b`<i class="lamp ${alert ? "on" : ""}" style="--l:${COLOURS[r2.lamp_tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? b`<i class="lamp spacer"></i>` : A;
+    const small = c2.compact ? "" : c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
+    const view = readState(this.hass, id, { alert_when: states(r2.alert_when ?? c2.alert_when), value_colours: c2.value_colours });
+    const alert = view.alert;
+    const numeric = !!((_b = c2.value_colours) == null ? void 0 : _b.length) && e2.state !== "" && !Number.isNaN(Number(e2.state));
+    const tone = view.tone ?? (alert ? r2.lamp_tone ?? "red" : numeric ? "grey" : void 0);
+    const lamp = r2.lamp ?? c2.lamp ? b`<i class="lamp ${tone ? "on" : ""}" style="--l:${COLOURS[tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? b`<i class="lamp spacer"></i>` : A;
     const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
     return b`<div class="row" @click=${() => this.more(id)}>
       ${dot}${icon}${lamp}
@@ -3435,7 +3458,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-20 17:33 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:27 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

@@ -40,6 +40,14 @@ export interface ListConfig extends PieceConfig {
   keys?: "none" | "toggle" | "cover";
   max_items?: number;
   empty_text?: string;
+  /** Compact rows: no small line (device class or attribute) above the name. */
+  compact?: boolean;
+  /** A lamp before every row (a row's own lamp setting wins). */
+  lamp?: boolean;
+  /** States that light every row's lamp, one or several separated by commas. */
+  alert_when?: string | string[];
+  /** A lamp colour per number, for every row: above or below a value. With these, a number that matches none lights the lamp grey. */
+  value_colours?: Array<{ when: "above" | "below"; value: number; tone: Tone }>;
 }
 
 /** One reader for both entry forms. */
@@ -107,12 +115,31 @@ export class RamsList extends Piece<ListConfig> {
             },
           },
         },
+        { name: "lamp", label: "lamp on every row", selector: { boolean: {} } },
+        { name: "alert_when", label: "lamp lights when", selector: { text: {} } },
+        {
+          name: "value_colours",
+          label: "lamp colour by number",
+          selector: {
+            object: {
+              multiple: true,
+              label_field: "value",
+              description_field: "when",
+              fields: {
+                when: { label: "When the number is", required: true, selector: { select: { mode: "dropdown", options: [{ value: "above", label: "Above" }, { value: "below", label: "Below" }] } } },
+                value: { label: "Value", required: true, selector: { number: { mode: "box", step: "any" } } },
+                tone: { label: "Colour", required: true, selector: { select: { mode: "dropdown", options: TONES.filter(([v]) => v !== "neutral").map(([value, label]) => ({ value, label })) } } },
+              },
+            },
+          },
+        },
         {
           type: "grid",
           name: "",
           schema: [
             dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
             { name: "attribute", selector: { text: {} } },
+            { name: "compact", selector: { boolean: {} } },
             dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
             num("max_items", 1, 50),
             { name: "empty_text", selector: { text: {} } },
@@ -192,6 +219,7 @@ export class RamsList extends Piece<ListConfig> {
   }
 
   private any(key: "icon" | "lamp"): boolean {
+    if (key === "lamp" && this.config?.lamp) return true;
     return (this.config?.entities ?? []).some((e) => !!parse(e)[key]);
   }
 
@@ -205,9 +233,12 @@ export class RamsList extends Piece<ListConfig> {
     const icon = r.icon ? html`<ha-icon class="ico" .icon=${r.icon}></ha-icon>` : this.any("icon") ? html`<span class="ico spacer"></span>` : nothing;
     if (!this.hass || !e) return html`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
     const name = own || String(e.attributes.friendly_name ?? id);
-    const small = c.attribute ? String(e.attributes[c.attribute] ?? "") : String(e.attributes.device_class ?? "");
-    const alert = readState(this.hass, id, { alert_when: states(r.alert_when) }).alert;
-    const lamp = r.lamp ? html`<i class="lamp ${alert ? "on" : ""}" style="--l:${COLOURS[r.lamp_tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? html`<i class="lamp spacer"></i>` : nothing;
+    const small = c.compact ? "" : c.attribute ? String(e.attributes[c.attribute] ?? "") : String(e.attributes.device_class ?? "");
+    const view = readState(this.hass, id, { alert_when: states(r.alert_when ?? c.alert_when), value_colours: c.value_colours });
+    const alert = view.alert;
+    const numeric = !!c.value_colours?.length && e.state !== "" && !Number.isNaN(Number(e.state));
+    const tone = view.tone ?? (alert ? (r.lamp_tone ?? "red") : numeric ? "grey" : undefined);
+    const lamp = (r.lamp ?? c.lamp) ? html`<i class="lamp ${tone ? "on" : ""}" style="--l:${COLOURS[tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? html`<i class="lamp spacer"></i>` : nothing;
     const keys = c.keys === "toggle"
       ? html`<button class="key" @click=${(ev: Event) => this.call(ev, "homeassistant", "toggle", id)}>${e.state === "on" ? "on" : "off"}</button>`
       : c.keys === "cover"
