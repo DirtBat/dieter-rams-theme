@@ -134,6 +134,11 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
       /* labels above or below the knob stand in one row, the same space between the texts, whatever the lamps do on the arc */
+      .lcol { position: absolute; top: calc(50% - var(--H) * 50cqmin); height: calc(var(--H) * 100cqmin); display: flex; flex-direction: column; justify-content: space-between; }
+      .lcol.r { left: calc(50% + var(--R) * 1cqmin); align-items: flex-start; }
+      .lcol.l { right: calc(50% + var(--R) * 1cqmin); align-items: flex-end; }
+      .lcol .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
+      .lcol.l .lab { flex-direction: row-reverse; }
       .lrow { position: absolute; left: calc(50% - var(--W) * 50cqmin); width: calc(var(--W) * 100cqmin); top: calc(50% + var(--Y) * 100cqmin); transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; }
       .lrow .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .labels { display: grid; min-width: 0; }
@@ -364,6 +369,25 @@ export class RamsSelector extends Piece<SelectorConfig> {
     return Math.max(0.5, 2 * this.labelReach() * Math.sin((half * Math.PI) / 180) + 0.1);
   }
 
+  /** The radius of the circle the lamps and ticks sit on, as a fraction of the knob's square. */
+  private markRadius(): number {
+    return this.config?.cap === "pointer" ? 0.38 : 0.33;
+  }
+
+  /** Labels at the side stand in a column this tall: from the top lamp to the bottom one, or what the texts need with a gap between them. */
+  private colHeight(s: number): number {
+    const c = this.config;
+    const n = this.stops().length;
+    const half = (knobStep(n, c?.cap === "pointer") * (n - 1)) / 2;
+    return Math.max(2 * this.markRadius() * Math.sin((half * Math.PI) / 180) + 0.1 * s, 0.1 * s * n + 0.012 * (n - 1));
+  }
+
+  /** The options in the order they stand down a column of labels: top to bottom. */
+  private colOrder(): number[] {
+    const a = this.knobAngles();
+    return a.map((_, i) => i).sort((i, j) => -Math.cos((a[i] * Math.PI) / 180) - -Math.cos((a[j] * Math.PI) / 180));
+  }
+
   /** The options in the order they stand along a row of labels: left to right. */
   private rowOrder(): number[] {
     const a = this.knobAngles();
@@ -405,10 +429,15 @@ export class RamsSelector extends Piece<SelectorConfig> {
       for (const i of order) { out[i] = { cx: x + size[i].w / 2, cy, w: size[i].w, h: size[i].h }; x += size[i].w + gap; }
       return out;
     }
-    return size.map(({ w, h }, i) => {
-      const sy = -Math.cos((angles[i] * Math.PI) / 180);
-      return { cx: col * (reach + w / 2), cy: (ptr ? 0.38 : 0.33) * sy, w, h };
-    });
+    // a column: the same space between the texts, from the top lamp to the bottom one
+    const H = this.colHeight(s);
+    const order = this.colOrder();
+    const gap = order.length > 1 ? (H - order.reduce((t, i) => t + size[i].h, 0)) / (order.length - 1) : 0;
+    const out: Array<{ cx: number; cy: number; w: number; h: number }> = [];
+    let y = -H / 2;
+    for (const i of order) { out[i] = { cx: col * (reach + size[i].w / 2), cy: y + size[i].h / 2, w: size[i].w, h: size[i].h }; y += size[i].h + gap; }
+    void ptr; void angles;
+    return out;
   }
 
   /** How much to shrink the labels so that no two touch (at the side), or so that a row of them is not wider than the knob's square. */
@@ -416,8 +445,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const tb = this.config?.labels_position === "left" || this.config?.labels_position === "right";
     for (const s of [1, 0.92, 0.84, 0.77, 0.7, 0.64]) {
       if (!tb) { if (this.rowWidth(s) <= 1.1) return s; continue; }
-      const b = this.labelBoxes(s);
-      if (b.every((p, i) => b.every((q, j) => j <= i || Math.abs(p.cx - q.cx) >= (p.w + q.w) / 2 + 0.012 || Math.abs(p.cy - q.cy) >= (p.h + q.h) / 2 + 0.012))) return s;
+      if (this.colHeight(s) <= 1.1) return s;
     }
     return 0.64;
   }
@@ -543,23 +571,14 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const row = tb
       ? nothing
       : html`<div class="lrow" style="--W:${this.rowWidth(ls)}; --Y:${(c.labels_position === "below" ? 1 : -1) * (this.labelReach() + 0.05 * ls)}">${this.rowOrder().map((i) => labelOf(stops[i], i))}</div>`;
-    const pts = tb
-      ? stops.map((s, i) => {
-          const a = angle(i);
-          const rad = (a * Math.PI) / 180;
-          const ay = Math.round(-Math.cos(rad) * 1000) / 1000;
-          // labels at the side stand in a straight column, text flush against it; at the side a label is centred on its marker
-          const sideSign = c.labels_position === "left" ? -1 : 1;
-          const reach = this.labelReach() * 100;
-          const ayv = (ay * rm) / reach;
-          const side = sideSign < 0 ? "ux-l" : "ux-1";
-          return html`${lampsOnly[i]}<span class="pt ${side}" style="--ax:${sideSign}; --ay:${ayv}; --ux:${sideSign}; --uy:0; --pr:${reach}">${labelOf(s, i)}</span>`;
-        })
-      : lampsOnly;
+    const col = tb
+      ? html`<div class="lcol ${c.labels_position === "left" ? "l" : "r"}" style="--H:${this.colHeight(ls)}; --R:${this.labelReach() * 100}">${this.colOrder().map((i) => labelOf(stops[i], i))}</div>`
+      : nothing;
+    const pts = lampsOnly;
     return html`<div class="wrap ${pos}">
       ${pos ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px">${c.light === "below" ? nothing : lamp}
-        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : html`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}${col}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : html`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c.light === "below" ? lamp : nothing}</div>
     </div>`;
   }

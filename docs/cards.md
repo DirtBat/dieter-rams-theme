@@ -108,6 +108,6 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Display: an entity whose device class is timestamp (last boot) prints as a formatted date and time.
 - List: `value_attribute` prints an attribute of each entity as its value (a thermostat's `temperature` or `current_temperature`), numbers rounded to one decimal, with an optional `unit` after it. A row shows – when the attribute is missing.
 
-- Knob selector (2026-11-22): options sit at equal angles. The fan never reaches 180 degrees (150 at most), so no option points exactly along the knob's axis. Labels above or below stand in one row with the same space between the texts; labels at the side stay level with their lamps. Labels shrink a little when they would touch.
+- Knob selector (2026-11-22): options sit at equal angles. The fan never reaches 180 degrees (150 at most), so no option points exactly along the knob's axis. Labels above or below stand in one row, and labels at the side in one column, with the same space between the texts, whatever the lamps do on the arc. Labels shrink a little when they would touch.
 - Button `shape: wide` replaces `tall`: a flat graphite oblong twice as wide as high (token `rams-graphite`). An old `shape: tall` shows as a square key.
 - Editor fields now follow one order on every card: name or title, source (entity, attribute, icon), values, looks, size in panel and frame, actions, state rules.

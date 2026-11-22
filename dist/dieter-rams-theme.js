@@ -1485,6 +1485,23 @@ let RamsSelector = class extends Piece {
     const half = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer") * (n3 - 1) / 2;
     return Math.max(0.5, 2 * this.labelReach() * Math.sin(half * Math.PI / 180) + 0.1);
   }
+  /** The radius of the circle the lamps and ticks sit on, as a fraction of the knob's square. */
+  markRadius() {
+    var _a2;
+    return ((_a2 = this.config) == null ? void 0 : _a2.cap) === "pointer" ? 0.38 : 0.33;
+  }
+  /** Labels at the side stand in a column this tall: from the top lamp to the bottom one, or what the texts need with a gap between them. */
+  colHeight(s2) {
+    const c2 = this.config;
+    const n3 = this.stops().length;
+    const half = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer") * (n3 - 1) / 2;
+    return Math.max(2 * this.markRadius() * Math.sin(half * Math.PI / 180) + 0.1 * s2, 0.1 * s2 * n3 + 0.012 * (n3 - 1));
+  }
+  /** The options in the order they stand down a column of labels: top to bottom. */
+  colOrder() {
+    const a2 = this.knobAngles();
+    return a2.map((_2, i2) => i2).sort((i2, j) => -Math.cos(a2[i2] * Math.PI / 180) - -Math.cos(a2[j] * Math.PI / 180));
+  }
   /** The options in the order they stand along a row of labels: left to right. */
   rowOrder() {
     const a2 = this.knobAngles();
@@ -1507,29 +1524,35 @@ let RamsSelector = class extends Piece {
   /** Where each label sits and how big it is, as fractions of the knob's square measured from its centre (y down). `s` scales the type. */
   labelBoxes(s2) {
     const c2 = this.config;
-    const ptr = (c2 == null ? void 0 : c2.cap) === "pointer";
+    (c2 == null ? void 0 : c2.cap) === "pointer";
     const reach = this.labelReach();
     const tb = (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right";
     const col = (c2 == null ? void 0 : c2.labels_position) === "left" ? -1 : 1;
-    const angles = this.knobAngles();
+    this.knobAngles();
     const size = this.labelSizes(s2);
     if (!tb) {
       const W = this.rowWidth(s2);
-      const order = this.rowOrder();
-      const gap = order.length > 1 ? (W - order.reduce((t2, i2) => t2 + size[i2].w, 0)) / (order.length - 1) : 0;
+      const order2 = this.rowOrder();
+      const gap2 = order2.length > 1 ? (W - order2.reduce((t2, i2) => t2 + size[i2].w, 0)) / (order2.length - 1) : 0;
       const cy = ((c2 == null ? void 0 : c2.labels_position) === "below" ? 1 : -1) * (reach + 0.05 * s2);
-      const out = [];
+      const out2 = [];
       let x2 = -W / 2;
-      for (const i2 of order) {
-        out[i2] = { cx: x2 + size[i2].w / 2, cy, w: size[i2].w, h: size[i2].h };
-        x2 += size[i2].w + gap;
+      for (const i2 of order2) {
+        out2[i2] = { cx: x2 + size[i2].w / 2, cy, w: size[i2].w, h: size[i2].h };
+        x2 += size[i2].w + gap2;
       }
-      return out;
+      return out2;
     }
-    return size.map(({ w: w2, h: h2 }, i2) => {
-      const sy = -Math.cos(angles[i2] * Math.PI / 180);
-      return { cx: col * (reach + w2 / 2), cy: (ptr ? 0.38 : 0.33) * sy, w: w2, h: h2 };
-    });
+    const H2 = this.colHeight(s2);
+    const order = this.colOrder();
+    const gap = order.length > 1 ? (H2 - order.reduce((t2, i2) => t2 + size[i2].h, 0)) / (order.length - 1) : 0;
+    const out = [];
+    let y3 = -H2 / 2;
+    for (const i2 of order) {
+      out[i2] = { cx: col * (reach + size[i2].w / 2), cy: y3 + size[i2].h / 2, w: size[i2].w, h: size[i2].h };
+      y3 += size[i2].h + gap;
+    }
+    return out;
   }
   /** How much to shrink the labels so that no two touch (at the side), or so that a row of them is not wider than the knob's square. */
   labelScale() {
@@ -1540,8 +1563,7 @@ let RamsSelector = class extends Piece {
         if (this.rowWidth(s2) <= 1.1) return s2;
         continue;
       }
-      const b2 = this.labelBoxes(s2);
-      if (b2.every((p2, i2) => b2.every((q, j) => j <= i2 || Math.abs(p2.cx - q.cx) >= (p2.w + q.w) / 2 + 0.012 || Math.abs(p2.cy - q.cy) >= (p2.h + q.h) / 2 + 0.012))) return s2;
+      if (this.colHeight(s2) <= 1.1) return s2;
     }
     return 0.64;
   }
@@ -1648,20 +1670,12 @@ let RamsSelector = class extends Piece {
     const lampsOnly = stops.map((s2, i2) => lampOf(s2, angle(i2)));
     const ls = this.labelScale();
     const row = tb ? A : b`<div class="lrow" style="--W:${this.rowWidth(ls)}; --Y:${(c2.labels_position === "below" ? 1 : -1) * (this.labelReach() + 0.05 * ls)}">${this.rowOrder().map((i2) => labelOf(stops[i2], i2))}</div>`;
-    const pts = tb ? stops.map((s2, i2) => {
-      const a2 = angle(i2);
-      const rad2 = a2 * Math.PI / 180;
-      const ay = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
-      const sideSign = c2.labels_position === "left" ? -1 : 1;
-      const reach = this.labelReach() * 100;
-      const ayv = ay * rm / reach;
-      const side = sideSign < 0 ? "ux-l" : "ux-1";
-      return b`${lampsOnly[i2]}<span class="pt ${side}" style="--ax:${sideSign}; --ay:${ayv}; --ux:${sideSign}; --uy:0; --pr:${reach}">${labelOf(s2, i2)}</span>`;
-    }) : lampsOnly;
+    const col = tb ? b`<div class="lcol ${c2.labels_position === "left" ? "l" : "r"}" style="--H:${this.colHeight(ls)}; --R:${this.labelReach() * 100}">${this.colOrder().map((i2) => labelOf(stops[i2], i2))}</div>` : A;
+    const pts = lampsOnly;
     return b`<div class="wrap ${pos}">
       ${pos ? b`<span class="outer">${title}</span>` : A}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S2}px">${c2.light === "below" ? A : lamp}
-        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : b`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}${col}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : b`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c2.light === "below" ? lamp : A}</div>
     </div>`;
   }
@@ -1780,6 +1794,11 @@ RamsSelector.styles = [
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
       /* labels above or below the knob stand in one row, the same space between the texts, whatever the lamps do on the arc */
+      .lcol { position: absolute; top: calc(50% - var(--H) * 50cqmin); height: calc(var(--H) * 100cqmin); display: flex; flex-direction: column; justify-content: space-between; }
+      .lcol.r { left: calc(50% + var(--R) * 1cqmin); align-items: flex-start; }
+      .lcol.l { right: calc(50% + var(--R) * 1cqmin); align-items: flex-end; }
+      .lcol .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
+      .lcol.l .lab { flex-direction: row-reverse; }
       .lrow { position: absolute; left: calc(50% - var(--W) * 50cqmin); width: calc(var(--W) * 100cqmin); top: calc(50% + var(--Y) * 100cqmin); transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; }
       .lrow .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .labels { display: grid; min-width: 0; }
@@ -3564,7 +3583,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-22 18:27 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-22 18:36 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
