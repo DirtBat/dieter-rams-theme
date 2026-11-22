@@ -34,6 +34,7 @@ export const tokens = css`
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
+    --_graphite: var(--rams-graphite, #34312d);
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
@@ -45,6 +46,12 @@ export const tokens = css`
     --_lcd-bg: var(--rams-lcd-bg, var(--_field));
     --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
     --_lcd-muted: color-mix(in srgb, var(--_lcd-ink) 72%, transparent);
+    /* the green backlit LCD, as the recessed field is at night: a dim grey-green, lighter at the top where the backlight is, dark ink */
+    --_backlit-bg: var(--rams-backlit-bg, linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%));
+    --_backlit-ink: var(--rams-backlit-ink, #12160f);
+    /* the black display: a black field with yellow-green lights, as on a Braun tuner */
+    --_led-bg: var(--rams-led-bg, linear-gradient(180deg, #0a0b08 0%, #12140e 100%));
+    --_led-ink: var(--rams-led-ink, #c6e63c);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;
@@ -55,6 +62,8 @@ export const tokens = css`
   /* Frame: the piece's own box. The base class reflects config.frame to the host attribute. */
   :host([frame="outline"]),
   :host([frame="recessed"]),
+  :host([frame="backlit"]),
+  :host([frame="black"]),
   :host([frame="raised"]) {
     border: var(--_border);
     border-radius: var(--_radius);
@@ -69,4 +78,6 @@ export const tokens = css`
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
+  :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
+  :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); --_lcd-ink: var(--_led-ink); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.35); text-shadow: 0 0 6px color-mix(in srgb, var(--_led-ink) 40%, transparent); }
 `;

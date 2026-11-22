@@ -9,7 +9,7 @@ import type { Hass } from "./types";
 
 interface Field {
   name?: string;
-  context?: Record<string, string>;
+  context?: Record<string, string | undefined>;
   schema?: Field[];
   [key: string]: unknown;
 }

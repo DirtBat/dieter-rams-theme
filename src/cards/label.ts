@@ -74,12 +74,12 @@ export class RamsLabel extends Piece<LabelConfig> {
       schema: [
         { name: "text", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown("size", SIZES),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),

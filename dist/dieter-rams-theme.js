@@ -834,6 +834,7 @@ const tokens = i$3`
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
+    --_graphite: var(--rams-graphite, #34312d);
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
@@ -845,6 +846,12 @@ const tokens = i$3`
     --_lcd-bg: var(--rams-lcd-bg, var(--_field));
     --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
     --_lcd-muted: color-mix(in srgb, var(--_lcd-ink) 72%, transparent);
+    /* the green backlit LCD, as the recessed field is at night: a dim grey-green, lighter at the top where the backlight is, dark ink */
+    --_backlit-bg: var(--rams-backlit-bg, linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%));
+    --_backlit-ink: var(--rams-backlit-ink, #12160f);
+    /* the black display: a black field with yellow-green lights, as on a Braun tuner */
+    --_led-bg: var(--rams-led-bg, linear-gradient(180deg, #0a0b08 0%, #12140e 100%));
+    --_led-ink: var(--rams-led-ink, #c6e63c);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);
     color: var(--_ink);
     display: block;
@@ -855,6 +862,8 @@ const tokens = i$3`
   /* Frame: the piece's own box. The base class reflects config.frame to the host attribute. */
   :host([frame="outline"]),
   :host([frame="recessed"]),
+  :host([frame="backlit"]),
+  :host([frame="black"]),
   :host([frame="raised"]) {
     border: var(--_border);
     border-radius: var(--_radius);
@@ -869,13 +878,9 @@ const tokens = i$3`
   :host([actionable]) { cursor: pointer; }
   :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
   :host([frame="raised"]) { background: var(--_cap); box-shadow: var(--_raised); }
+  :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
+  :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); --_lcd-ink: var(--_led-ink); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.35); text-shadow: 0 0 6px color-mix(in srgb, var(--_led-ink) 40%, transparent); }
 `;
-function fitKey(w2, h2) {
-  if (w2 <= 0 || h2 <= 0) return { n: 1, m: 1, u: 0 };
-  const n3 = w2 >= h2 ? Math.max(1, Math.round(w2 / h2)) : 1;
-  const m2 = w2 >= h2 ? 1 : Math.max(1, Math.round(h2 / w2));
-  return { n: n3, m: m2, u: Math.min(w2 / n3, h2 / m2) };
-}
 const keyStyles = i$3`
   /* The key, its LED and its name are one group, centred in whatever room the card has: spare room goes
      outside the group, never between the key and its name. One gap (5px) everywhere. */
@@ -910,7 +915,7 @@ const keyStyles = i$3`
   /* down: the key stays in while active */
   .key.down, .key:active { background: var(--_down); box-shadow: var(--_pressed); transform: translateY(1px); }
 
-  /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
+  /* the dish: a circle on a square key, a pill on a long (n > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     height: calc(var(--u, 56px) * 0.86); aspect-ratio: 1; border-radius: 50%;
@@ -920,7 +925,6 @@ const keyStyles = i$3`
   }
   .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.14); aspect-ratio: auto; border-radius: 999px; }
   .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.14); width: calc(var(--u) * 0.86); aspect-ratio: auto; border-radius: 999px; }
-  .key.tall::before { height: calc(100% - var(--u) * 0.14); width: 74%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
   .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
@@ -929,6 +933,13 @@ const keyStyles = i$3`
   .key.round .ico { --mdc-icon-size: 18px; }
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+
+  /* wide: a flat graphite oblong twice as wide as high, as the transport keys of a Braun cassette deck. No dish, no cut-out. */
+  .key.wide { border: 1px solid rgba(0, 0, 0, 0.55); border-radius: 3px; color: var(--_ink-on); background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite) 86%, #fff), var(--_graphite) 40%, color-mix(in srgb, var(--_graphite) 88%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.22); }
+  .key.wide::before { display: none; }
+  .key.wide .ico { --mdc-icon-size: 18px; }
+  .key.wide .legend { font-size: 10px; }
+  .key.wide.down, .key.wide:active { background: color-mix(in srgb, var(--_graphite) 82%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
 
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }
@@ -988,7 +999,7 @@ const dropdown = (name, options) => ({
   name,
   selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } }
 });
-const FRAMES = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
+const FRAMES = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed (follows day / night)"], ["backlit", "Recessed, green backlight (as at night)"], ["black", "Black (yellow-green lights)"], ["raised", "Raised"]];
 const SIZES$1 = [["small", "Small"], ["medium", "Medium"], ["large", "Large"]];
 const layoutFields = (frame = true) => [
   {
@@ -1099,7 +1110,7 @@ let RamsButton = class extends Piece {
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w2 = Math.max(aw, 24), h2 = Math.max(ah, 24);
     const sq = this.isSquare();
-    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "tall" ? fitKey(w2, h2) : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
+    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "wide" ? { n: 2, m: 1, u: Math.max(0, Math.min(h2, w2 / 2)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
     if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
   }
   disconnectedCallback() {
@@ -1124,7 +1135,7 @@ let RamsButton = class extends Piece {
           name: "",
           schema: [
             dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
-            dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
+            dropdown("shape", [["square", "Square"], ["wide", "Wide"], ["round", "Round"]]),
             dropdown("tone", TONES),
             dropdown("icon_tone", TONES),
             dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]])
@@ -1174,10 +1185,10 @@ let RamsButton = class extends Piece {
     if (now !== void 0) void writeNumber(this.hass, c2.entity, clamp(now + c2.adjust_by, defaultRange(this.hass, c2.entity)));
     return true;
   }
-  /** Anything that is not round or tall is a square key (an old or unknown shape such as "key" included). */
+  /** Anything that is not round or wide is a square key (an old or unknown shape such as "key" or "tall" included). */
   isSquare() {
     var _a2, _b;
-    return ((_a2 = this.config) == null ? void 0 : _a2.shape) !== "round" && ((_b = this.config) == null ? void 0 : _b.shape) !== "tall";
+    return ((_a2 = this.config) == null ? void 0 : _a2.shape) !== "round" && ((_b = this.config) == null ? void 0 : _b.shape) !== "wide";
   }
   areaSize() {
     const { n: n3, m: m2, u: u2 } = this.fit;
@@ -1188,8 +1199,8 @@ let RamsButton = class extends Piece {
   keySize(shape) {
     const { n: n3, m: m2, u: u2 } = this.fit;
     if (shape === "round" || !u2) return "";
-    if (shape !== "tall") return `--u:${u2}px; width:${u2}px; height:${u2}px`;
-    return `--u:${u2}px; width:${(shape === "tall" ? n3 / 2 : n3) * u2}px; height:${m2 * u2}px`;
+    if (shape !== "wide") return `--u:${u2}px; width:${u2}px; height:${u2}px`;
+    return `--u:${u2}px; width:${n3 * u2}px; height:${m2 * u2}px`;
   }
   /** The lamp's classes: hidden, dark, or lit (in the colour a state rule gives it). */
   lamp(view, c2) {
@@ -1208,7 +1219,7 @@ let RamsButton = class extends Piece {
     const own = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
     const tone = own ? view.tone ?? own : "";
     const square = this.isSquare();
-    const cls = ["key", square ? "sq" : "", c2.shape === "round" || c2.shape === "tall" ? c2.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const cls = ["key", square ? "sq" : "", c2.shape === "round" || c2.shape === "wide" ? c2.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${this.lamp(view, c2)}"></i>
@@ -1240,10 +1251,12 @@ const faceStyles = i$3`
   .left .outer, .right .outer { max-width: 40%; }
   .face { flex: 1; min-width: 0; min-height: 0; box-sizing: border-box; }
   .left .face, .right .face { align-self: stretch; }
-  .face.outline, .face.recessed, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
+  .face.outline, .face.recessed, .face.backlit, .face.black, .face.raised { border: var(--_border); border-radius: var(--_radius); padding: 0 var(--_gap); }
   .face.outline { background: transparent; }
   .face.raised { background: var(--_cap); box-shadow: var(--_raised); }
   .face.recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); box-shadow: var(--_inset); }
+  .face.backlit { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
+  .face.black { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8); text-shadow: 0 0 6px color-mix(in srgb, var(--_led-ink) 40%, transparent); }
   .face.sig { background: var(--_sig); color: var(--_ink-on); --_ink: var(--_ink-on); --_muted: color-mix(in srgb, var(--_ink-on) 78%, transparent); border-radius: var(--_radius); box-shadow: 0 0 calc(var(--_glow) * 1.5) color-mix(in srgb, var(--_sig) 50%, transparent); }
 `;
 var __getOwnPropDesc$a = Object.getOwnPropertyDescriptor;
@@ -1256,10 +1269,10 @@ var __decorateClass$b = (decorators, target, key, kind) => {
 };
 const KNOB = { small: 104, medium: 128, large: 156 };
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
-const knobStep = (n3, pointer, side = false) => {
+const MAX_FAN = 150;
+const knobStep = (n3, pointer) => {
   if (n3 < 2) return 0;
-  const step = pointer ? Math.min(36, 270 / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : 270 / (n3 - 1));
-  return side ? Math.min(step, 180 / (n3 - 1)) : step;
+  return pointer ? Math.min(36, MAX_FAN / (n3 - 1)) : Math.min(60, n3 === 2 ? 90 : MAX_FAN / (n3 - 1));
 };
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } };
 let RamsSelector = class extends Piece {
@@ -1295,24 +1308,8 @@ let RamsSelector = class extends Piece {
   static getConfigForm() {
     return {
       schema: [
-        { name: "entity", selector: { entity: { domain: ["input_select", "select", ...BOOLEAN] } } },
         { name: "title", selector: { text: {} } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
-            dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
-            dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
-            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
-            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
-            dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
-            { name: "lines", selector: { boolean: {} } },
-            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]])
-          ]
-        },
+        { name: "entity", selector: { entity: { domain: ["input_select", "select", ...BOOLEAN] } } },
         {
           name: "options",
           selector: {
@@ -1329,6 +1326,22 @@ let RamsSelector = class extends Piece {
             }
           }
         },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
+            dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
+            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
+            dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
+            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]]),
+            dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
+            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
+            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]])
+          ]
+        },
+        { name: "lines", selector: { boolean: {} } },
         ...layoutFields(false),
         {
           type: "expandable",
@@ -1452,44 +1465,105 @@ let RamsSelector = class extends Piece {
   knobAngles() {
     const c2 = this.config;
     const n3 = this.stops().length;
-    const step = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer", (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right");
+    const step = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer");
     const side = (c2 == null ? void 0 : c2.labels_position) ?? "above";
     const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
     const dir = (side === "below" || side === "left" ? -1 : 1) * ((c2 == null ? void 0 : c2.order) === "reversed" ? -1 : 1);
     const half = step * (n3 - 1) / 2;
-    if (side === "left" || side === "right") {
-      const k2 = Math.sin(half * Math.PI / 180);
-      return Array.from({ length: n3 }, (_2, i2) => centre + dir * (n3 < 2 ? 0 : Math.asin(k2 * (2 * i2 / (n3 - 1) - 1)) * 180 / Math.PI));
-    }
     return Array.from({ length: n3 }, (_2, i2) => centre + dir * (-half + i2 * step));
+  }
+  /** How far from the centre the labels sit, as a fraction of the knob's square. */
+  labelReach() {
+    const c2 = this.config;
+    const own = (c2 == null ? void 0 : c2.light) === "options";
+    return (c2 == null ? void 0 : c2.cap) === "pointer" ? own ? 0.49 : 0.42 : own ? 0.44 : 0.38;
+  }
+  /** Labels above or below stand in a row this wide (a fraction of the knob's square): a little wider than the fan of lamps. */
+  rowSpan() {
+    const c2 = this.config;
+    const n3 = this.stops().length;
+    const half = knobStep(n3, (c2 == null ? void 0 : c2.cap) === "pointer") * (n3 - 1) / 2;
+    return Math.max(0.5, 2 * this.labelReach() * Math.sin(half * Math.PI / 180) + 0.1);
+  }
+  /** The options in the order they stand along a row of labels: left to right. */
+  rowOrder() {
+    const a2 = this.knobAngles();
+    return a2.map((_2, i2) => i2).sort((i2, j) => Math.sin(a2[i2] * Math.PI / 180) - Math.sin(a2[j] * Math.PI / 180));
+  }
+  /** The size of each label's text, as fractions of the knob's square. `s` scales the type. */
+  labelSizes(s2) {
+    var _a2;
+    const show = ((_a2 = this.config) == null ? void 0 : _a2.show) ?? "auto";
+    return this.stops().map((x2) => {
+      const chars = show === "none" ? 0 : show === "labels" || show === "both" || !x2.icon ? x2.label.length : 0;
+      return { w: (chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14) * s2, h: 0.1 * s2 };
+    });
+  }
+  /** The width of a row of labels: the fan of lamps and a little more, or what the texts need with a gap between them. */
+  rowWidth(s2) {
+    const size = this.labelSizes(s2);
+    return Math.max(this.rowSpan(), size.reduce((t2, x2) => t2 + x2.w, 0) + 0.03 * (size.length - 1));
+  }
+  /** Where each label sits and how big it is, as fractions of the knob's square measured from its centre (y down). `s` scales the type. */
+  labelBoxes(s2) {
+    const c2 = this.config;
+    const ptr = (c2 == null ? void 0 : c2.cap) === "pointer";
+    const reach = this.labelReach();
+    const tb = (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right";
+    const col = (c2 == null ? void 0 : c2.labels_position) === "left" ? -1 : 1;
+    const angles = this.knobAngles();
+    const size = this.labelSizes(s2);
+    if (!tb) {
+      const W = this.rowWidth(s2);
+      const order = this.rowOrder();
+      const gap = order.length > 1 ? (W - order.reduce((t2, i2) => t2 + size[i2].w, 0)) / (order.length - 1) : 0;
+      const cy = ((c2 == null ? void 0 : c2.labels_position) === "below" ? 1 : -1) * (reach + 0.05 * s2);
+      const out = [];
+      let x2 = -W / 2;
+      for (const i2 of order) {
+        out[i2] = { cx: x2 + size[i2].w / 2, cy, w: size[i2].w, h: size[i2].h };
+        x2 += size[i2].w + gap;
+      }
+      return out;
+    }
+    return size.map(({ w: w2, h: h2 }, i2) => {
+      const sy = -Math.cos(angles[i2] * Math.PI / 180);
+      return { cx: col * (reach + w2 / 2), cy: (ptr ? 0.38 : 0.33) * sy, w: w2, h: h2 };
+    });
+  }
+  /** How much to shrink the labels so that no two touch (at the side), or so that a row of them is not wider than the knob's square. */
+  labelScale() {
+    var _a2, _b;
+    const tb = ((_a2 = this.config) == null ? void 0 : _a2.labels_position) === "left" || ((_b = this.config) == null ? void 0 : _b.labels_position) === "right";
+    for (const s2 of [1, 0.92, 0.84, 0.77, 0.7, 0.64]) {
+      if (!tb) {
+        if (this.rowWidth(s2) <= 1.1) return s2;
+        continue;
+      }
+      const b2 = this.labelBoxes(s2);
+      if (b2.every((p2, i2) => b2.every((q, j) => j <= i2 || Math.abs(p2.cx - q.cx) >= (p2.w + q.w) / 2 + 0.012 || Math.abs(p2.cy - q.cy) >= (p2.h + q.h) / 2 + 0.012))) return s2;
+    }
+    return 0.64;
   }
   /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
   knobExtent() {
     const c2 = this.config;
     const ptr = (c2 == null ? void 0 : c2.cap) === "pointer";
-    const show = (c2 == null ? void 0 : c2.show) ?? "auto";
-    const stops = this.stops();
-    const chars = show === "none" ? 0 : Math.max(0, ...stops.map((x2) => show === "labels" || show === "both" || !x2.icon ? x2.label.length : 0));
-    const lw = chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14;
-    const lh = 0.1;
-    const reach = ptr ? (c2 == null ? void 0 : c2.light) === "options" ? 0.49 : 0.42 : (c2 == null ? void 0 : c2.light) === "options" ? 0.44 : 0.38;
     let minX = ptr ? -0.13 : -0.27, maxX = -minX, minY = minX, maxY = maxX;
-    for (const a2 of this.knobAngles()) {
-      const sx = Math.sin(a2 * Math.PI / 180), sy = -Math.cos(a2 * Math.PI / 180);
-      const tb = (c2 == null ? void 0 : c2.labels_position) === "left" || (c2 == null ? void 0 : c2.labels_position) === "right";
-      const col = (c2 == null ? void 0 : c2.labels_position) === "left" ? -1 : 1;
-      const cx = tb ? col * (reach + lw / 2) : reach * sx + sx * lw / 2, cy = tb ? (ptr ? 0.38 : 0.33) * sy : reach * sy + sy * lh / 2;
-      minX = Math.min(minX, cx - lw / 2);
-      maxX = Math.max(maxX, cx + lw / 2);
-      minY = Math.min(minY, cy - lh / 2);
-      maxY = Math.max(maxY, cy + lh / 2);
+    const angles = this.knobAngles();
+    this.labelBoxes(this.labelScale()).forEach((p2, i2) => {
+      const sx = Math.sin(angles[i2] * Math.PI / 180), sy = -Math.cos(angles[i2] * Math.PI / 180);
+      minX = Math.min(minX, p2.cx - p2.w / 2);
+      maxX = Math.max(maxX, p2.cx + p2.w / 2);
+      minY = Math.min(minY, p2.cy - p2.h / 2);
+      maxY = Math.max(maxY, p2.cy + p2.h / 2);
       if (ptr) {
         minX = Math.min(minX, 0.34 * sx - 0.03);
         maxX = Math.max(maxX, 0.34 * sx + 0.03);
         minY = Math.min(minY, 0.34 * sy - 0.03);
         maxY = Math.max(maxY, 0.34 * sy + 0.03);
       }
-    }
+    });
     return { minX, maxX, minY, maxY: maxY + 0.03 };
   }
   disconnectedCallback() {
@@ -1549,7 +1623,7 @@ let RamsSelector = class extends Piece {
   knob(c2, stops, now, show, z2, lamp, title, pos, own, lines) {
     const n3 = stops.length;
     const ptr = c2.cap === "pointer";
-    const step = knobStep(n3, ptr, c2.labels_position === "left" || c2.labels_position === "right");
+    const step = knobStep(n3, ptr);
     const angles = this.knobAngles();
     const angle = (i2) => angles[i2];
     const turn = n3 > 1 && angles[n3 - 1] > angles[0] ? 1 : 0;
@@ -1561,29 +1635,33 @@ let RamsSelector = class extends Piece {
     const rm = ptr ? 38 : 33;
     const arc = n3 > 1 && !own ? w$1`<svg class="arc" viewBox="0 0 100 100"><path d="M ${at2(angle(0), rm)} A ${rm} ${rm} 0 ${step * (n3 - 1) > 180 ? 1 : 0} ${turn} ${at2(angle(n3 - 1), rm)}" />${stops.map((_2, i2) => w$1`<line x1=${at2(angle(i2), rm).split(" ")[0]} y1=${at2(angle(i2), rm).split(" ")[1]} x2=${at2(angle(i2), rm - 2.5).split(" ")[0]} y2=${at2(angle(i2), rm - 2.5).split(" ")[1]} />`)}</svg>` : A;
     const drop = ptr ? w$1`<svg viewBox="-31 -31 62 62"><defs><linearGradient id="rams-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9d8d3" /><stop offset="0.55" stop-color="#a9a8a3" /><stop offset="1" stop-color="#8f8e89" /></linearGradient></defs><path d="M10.05 -5.8 L3.35 -17.57 Q1.86 -20.18 1.86 -23.18 L1.86 -31.9 A1.86 1.86 0 0 0 -1.86 -31.9 L-1.86 -23.18 Q-1.86 -20.18 -3.35 -17.57 L-10.05 -5.8 A11.6 11.6 0 1 0 10.05 -5.8 Z" fill="url(#rams-metal)" stroke="rgba(0,0,0,0.25)" stroke-width="0.4" stroke-linejoin="round" /></svg>` : A;
-    const pts = stops.map((s2, i2) => {
-      const a2 = angle(i2);
-      const rad2 = a2 * Math.PI / 180;
-      const ax = Math.round(Math.sin(rad2) * 1e3) / 1e3;
-      const ay = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
-      const sideSign = c2.labels_position === "left" ? -1 : 1;
-      const ux = tb ? sideSign : ax;
-      const uy = tb ? 0 : ay;
-      const bx = tb ? sideSign : ax;
-      const reach = ptr ? own ? 49 : 42 : own ? 44 : 38;
-      const ayv = tb ? ay * rm / reach : ay;
+    const labelOf = (s2, i2) => {
       const hasIcon = show !== "labels" && show !== "none" && !!s2.icon;
       const icon = hasIcon ? b`<ha-icon class="ico" .icon=${s2.icon}></ha-icon>` : A;
       const text = show === "labels" || show === "both" || show === "auto" && !hasIcon ? b`<span>${s2.label}</span>` : A;
+      return b`<button class="lab ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${icon}${text}</button>`;
+    };
+    const lampOf = (s2, a2) => {
       const tone = own ? this.lampTone(s2.option) : void 0;
-      const lampEl = own ? b`<span class="ray" style="--r:${a2}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : A;
-      const side = ux < -0.3 ? "ux-l" : "ux-1";
-      return b`${lampEl}<span class="pt ${side}" style="--ax:${bx}; --ay:${ayv}; --ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i2 === now ? "on" : ""}" title=${s2.label} @click=${() => this.choose(i2)}>${icon}${text}</button></span>`;
-    });
+      return own ? b`<span class="ray" style="--r:${a2}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : A;
+    };
+    const lampsOnly = stops.map((s2, i2) => lampOf(s2, angle(i2)));
+    const ls = this.labelScale();
+    const row = tb ? A : b`<div class="lrow" style="--W:${this.rowWidth(ls)}; --Y:${(c2.labels_position === "below" ? 1 : -1) * (this.labelReach() + 0.05 * ls)}">${this.rowOrder().map((i2) => labelOf(stops[i2], i2))}</div>`;
+    const pts = tb ? stops.map((s2, i2) => {
+      const a2 = angle(i2);
+      const rad2 = a2 * Math.PI / 180;
+      const ay = Math.round(-Math.cos(rad2) * 1e3) / 1e3;
+      const sideSign = c2.labels_position === "left" ? -1 : 1;
+      const reach = this.labelReach() * 100;
+      const ayv = ay * rm / reach;
+      const side = sideSign < 0 ? "ux-l" : "ux-1";
+      return b`${lampsOnly[i2]}<span class="pt ${side}" style="--ax:${sideSign}; --ay:${ayv}; --ux:${sideSign}; --uy:0; --pr:${reach}">${labelOf(s2, i2)}</span>`;
+    }) : lampsOnly;
     return b`<div class="wrap ${pos}">
       ${pos ? b`<span class="outer">${title}</span>` : A}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S2}px">${c2.light === "below" ? A : lamp}
-        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : b`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z2.fs}px; --ico:${z2.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : b`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c2.light === "below" ? lamp : A}</div>
     </div>`;
   }
@@ -1669,7 +1747,7 @@ RamsSelector.styles = [
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
       .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
-      .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
+      .knobbox .lab { font-size: max(7px, calc(var(--lf, 8.6) * 1cqmin)); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
       /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */
@@ -1701,6 +1779,9 @@ RamsSelector.styles = [
       .pt .lab { flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
+      /* labels above or below the knob stand in one row, the same space between the texts, whatever the lamps do on the arc */
+      .lrow { position: absolute; left: calc(50% - var(--W) * 50cqmin); width: calc(var(--W) * 100cqmin); top: calc(50% + var(--Y) * 100cqmin); transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; }
+      .lrow .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .labels { display: grid; min-width: 0; }
       .h .labels { grid-template-columns: repeat(var(--n), 1fr); width: 100%; }
       .v .labels { grid-template-rows: repeat(var(--n), 1fr); flex: none; width: max-content; max-width: 70%; }
@@ -1774,18 +1855,18 @@ let RamsDisplay = class extends Piece {
         { name: "title", selector: { text: {} } },
         { name: "text", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
-            dropdown2("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown2("show", [["all", "Title and value"], ["value", "Value only"], ["title", "Title only"], ["none", "Icon and light only"]]),
-            dropdown2("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
             dropdown2("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
-            dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
+            dropdown2("show", [["all", "Title and value"], ["value", "Value only"], ["title", "Title only"], ["none", "Icon and light only"]]),
+            dropdown2("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown2("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
+            dropdown2("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]])
           ]
         },
         ...layoutFields(),
@@ -1943,12 +2024,12 @@ let RamsLabel = class extends Piece {
       schema: [
         { name: "text", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
+        { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "icon", selector: { icon: {} }, context: { icon_entity: "entity" } },
         {
           type: "grid",
           name: "",
           schema: [
-            { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
             { name: "unit", selector: { text: {} } },
             dropdown("size", SIZES$1),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
@@ -2287,8 +2368,10 @@ RamsPanel.styles = [
   tokens,
   i$3`
       .plate { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
-      .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
+      .plate.f-outline, .plate.f-recessed, .plate.f-backlit, .plate.f-black, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
+      .plate.f-backlit { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); --rams-ink: var(--_backlit-ink); --rams-muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
+      .plate.f-black { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); --rams-ink: var(--_led-ink); --rams-muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.35); text-shadow: 0 0 6px color-mix(in srgb, var(--_led-ink) 40%, transparent); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.screwed { position: relative; padding: calc(var(--_gap) + 18px); }
       .screw { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box; pointer-events: none;
@@ -2348,10 +2431,12 @@ let RamsRuler = class extends Piece {
   static getConfigForm() {
     return {
       schema: [
+        { name: "title", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
+        { name: "interactive", selector: { boolean: {} } },
         {
           type: "grid",
           name: "",
@@ -2359,26 +2444,24 @@ let RamsRuler = class extends Piece {
             { name: "min", selector: { number: { step: "any", mode: "box" } } },
             { name: "max", selector: { number: { step: "any", mode: "box" } } },
             { name: "step", selector: { number: { step: "any", mode: "box" } } },
-            { name: "unit", selector: { text: {} } }
+            { name: "unit", selector: { text: {} } },
+            num$1("value", void 0, void 0, { step: "any" }),
+            num$1("interval", void 0, void 0, { step: "any" }),
+            num$1("major", void 0, void 0, { step: "any" })
           ]
         },
         {
           type: "grid",
           name: "",
           schema: [
-            num$1("value", void 0, void 0, { step: "any" }),
-            num$1("interval", void 0, void 0, { step: "any" }),
-            num$1("major", void 0, void 0, { step: "any" }),
-            { name: "title", selector: { text: {} } },
+            dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
             dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
-        dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
         { name: "number", selector: { boolean: {} } },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
-        { name: "interactive", selector: { boolean: {} } },
         ...layoutFields()
       ],
       computeLabel,
@@ -2513,13 +2596,13 @@ let RamsArtwork = class extends Piece {
   static getConfigForm() {
     return {
       schema: [
+        { name: "caption", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "image", selector: { text: {} } },
-        { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
+        { name: "live", selector: { boolean: {} } },
         { name: "controls", selector: { boolean: {} } },
         dropdown("proportion", [["square", "Square"], ["4:3", "4:3"], ["3:2", "3:2"], ["16:9", "16:9"], ["3:4", "3:4 portrait"], ["2:3", "2:3 portrait"]]),
-        { name: "live", selector: { boolean: {} } },
         { name: "screen", selector: { boolean: {} } },
         ...layoutFields(),
         ...actionFields()
@@ -2616,11 +2699,11 @@ let RamsClock = class extends Piece {
   static getConfigForm() {
     return {
       schema: [
+        { name: "title", selector: { text: {} } },
         { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
-        { name: "title", selector: { text: {} } },
-        dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
+        dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
         ...layoutFields()
       ],
       computeLabel,
@@ -2733,6 +2816,20 @@ let RamsList = class extends Piece {
             }
           }
         },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            { name: "attribute", selector: { text: {} } },
+            { name: "value_attribute", selector: { text: {} } },
+            { name: "unit", selector: { text: {} } },
+            num$1("max_items", 1, 50),
+            { name: "empty_text", selector: { text: {} } },
+            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
+            dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
+            { name: "compact", selector: { boolean: {} } }
+          ]
+        },
         { name: "lamp", label: "lamp on every row", selector: { boolean: {} } },
         { name: "alert_when", label: "lamp lights when", selector: { text: {} } },
         {
@@ -2750,20 +2847,6 @@ let RamsList = class extends Piece {
               }
             }
           }
-        },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
-            { name: "attribute", selector: { text: {} } },
-            { name: "compact", selector: { boolean: {} } },
-            { name: "value_attribute", selector: { text: {} } },
-            { name: "unit", selector: { text: {} } },
-            dropdown("keys", [["none", "None"], ["toggle", "Toggle key"], ["cover", "Up / down keys"]]),
-            num$1("max_items", 1, 50),
-            { name: "empty_text", selector: { text: {} } }
-          ]
         },
         ...layoutFields()
       ],
@@ -3012,7 +3095,7 @@ RamsKeypad.styles = [
   i$3`
       :host { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
       /* a framed keypad has the same margin above and below as at the sides */
-      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="raised"]) { padding-block: var(--_gap); }
+      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="backlit"]), :host([frame="black"]), :host([frame="raised"]) { padding-block: var(--_gap); }
       /* one centred block: the screen and the keys share the same width and margins (12px all round) */
       .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
       .key:disabled { opacity: 0.4; pointer-events: none; }
@@ -3228,29 +3311,35 @@ let RamsDial = class extends Piece {
   static getConfigForm() {
     return {
       schema: [
+        { name: "title", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "setpoint", selector: { entity: {} } },
+        { name: "interactive", selector: { boolean: {} } },
         {
           type: "grid",
           name: "",
           schema: [
-            num$1("value", void 0, void 0, { step: "any" }),
             num$1("min", void 0, void 0, { step: "any" }),
             num$1("max", void 0, void 0, { step: "any" }),
+            { name: "unit", selector: { text: {} } },
+            num$1("value", void 0, void 0, { step: "any" }),
             num$1("interval", void 0, void 0, { step: "any" }),
-            num$1("major", void 0, void 0, { step: "any" }),
+            num$1("major", void 0, void 0, { step: "any" })
+          ]
+        },
+        {
+          type: "grid",
+          name: "",
+          schema: [
             num$1("start_angle", -360, 360, { step: 5 }),
             num$1("end_angle", -360, 360, { step: 5 }),
-            { name: "unit", selector: { text: {} } },
-            { name: "title", selector: { text: {} } },
-            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
+            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
           ]
         },
-        { name: "interactive", selector: { boolean: {} } },
         ...layoutFields()
       ],
       computeLabel,
@@ -3446,6 +3535,8 @@ RamsDial.styles = [
   tokens,
   faceStyles,
   i$3`
+      :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); }
+      :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); }
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
       .dial { height: 100%; min-height: 72px; }
       .room { box-sizing: border-box; height: 100%; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
@@ -3473,7 +3564,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-21 12:55 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-22 18:27 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

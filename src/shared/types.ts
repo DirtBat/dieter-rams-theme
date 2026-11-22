@@ -19,7 +19,7 @@ export interface ActionConfig {
 }
 
 /** How a piece's own box is drawn. The same four values everywhere. */
-export type Frame = "none" | "outline" | "recessed" | "raised";
+export type Frame = "none" | "outline" | "recessed" | "backlit" | "black" | "raised";
 
 /** Fields every piece accepts: its size on the panel grid, its frame and its actions. */
 export interface PieceConfig {

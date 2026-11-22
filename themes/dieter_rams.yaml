@@ -16,6 +16,11 @@ Dieter Rams:
       rams-key-edge: "rgba(38, 18, 1, 0.35)"
       rams-lens: "#b9b3a6"            # warning LED, unlit
       rams-slot: "#2b2118"            # selector slot
+      rams-graphite: "#34312d"        # wide keys
+      rams-backlit-bg: "linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%)"   # frame: backlit, the same by day and night
+      rams-backlit-ink: "#12160f"
+      rams-led-bg: "linear-gradient(180deg, #0a0b08 0%, #12140e 100%)"   # black display
+      rams-led-ink: "#c6e63c"         # ... its yellow-green lights
       rams-lever: "#efece4"
       rams-red: "#c8362b"
       rams-orange: "#e8801a"
@@ -47,6 +52,9 @@ Dieter Rams:
       rams-ring: "#0b0b0a"
       rams-lens: "#3a1512"
       rams-slot: "#0e0d0c"
+      rams-graphite: "#4a4741"
+      rams-led-bg: "linear-gradient(180deg, #060705 0%, #0d0f0a 100%)"
+      rams-led-ink: "#c6e63c"
       rams-lever: "#8d887c"
       rams-red: "#e0483a"
       rams-orange: "#f09a2e"

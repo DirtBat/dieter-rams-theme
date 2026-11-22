@@ -42,7 +42,7 @@ export const dropdown = (name: string, options: Array<[string, string]>) => ({
   selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } },
 });
 
-export const FRAMES: Array<[string, string]> = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed"], ["raised", "Raised"]];
+export const FRAMES: Array<[string, string]> = [["none", "None"], ["outline", "Outline"], ["recessed", "Recessed (follows day / night)"], ["backlit", "Recessed, green backlight (as at night)"], ["black", "Black (yellow-green lights)"], ["raised", "Raised"]];
 
 export const SIZES: Array<[string, string]> = [["small", "Small"], ["medium", "Medium"], ["large", "Large"]];
 

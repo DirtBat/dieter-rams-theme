@@ -1,19 +1,11 @@
 import { css } from "lit";
 
-/** How many unit squares fit a box: n wide or m tall (never both), and the side of one square. */
-export function fitKey(w: number, h: number): { n: number; m: number; u: number } {
-  if (w <= 0 || h <= 0) return { n: 1, m: 1, u: 0 };
-  const n = w >= h ? Math.max(1, Math.round(w / h)) : 1;
-  const m = w >= h ? 1 : Math.max(1, Math.round(h / w));
-  return { n, m, u: Math.min(w / n, h / m) };
-}
-
 /**
  * The key, drawn once: a beige-grey cap with a recessed dish, an optional dot (the colour a state rule gives it),
  * a warning LED above and the printed name below. Buttons, switches and the keypad share it.
  *
  * A key is a square, or a whole number of squares (1x2, 4x1, 2x2 ...): the card's box decides how many fit and the
- * key never stretches off-square. The dish is a circle on a square key and a pill on a long or tall one.
+ * key never stretches off-square. The dish is a circle on a square key; the wide key is a flat graphite oblong with no dish.
  */
 export const keyStyles = css`
   /* The key, its LED and its name are one group, centred in whatever room the card has: spare room goes
@@ -49,7 +41,7 @@ export const keyStyles = css`
   /* down: the key stays in while active */
   .key.down, .key:active { background: var(--_down); box-shadow: var(--_pressed); transform: translateY(1px); }
 
-  /* the dish: a circle on a square key, a pill on a long (n > 1) or tall (m > 1) one. --u is the key's unit square. */
+  /* the dish: a circle on a square key, a pill on a long (n > 1) one. --u is the key's unit square. */
   .key::before {
     content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
     height: calc(var(--u, 56px) * 0.86); aspect-ratio: 1; border-radius: 50%;
@@ -59,7 +51,6 @@ export const keyStyles = css`
   }
   .key:not([data-n="1"])::before { width: calc(100% - var(--u) * 0.14); aspect-ratio: auto; border-radius: 999px; }
   .key:not([data-m="1"])::before { height: calc(100% - var(--u) * 0.14); width: calc(var(--u) * 0.86); aspect-ratio: auto; border-radius: 999px; }
-  .key.tall::before { height: calc(100% - var(--u) * 0.14); width: 74%; aspect-ratio: auto; border-radius: 999px; }
   /* text printed on the key sits on a pill-shaped dish */
   .key:has(.legend):not(.round)::before { height: calc(var(--u, 56px) * 0.7); width: calc(100% - 10px); aspect-ratio: auto; border-radius: 999px; }
   .key > * { position: relative; z-index: 1; }
@@ -68,6 +59,13 @@ export const keyStyles = css`
   .key.round .ico { --mdc-icon-size: 18px; }
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+
+  /* wide: a flat graphite oblong twice as wide as high, as the transport keys of a Braun cassette deck. No dish, no cut-out. */
+  .key.wide { border: 1px solid rgba(0, 0, 0, 0.55); border-radius: 3px; color: var(--_ink-on); background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite) 86%, #fff), var(--_graphite) 40%, color-mix(in srgb, var(--_graphite) 88%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.22); }
+  .key.wide::before { display: none; }
+  .key.wide .ico { --mdc-icon-size: 18px; }
+  .key.wide .legend { font-size: 10px; }
+  .key.wide.down, .key.wide:active { background: color-mix(in srgb, var(--_graphite) 82%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
 
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }

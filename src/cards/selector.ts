@@ -48,12 +48,14 @@ export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_ent
 const KNOB = { small: 104, medium: 128, large: 156 } as const;
 /** On/off entities: two stops, off then on, switched with turn_off / turn_on. */
 const BOOLEAN = ["input_boolean", "switch", "light", "fan"];
-/** Degrees between two options on a knob. The pointer is a big control: six options fill a half circle, fewer use less of it. */
-/** Degrees between options. Labels at the side stand in one column, so their fan must not pass 180 degrees or the column would fold back on itself. */
-const knobStep = (n: number, pointer: boolean, side = false): number => {
+/** The whole fan of options, in degrees. Kept under 180 so that no option ever points straight along the knob's axis: a horizontal
+ *  knob never has an end option at exactly left or right, a vertical one never at exactly up or down. */
+const MAX_FAN = 150;
+/** Degrees between two neighbouring options on a knob: the same everywhere on the fan. The pointer is a big control: six options
+ *  fill most of a half circle, fewer use less of it. */
+const knobStep = (n: number, pointer: boolean): number => {
   if (n < 2) return 0;
-  const step = pointer ? Math.min(36, 270 / (n - 1)) : Math.min(60, n === 2 ? 90 : 270 / (n - 1));
-  return side ? Math.min(step, 180 / (n - 1)) : step;
+  return pointer ? Math.min(36, MAX_FAN / (n - 1)) : Math.min(60, n === 2 ? 90 : MAX_FAN / (n - 1));
 };
 const SIZES = { small: { fs: 9, p: 26, ico: 16 }, medium: { fs: 11, p: 30, ico: 20 }, large: { fs: 14, p: 36, ico: 24 } } as const;
 
@@ -99,7 +101,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
       .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
-      .knobbox .lab { font-size: max(var(--fs), 8.6cqmin); }
+      .knobbox .lab { font-size: max(7px, calc(var(--lf, 8.6) * 1cqmin)); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
       /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */
@@ -131,6 +133,9 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .pt .lab { flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .pt.ux-1 .lab { flex-direction: row; } .pt.ux-l .lab { flex-direction: row-reverse; }
       .pt .lab.ico-only { gap: 0; }
+      /* labels above or below the knob stand in one row, the same space between the texts, whatever the lamps do on the arc */
+      .lrow { position: absolute; left: calc(50% - var(--W) * 50cqmin); width: calc(var(--W) * 100cqmin); top: calc(50% + var(--Y) * 100cqmin); transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; }
+      .lrow .lab { flex: none; flex-direction: row; gap: 4px; padding: 0; white-space: nowrap; }
       .labels { display: grid; min-width: 0; }
       .h .labels { grid-template-columns: repeat(var(--n), 1fr); width: 100%; }
       .v .labels { grid-template-rows: repeat(var(--n), 1fr); flex: none; width: max-content; max-width: 70%; }
@@ -179,24 +184,8 @@ export class RamsSelector extends Piece<SelectorConfig> {
   static getConfigForm() {
     return {
       schema: [
-        { name: "entity", selector: { entity: { domain: ["input_select", "select", ...BOOLEAN] } } },
         { name: "title", selector: { text: {} } },
-        {
-          type: "grid",
-          name: "",
-          schema: [
-            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
-            dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
-            dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
-            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
-            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
-            dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
-            { name: "lines", selector: { boolean: {} } },
-            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]]),
-          ],
-        },
+        { name: "entity", selector: { entity: { domain: ["input_select", "select", ...BOOLEAN] } } },
         {
           name: "options",
           selector: {
@@ -213,6 +202,22 @@ export class RamsSelector extends Piece<SelectorConfig> {
             },
           },
         },
+        {
+          type: "grid",
+          name: "",
+          schema: [
+            dropdown("shape", [["lever", "Lever"], ["knob", "Knob"]]),
+            dropdown("cap", [["round", "Round cap (knob)"], ["pointer", "Pointer (knob)"]]),
+            dropdown("size", [["small", "Small"], ["medium", "Medium"], ["large", "Large"]]),
+            dropdown("orientation", [["right", "Right: first option on the left"], ["left", "Left: first option on the right"], ["down", "Down: first option on top"], ["up", "Up: first option at the bottom"]]),
+            dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]]),
+            dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+            dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
+            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
+            dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
+          ],
+        },
+        { name: "lines", selector: { boolean: {} } },
         ...layoutFields(false),
         {
           type: "expandable",
@@ -335,41 +340,100 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private knobAngles(): number[] {
     const c = this.config;
     const n = this.stops().length;
-    const step = knobStep(n, c?.cap === "pointer", c?.labels_position === "left" || c?.labels_position === "right");
+    const step = knobStep(n, c?.cap === "pointer");
     const side = c?.labels_position ?? "above";
     const centre = side === "right" ? 90 : side === "below" ? 180 : side === "left" ? 270 : 0;
     // reading order: first on the left (labels above or below) or on top (left or right); reversed turns it round
     const dir = (side === "below" || side === "left" ? -1 : 1) * (c?.order === "reversed" ? -1 : 1);
     const half = (step * (n - 1)) / 2;
-    // labels at the side stand in a column: space the options evenly down it (not evenly round the arc), so that the labels at
-    // the ends of a long fan do not pile up. With two or three options both ways give the same angles.
-    if (side === "left" || side === "right") {
-      const k = Math.sin((half * Math.PI) / 180);
-      return Array.from({ length: n }, (_, i) => centre + dir * (n < 2 ? 0 : (Math.asin(k * ((2 * i) / (n - 1) - 1)) * 180) / Math.PI));
-    }
     return Array.from({ length: n }, (_, i) => centre + dir * (-half + i * step));
+  }
+
+  /** How far from the centre the labels sit, as a fraction of the knob's square. */
+  private labelReach(): number {
+    const c = this.config;
+    const own = c?.light === "options";
+    return c?.cap === "pointer" ? (own ? 0.49 : 0.42) : own ? 0.44 : 0.38;
+  }
+
+  /** Labels above or below stand in a row this wide (a fraction of the knob's square): a little wider than the fan of lamps. */
+  private rowSpan(): number {
+    const c = this.config;
+    const n = this.stops().length;
+    const half = (knobStep(n, c?.cap === "pointer") * (n - 1)) / 2;
+    return Math.max(0.5, 2 * this.labelReach() * Math.sin((half * Math.PI) / 180) + 0.1);
+  }
+
+  /** The options in the order they stand along a row of labels: left to right. */
+  private rowOrder(): number[] {
+    const a = this.knobAngles();
+    return a.map((_, i) => i).sort((i, j) => Math.sin((a[i] * Math.PI) / 180) - Math.sin((a[j] * Math.PI) / 180));
+  }
+
+  /** The size of each label's text, as fractions of the knob's square. `s` scales the type. */
+  private labelSizes(s: number): Array<{ w: number; h: number }> {
+    const show = this.config?.show ?? "auto";
+    return this.stops().map((x) => {
+      const chars = show === "none" ? 0 : show === "labels" || show === "both" || !x.icon ? x.label.length : 0;
+      return { w: (chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14) * s, h: 0.1 * s };
+    });
+  }
+
+  /** The width of a row of labels: the fan of lamps and a little more, or what the texts need with a gap between them. */
+  private rowWidth(s: number): number {
+    const size = this.labelSizes(s);
+    return Math.max(this.rowSpan(), size.reduce((t, x) => t + x.w, 0) + 0.03 * (size.length - 1));
+  }
+
+  /** Where each label sits and how big it is, as fractions of the knob's square measured from its centre (y down). `s` scales the type. */
+  private labelBoxes(s: number): Array<{ cx: number; cy: number; w: number; h: number }> {
+    const c = this.config;
+    const ptr = c?.cap === "pointer";
+    const reach = this.labelReach();
+    const tb = c?.labels_position === "left" || c?.labels_position === "right";
+    const col = c?.labels_position === "left" ? -1 : 1;
+    const angles = this.knobAngles();
+    const size = this.labelSizes(s);
+    if (!tb) {
+      // a row: the same gap between the texts
+      const W = this.rowWidth(s);
+      const order = this.rowOrder();
+      const gap = order.length > 1 ? (W - order.reduce((t, i) => t + size[i].w, 0)) / (order.length - 1) : 0;
+      const cy = (c?.labels_position === "below" ? 1 : -1) * (reach + 0.05 * s);
+      const out: Array<{ cx: number; cy: number; w: number; h: number }> = [];
+      let x = -W / 2;
+      for (const i of order) { out[i] = { cx: x + size[i].w / 2, cy, w: size[i].w, h: size[i].h }; x += size[i].w + gap; }
+      return out;
+    }
+    return size.map(({ w, h }, i) => {
+      const sy = -Math.cos((angles[i] * Math.PI) / 180);
+      return { cx: col * (reach + w / 2), cy: (ptr ? 0.38 : 0.33) * sy, w, h };
+    });
+  }
+
+  /** How much to shrink the labels so that no two touch (at the side), or so that a row of them is not wider than the knob's square. */
+  private labelScale(): number {
+    const tb = this.config?.labels_position === "left" || this.config?.labels_position === "right";
+    for (const s of [1, 0.92, 0.84, 0.77, 0.7, 0.64]) {
+      if (!tb) { if (this.rowWidth(s) <= 1.1) return s; continue; }
+      const b = this.labelBoxes(s);
+      if (b.every((p, i) => b.every((q, j) => j <= i || Math.abs(p.cx - q.cx) >= (p.w + q.w) / 2 + 0.012 || Math.abs(p.cy - q.cy) >= (p.h + q.h) / 2 + 0.012))) return s;
+    }
+    return 0.64;
   }
 
   /** What the knob's drawing covers, as fractions of its square measured from its centre (y down): the cap, the labels and the scale. */
   private knobExtent(): { minX: number; maxX: number; minY: number; maxY: number } {
     const c = this.config;
     const ptr = c?.cap === "pointer";
-    const show = c?.show ?? "auto";
-    const stops = this.stops();
-    const chars = show === "none" ? 0 : Math.max(0, ...stops.map((x) => (show === "labels" || show === "both" || !x.icon ? x.label.length : 0)));
-    const lw = chars ? Math.min(0.9, 0.07 * chars + 0.05) + (show === "both" ? 0.1 : 0) : show === "none" ? 0.04 : 0.14;
-    const lh = 0.1;
-    const reach = ptr ? (c?.light === "options" ? 0.49 : 0.42) : c?.light === "options" ? 0.44 : 0.38;
     let minX = ptr ? -0.13 : -0.27, maxX = -minX, minY = minX, maxY = maxX;
-    for (const a of this.knobAngles()) {
-      const sx = Math.sin((a * Math.PI) / 180), sy = -Math.cos((a * Math.PI) / 180);
-      const tb = c?.labels_position === "left" || c?.labels_position === "right";
-      const col = c?.labels_position === "left" ? -1 : 1;
-      const cx = tb ? col * (reach + lw / 2) : reach * sx + (sx * lw) / 2, cy = tb ? (ptr ? 0.38 : 0.33) * sy : reach * sy + (sy * lh) / 2;
-      minX = Math.min(minX, cx - lw / 2); maxX = Math.max(maxX, cx + lw / 2);
-      minY = Math.min(minY, cy - lh / 2); maxY = Math.max(maxY, cy + lh / 2);
+    const angles = this.knobAngles();
+    this.labelBoxes(this.labelScale()).forEach((p, i) => {
+      const sx = Math.sin((angles[i] * Math.PI) / 180), sy = -Math.cos((angles[i] * Math.PI) / 180);
+      minX = Math.min(minX, p.cx - p.w / 2); maxX = Math.max(maxX, p.cx + p.w / 2);
+      minY = Math.min(minY, p.cy - p.h / 2); maxY = Math.max(maxY, p.cy + p.h / 2);
       if (ptr) { minX = Math.min(minX, 0.34 * sx - 0.03); maxX = Math.max(maxX, 0.34 * sx + 0.03); minY = Math.min(minY, 0.34 * sy - 0.03); maxY = Math.max(maxY, 0.34 * sy + 0.03); }
-    }
+    });
     return { minX, maxX, minY, maxY: maxY + 0.03 };
   }
 
@@ -445,7 +509,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private knob(c: SelectorConfig, stops: ReturnType<RamsSelector["stops"]>, now: number, show: string, z: (typeof SIZES)[keyof typeof SIZES], lamp: TemplateResult | typeof nothing, title: string, pos: string, own: boolean, lines: boolean): TemplateResult {
     const n = stops.length;
     const ptr = c.cap === "pointer";
-    const step = knobStep(n, ptr, c.labels_position === "left" || c.labels_position === "right");
+    const step = knobStep(n, ptr);
     const angles = this.knobAngles();
     const angle = (i: number) => angles[i];
     const turn = n > 1 && angles[n - 1] > angles[0] ? 1 : 0;
@@ -464,31 +528,38 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const drop = ptr
       ? svg`<svg viewBox="-31 -31 62 62"><defs><linearGradient id="rams-metal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9d8d3" /><stop offset="0.55" stop-color="#a9a8a3" /><stop offset="1" stop-color="#8f8e89" /></linearGradient></defs><path d="M10.05 -5.8 L3.35 -17.57 Q1.86 -20.18 1.86 -23.18 L1.86 -31.9 A1.86 1.86 0 0 0 -1.86 -31.9 L-1.86 -23.18 Q-1.86 -20.18 -3.35 -17.57 L-10.05 -5.8 A11.6 11.6 0 1 0 10.05 -5.8 Z" fill="url(#rams-metal)" stroke="rgba(0,0,0,0.25)" stroke-width="0.4" stroke-linejoin="round" /></svg>`
       : nothing;
-    const pts = stops.map((s, i) => {
-      const a = angle(i);
-      const rad = (a * Math.PI) / 180;
-      const ax = Math.round(Math.sin(rad) * 1000) / 1000;
-      const ay = Math.round(-Math.cos(rad) * 1000) / 1000;
-      // labels at the side stand in a straight column, text flush against it; above and below they follow the arc
-      const sideSign = c.labels_position === "left" ? -1 : 1;
-      const ux = tb ? sideSign : ax;
-      const uy = tb ? 0 : ay;
-      const bx = tb ? sideSign : ax;
-      // at the side a label is centred on its marker (the tick of the arc or the lamp), which sits on the circle of radius rm
-      const reach = ptr ? (own ? 49 : 42) : own ? 44 : 38;
-      const ayv = tb ? (ay * rm) / reach : ay;
+    const labelOf = (s: (typeof stops)[number], i: number) => {
       const hasIcon = show !== "labels" && show !== "none" && !!s.icon;
       const icon = hasIcon ? html`<ha-icon class="ico" .icon=${s.icon}></ha-icon>` : nothing;
       const text = show === "labels" || show === "both" || (show === "auto" && !hasIcon) ? html`<span>${s.label}</span>` : nothing;
+      return html`<button class="lab ${i === now ? "on" : ""}" title=${s.label} @click=${() => this.choose(i)}>${icon}${text}</button>`;
+    };
+    const lampOf = (s: (typeof stops)[number], a: number) => {
       const tone = own ? this.lampTone(s.option) : undefined;
-      const lampEl = own ? html`<span class="ray" style="--r:${a}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : nothing;
-      const side = ux < -0.3 ? "ux-l" : "ux-1";
-      return html`${lampEl}<span class="pt ${side}" style="--ax:${bx}; --ay:${ayv}; --ux:${ux}; --uy:${uy}; --pr:${reach}"><button class="lab ${i === now ? "on" : ""}" title=${s.label} @click=${() => this.choose(i)}>${icon}${text}</button></span>`;
-    });
+      return own ? html`<span class="ray" style="--r:${a}deg"><span class="pip" style="top: calc(-${rm}cqmin - 4px)"><i class="lamp sm ${tone ? `on ${tone}` : ""}"></i></span></span>` : nothing;
+    };
+    const lampsOnly = stops.map((s, i) => lampOf(s, angle(i)));
+    const ls = this.labelScale();
+    const row = tb
+      ? nothing
+      : html`<div class="lrow" style="--W:${this.rowWidth(ls)}; --Y:${(c.labels_position === "below" ? 1 : -1) * (this.labelReach() + 0.05 * ls)}">${this.rowOrder().map((i) => labelOf(stops[i], i))}</div>`;
+    const pts = tb
+      ? stops.map((s, i) => {
+          const a = angle(i);
+          const rad = (a * Math.PI) / 180;
+          const ay = Math.round(-Math.cos(rad) * 1000) / 1000;
+          // labels at the side stand in a straight column, text flush against it; at the side a label is centred on its marker
+          const sideSign = c.labels_position === "left" ? -1 : 1;
+          const reach = this.labelReach() * 100;
+          const ayv = (ay * rm) / reach;
+          const side = sideSign < 0 ? "ux-l" : "ux-1";
+          return html`${lampsOnly[i]}<span class="pt ${side}" style="--ax:${sideSign}; --ay:${ayv}; --ux:${sideSign}; --uy:0; --pr:${reach}">${labelOf(s, i)}</span>`;
+        })
+      : lampsOnly;
     return html`<div class="wrap ${pos}">
       ${pos ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face k" style="overflow: visible; gap: 12px; --S:${S}px">${c.light === "below" ? nothing : lamp}
-        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px">${arc}${pts}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : html`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
+        <div class="kslot"><div class="knobbox ${tb ? "tb" : ""}" style="--a:${cap}deg; --fs:${z.fs}px; --ico:${z.ico}px; --lf:${(8.6 * ls).toFixed(2)}">${arc}${pts}${row}<span class="disc ${ptr ? "ptr" : ""} ${now < 0 ? "none" : ""}"><span class="turn">${ptr ? drop : html`<i class="dot"></i>`}</span></span><button class="half l ${this.nudgeTo(-1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Up" : "Left"} @click=${() => this.nudge(-1, sgn)}></button><button class="half r ${this.nudgeTo(1, sgn) < 0 ? "off" : ""}" aria-label=${tb ? "Down" : "Right"} @click=${() => this.nudge(1, sgn)}></button></div></div>
       ${c.light === "below" ? lamp : nothing}</div>
     </div>`;
   }

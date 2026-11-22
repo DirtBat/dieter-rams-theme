@@ -87,10 +87,12 @@ export class RamsRuler extends Piece<RulerConfig> {
   static getConfigForm() {
     return {
       schema: [
+        { name: "title", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "target_entity", selector: { entity: {} } },
+        { name: "interactive", selector: { boolean: {} } },
         {
           type: "grid",
           name: "",
@@ -99,25 +101,23 @@ export class RamsRuler extends Piece<RulerConfig> {
             { name: "max", selector: { number: { step: "any", mode: "box" } } },
             { name: "step", selector: { number: { step: "any", mode: "box" } } },
             { name: "unit", selector: { text: {} } },
+            num("value", undefined, undefined, { step: "any" }),
+            num("interval", undefined, undefined, { step: "any" }),
+            num("major", undefined, undefined, { step: "any" }),
           ],
         },
         {
           type: "grid",
           name: "",
           schema: [
-            num("value", undefined, undefined, { step: "any" }),
-            num("interval", undefined, undefined, { step: "any" }),
-            num("major", undefined, undefined, { step: "any" }),
-            { name: "title", selector: { text: {} } },
+            dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
             dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
         },
-        dropdown("orientation", [["horizontal", "Horizontal"], ["vertical", "Vertical"]]),
         { name: "number", selector: { boolean: {} } },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
-        { name: "interactive", selector: { boolean: {} } },
         ...layoutFields(),
       ],
       computeLabel,

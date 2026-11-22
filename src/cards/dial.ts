@@ -67,6 +67,8 @@ export class RamsDial extends Piece<DialConfig> {
     tokens,
     faceStyles,
     css`
+      :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); }
+      :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); }
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
       .dial { height: 100%; min-height: 72px; }
       .room { box-sizing: border-box; height: 100%; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
@@ -93,29 +95,35 @@ export class RamsDial extends Piece<DialConfig> {
   static getConfigForm() {
     return {
       schema: [
+        { name: "title", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "entities", selector: { entity: { multiple: true } } },
         { name: "attribute", selector: { attribute: {} }, context: { filter_entity: "entity" } },
         { name: "setpoint", selector: { entity: {} } },
+        { name: "interactive", selector: { boolean: {} } },
         {
           type: "grid",
           name: "",
           schema: [
-            num("value", undefined, undefined, { step: "any" }),
             num("min", undefined, undefined, { step: "any" }),
             num("max", undefined, undefined, { step: "any" }),
+            { name: "unit", selector: { text: {} } },
+            num("value", undefined, undefined, { step: "any" }),
             num("interval", undefined, undefined, { step: "any" }),
             num("major", undefined, undefined, { step: "any" }),
+          ],
+        },
+        {
+          type: "grid",
+          name: "",
+          schema: [
             num("start_angle", -360, 360, { step: 5 }),
             num("end_angle", -360, 360, { step: 5 }),
-            { name: "unit", selector: { text: {} } },
-            { name: "title", selector: { text: {} } },
-            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
+            dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
           ],
         },
-        { name: "interactive", selector: { boolean: {} } },
         ...layoutFields(),
       ],
       computeLabel,

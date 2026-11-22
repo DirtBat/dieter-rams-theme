@@ -51,13 +51,13 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
   static getConfigForm() {
     return {
       schema: [
+        { name: "caption", selector: { text: {} } },
         { name: "entity", selector: { entity: {} } },
         { name: "image", selector: { text: {} } },
-        { name: "caption", selector: { text: {} } },
         { name: "playing_entity", selector: { entity: {} } },
+        { name: "live", selector: { boolean: {} } },
         { name: "controls", selector: { boolean: {} } },
         dropdown("proportion", [["square", "Square"], ["4:3", "4:3"], ["3:2", "3:2"], ["16:9", "16:9"], ["3:4", "3:4 portrait"], ["2:3", "2:3 portrait"]]),
-        { name: "live", selector: { boolean: {} } },
         { name: "screen", selector: { boolean: {} } },
         ...layoutFields(),
         ...actionFields(),

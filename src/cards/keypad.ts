@@ -33,7 +33,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     css`
       :host { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
       /* a framed keypad has the same margin above and below as at the sides */
-      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="raised"]) { padding-block: var(--_gap); }
+      :host([frame="outline"]), :host([frame="recessed"]), :host([frame="backlit"]), :host([frame="black"]), :host([frame="raised"]) { padding-block: var(--_gap); }
       /* one centred block: the screen and the keys share the same width and margins (12px all round) */
       .pad { box-sizing: border-box; padding: 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: var(--_row); gap: var(--_gap); width: min(100%, calc(3 * var(--_row) + 2 * var(--_gap) + 24px)); margin: 0 auto; }
       .key:disabled { opacity: 0.4; pointer-events: none; }

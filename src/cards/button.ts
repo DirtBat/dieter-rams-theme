@@ -5,7 +5,7 @@ import { formEditor } from "../shared/form-editor";
 import { Press } from "../shared/press";
 import { canWarn, readState, TONES, type StateRules, type Tone } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
-import { fitKey, keyStyles } from "../shared/key";
+import { keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
 import type { PieceConfig } from "../shared/types";
@@ -21,8 +21,8 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   icon?: string;
   /** Where the text goes: below (default), above, left, right, or printed on the key. */
   label_position?: "below" | "above" | "left" | "right" | "inside";
-  /** Square (default): always a square, the biggest that fits, in a black cut-out; tall is half as wide as high; round is a dome, always a circle. */
-  shape?: "square" | "tall" | "round";
+  /** Square (default): always a square, the biggest that fits, in a black cut-out; wide is a flat, graphite oblong twice as wide as high, like a transport key; round is a dome, always a circle. */
+  shape?: "square" | "wide" | "round";
   /** Colours the whole key. A state rule's colour then replaces it while the rule matches; a key with no tone shows the rule's colour as a dot. */
   tone?: Tone;
   /** Colours the icon (same colours as tone). Neutral keeps the key's ink. */
@@ -72,7 +72,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const w = Math.max(aw, 24), h = Math.max(ah, 24);
     // a round key is always a circle: its room is the biggest square
     const sq = this.isSquare();
-    const f = this.config?.shape === "tall" ? fitKey(w, h) : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
+    const f = this.config?.shape === "wide" ? { n: 2, m: 1, u: Math.max(0, Math.min(h, w / 2)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
     if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
   }
 
@@ -102,7 +102,7 @@ export class RamsButton extends Piece<ButtonConfig> {
           name: "",
           schema: [
             dropdown("label_position", [["below", "Below"], ["above", "Above"], ["left", "Left"], ["right", "Right"], ["inside", "Inside"]]),
-            dropdown("shape", [["square", "Square"], ["tall", "Tall"], ["round", "Round"]]),
+            dropdown("shape", [["square", "Square"], ["wide", "Wide"], ["round", "Round"]]),
             dropdown("tone", TONES),
             dropdown("icon_tone", TONES),
             dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]]),
@@ -153,9 +153,9 @@ export class RamsButton extends Piece<ButtonConfig> {
     return true;
   }
 
-  /** Anything that is not round or tall is a square key (an old or unknown shape such as "key" included). */
+  /** Anything that is not round or wide is a square key (an old or unknown shape such as "key" or "tall" included). */
   private isSquare(): boolean {
-    return this.config?.shape !== "round" && this.config?.shape !== "tall";
+    return this.config?.shape !== "round" && this.config?.shape !== "wide";
   }
 
   private areaSize(): string {
@@ -168,8 +168,8 @@ export class RamsButton extends Piece<ButtonConfig> {
   private keySize(shape?: string): string {
     const { n, m, u } = this.fit;
     if (shape === "round" || !u) return "";
-    if (shape !== "tall") return `--u:${u}px; width:${u}px; height:${u}px`;
-    return `--u:${u}px; width:${(shape === "tall" ? n / 2 : n) * u}px; height:${m * u}px`;
+    if (shape !== "wide") return `--u:${u}px; width:${u}px; height:${u}px`;
+    return `--u:${u}px; width:${n * u}px; height:${m * u}px`;
   }
 
   /** The lamp's classes: hidden, dark, or lit (in the colour a state rule gives it). */
@@ -190,7 +190,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
     const tone = own ? (view.tone ?? own) : "";
     const square = this.isSquare();
-    const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "tall" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
+    const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "wide" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
         <i class="led ${this.lamp(view, c)}"></i>

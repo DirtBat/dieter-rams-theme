@@ -31,8 +31,10 @@ export class RamsPanel extends Piece<PanelConfig> {
     tokens,
     css`
       .plate { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
-      .plate.f-outline, .plate.f-recessed, .plate.f-raised { background: var(--_plate); border: var(--_border); }
+      .plate.f-outline, .plate.f-recessed, .plate.f-backlit, .plate.f-black, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
+      .plate.f-backlit { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); --rams-ink: var(--_backlit-ink); --rams-muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
+      .plate.f-black { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); --rams-ink: var(--_led-ink); --rams-muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 0 rgba(255, 255, 255, 0.35); text-shadow: 0 0 6px color-mix(in srgb, var(--_led-ink) 40%, transparent); }
       .plate.f-raised { box-shadow: var(--_raised); }
       .plate.screwed { position: relative; padding: calc(var(--_gap) + 18px); }
       .screw { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-sizing: border-box; pointer-events: none;
