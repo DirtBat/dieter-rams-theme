@@ -1,3 +1,4 @@
+import { formatValue } from "../shared/entity-value";
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
@@ -146,7 +147,7 @@ export class RamsLabel extends Piece<LabelConfig> {
     if (!c.entity) return c.text ?? "";
     const e = this.hass?.states[c.entity];
     if (!e) return "";
-    return c.attribute ? String(e.attributes[c.attribute] ?? "") : e.state;
+    return formatValue(this.hass, c.entity, c.attribute);
   }
 
   protected render(): TemplateResult | typeof nothing {

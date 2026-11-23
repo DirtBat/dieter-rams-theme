@@ -33,6 +33,27 @@ export function readNumber(hass: Hass | undefined, entity: string | undefined, a
   }
 }
 
+/**
+ * The text to print for an entity's state or attribute. A number goes through Home Assistant's own formatting, so the display precision
+ * set on the entity applies (a template sensor may hold 0.20000000000000018); the entity's unit is left off because the card prints its own.
+ * A timestamp prints as a date and time in the user's format. Any other text is printed as it is.
+ */
+export function formatValue(hass: Hass | undefined, entity: string | undefined, attribute?: string): string {
+  const e = entity ? hass?.states[entity] : undefined;
+  if (!e) return "";
+  if (attribute) {
+    const raw = e.attributes[attribute];
+    return typeof raw === "number" && hass?.formatEntityAttributeValue ? stripUnit(hass.formatEntityAttributeValue(e, attribute), e.attributes.unit_of_measurement) : String(raw ?? "");
+  }
+  if (e.attributes.device_class === "timestamp" && hass?.formatEntityState) return hass.formatEntityState(e);
+  if (hass?.formatEntityState && e.state.trim() !== "" && !Number.isNaN(Number(e.state))) return stripUnit(hass.formatEntityState(e), e.attributes.unit_of_measurement);
+  return e.state;
+}
+
+function stripUnit(text: string, unit: unknown): string {
+  return typeof unit === "string" && unit && text.endsWith(unit) ? text.slice(0, -unit.length).trim() : text;
+}
+
 export function defaultRange(hass: Hass | undefined, entity: string | undefined): Range {
   const e = entity ? hass?.states[entity] : undefined;
   const a = e?.attributes ?? {};

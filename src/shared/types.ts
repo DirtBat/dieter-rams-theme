@@ -9,6 +9,7 @@ export interface Hass {
   states: Record<string, HassEntity>;
   callService(domain: string, service: string, data?: Record<string, unknown>): Promise<void>;
   formatEntityState?(entity: HassEntity): string;
+  formatEntityAttributeValue?(entity: HassEntity, attribute: string): string;
   localize?(key: string): string;
   config?: { time_zone?: string };
 }

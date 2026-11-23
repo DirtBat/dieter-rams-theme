@@ -111,3 +111,5 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Knob selector (2026-11-22): options sit at equal angles. The fan never reaches 180 degrees (150 at most), so no option points exactly along the knob's axis. Labels above or below stand in one row, and labels at the side in one column, with the same space between the texts, whatever the lamps do on the arc. Labels shrink a little when they would touch.
 - Button `shape: wide` replaces `tall`: a flat graphite pill three times as wide as high (token `rams-graphite`). An old `shape: tall` shows as a square key.
 - Editor fields now follow one order on every card: name or title, source (entity, attribute, icon), values, looks, size in panel and frame, actions, state rules.
+
+- Display and label print a number through Home Assistant's own formatting, so the entity's display precision applies (a template sensor may hold 0.20000000000000018). The entity's unit is left off: the card prints its `unit` field. Text states print as they are.

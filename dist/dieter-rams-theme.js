@@ -1035,6 +1035,20 @@ function readNumber(hass, entity, attribute) {
       return num(e2.state);
   }
 }
+function formatValue(hass, entity, attribute) {
+  const e2 = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
+  if (!e2) return "";
+  if (attribute) {
+    const raw = e2.attributes[attribute];
+    return typeof raw === "number" && (hass == null ? void 0 : hass.formatEntityAttributeValue) ? stripUnit(hass.formatEntityAttributeValue(e2, attribute), e2.attributes.unit_of_measurement) : String(raw ?? "");
+  }
+  if (e2.attributes.device_class === "timestamp" && (hass == null ? void 0 : hass.formatEntityState)) return hass.formatEntityState(e2);
+  if ((hass == null ? void 0 : hass.formatEntityState) && e2.state.trim() !== "" && !Number.isNaN(Number(e2.state))) return stripUnit(hass.formatEntityState(e2), e2.attributes.unit_of_measurement);
+  return e2.state;
+}
+function stripUnit(text, unit) {
+  return typeof unit === "string" && unit && text.endsWith(unit) ? text.slice(0, -unit.length).trim() : text;
+}
 function defaultRange(hass, entity) {
   const e2 = entity ? hass == null ? void 0 : hass.states[entity] : void 0;
   const a2 = (e2 == null ? void 0 : e2.attributes) ?? {};
@@ -1933,14 +1947,12 @@ let RamsDisplay = class extends Piece {
     };
   }
   value() {
-    var _a2, _b;
+    var _a2;
     const c2 = this.config;
     if (!c2.entity) return c2.text ?? "";
     const entity = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity];
     if (!entity) return "";
-    if (c2.attribute) return String(entity.attributes[c2.attribute] ?? "");
-    if (entity.attributes.device_class === "timestamp" && ((_b = this.hass) == null ? void 0 : _b.formatEntityState)) return this.hass.formatEntityState(entity);
-    return entity.state;
+    return formatValue(this.hass, c2.entity, c2.attribute);
   }
   render() {
     var _a2;
@@ -2113,7 +2125,7 @@ let RamsLabel = class extends Piece {
     if (!c2.entity) return c2.text ?? "";
     const e2 = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity];
     if (!e2) return "";
-    return c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : e2.state;
+    return formatValue(this.hass, c2.entity, c2.attribute);
   }
   render() {
     const c2 = this.config;
@@ -3583,7 +3595,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 11:12 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 11:45 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

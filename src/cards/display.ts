@@ -1,3 +1,4 @@
+import { formatValue } from "../shared/entity-value";
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
@@ -177,10 +178,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     if (!c.entity) return c.text ?? "";
     const entity = this.hass?.states[c.entity];
     if (!entity) return "";
-    if (c.attribute) return String(entity.attributes[c.attribute] ?? "");
-    // a timestamp (last boot, last seen) prints as a date and time in the user's format, not as ISO text
-    if (entity.attributes.device_class === "timestamp" && this.hass?.formatEntityState) return this.hass.formatEntityState(entity);
-    return entity.state;
+    return formatValue(this.hass, c.entity, c.attribute);
   }
 
   protected render(): TemplateResult | typeof nothing {
