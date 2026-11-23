@@ -6,7 +6,8 @@ import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
 import { readState, TONES, type StateRules } from "../shared/state-rules";
 import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
-import type { PieceConfig } from "../shared/types";
+import { pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 export interface SelectorOption {
   /** The option exactly as the entity names it. */
@@ -172,14 +173,12 @@ export class RamsSelector extends Piece<SelectorConfig> {
     `,
   ];
 
-  static getStubConfig(): SelectorConfig {
-    return {
-      type: "custom:rams-selector",
-      title: "Mode",
-      options: [{ option: "off", label: "off" }, { option: "auto", label: "auto" }, { option: "manual", label: "manual" }],
-      columns: 6,
-      rows: 2,
-    };
+  /** A pointer knob with a lamp on each option: on one of your input_selects (3 to 6 options) if there is one, else a fixed example. */
+  static getStubConfig(hass?: Hass): SelectorConfig {
+    const e = pick(hass, ["input_select", "select"], (x) => Array.isArray(x.attributes.options) && x.attributes.options.length >= 3 && x.attributes.options.length <= 6);
+    const knob = { shape: "knob" as const, cap: "pointer" as const, light: "options" as const, columns: 6, rows: 3 };
+    if (e) return { type: "custom:rams-selector", entity: e.entity_id, title: String(e.attributes.friendly_name ?? "Mode"), ...knob };
+    return { type: "custom:rams-selector", title: "Mode", options: ["Off", "Eco", "Auto", "Comfort", "Boost"].map((o) => ({ option: o.toLowerCase(), label: o })), ...knob };
   }
 
   static getConfigElement(): Promise<HTMLElement> {

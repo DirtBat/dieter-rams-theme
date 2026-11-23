@@ -5,6 +5,7 @@ import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
+import { numeric, pickAll } from "../shared/stub";
 import type { Hass, HassEntity, PieceConfig } from "../shared/types";
 
 /** What a row prints: name and value (default), only one of them, or neither (an icon and a lamp is enough). */
@@ -94,8 +95,12 @@ export class RamsList extends Piece<ListConfig> {
     `,
   ];
 
-  static getStubConfig(): ListConfig {
-    return { type: "custom:rams-list", entities: [] };
+  /** Up to four of your lights with a switch key on each (else number sensors), so the preview shows a live list. */
+  static getStubConfig(hass?: Hass): ListConfig {
+    const lights = pickAll(hass, ["light", "switch"], 4);
+    if (lights.length) return { type: "custom:rams-list", title: "Lights", entities: lights.map((e) => e.entity_id), keys: "toggle", compact: true, columns: 6, rows: 3 };
+    const sensors = pickAll(hass, ["sensor"], 4, numeric);
+    return { type: "custom:rams-list", title: sensors.length ? "Sensors" : undefined, entities: sensors.map((e) => e.entity_id), empty_text: "Add entities", columns: 6, rows: 3 };
   }
 
   static getConfigForm() {

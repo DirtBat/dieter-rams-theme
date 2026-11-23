@@ -8,7 +8,8 @@ import { tokens } from "../shared/styles";
 import { keyStyles } from "../shared/key";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
-import type { PieceConfig } from "../shared/types";
+import { pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 /** The black frame round a square key, in px. */
 const FRAME = 3;
@@ -83,8 +84,11 @@ export class RamsButton extends Piece<ButtonConfig> {
 
   static styles = [tokens, keyStyles, css`:host { display: block; }`];
 
-  static getStubConfig(): ButtonConfig {
-    return { type: "custom:rams-button", name: "Button", columns: 2, rows: 2 };
+  /** A key for one of your lights or switches: it stays pressed and lights its lamp while the entity is on. */
+  static getStubConfig(hass?: Hass): ButtonConfig {
+    const e = pick(hass, ["light", "switch"]);
+    if (!e) return { type: "custom:rams-button", name: "Lamp", icon: "mdi:lightbulb-outline", light: "on", columns: 2, rows: 2 };
+    return { type: "custom:rams-button", entity: e.entity_id, icon: e.entity_id.startsWith("light.") ? "mdi:lightbulb-outline" : "mdi:power", light: "on", columns: 2, rows: 2 };
   }
 
   static getConfigElement(): Promise<HTMLElement> {

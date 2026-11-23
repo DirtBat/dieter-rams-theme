@@ -5,7 +5,8 @@ import { clamp, readNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
-import type { PieceConfig } from "../shared/types";
+import { pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 export interface DialConfig extends PieceConfig {
   /** Value from an entity (a sensor, or a helper) ... */
@@ -56,6 +57,7 @@ const END_GAP = 8;
 /** A scale on any arc with one red mark at the value. The arc is as large as the room allows; the number sits right under it. */
 @customElement("rams-dial")
 export class RamsDial extends Piece<DialConfig> {
+  protected honourRows = true;
   @state() private drag?: number;
   @state() private room = { w: 0, h: 0 };
   private watcher?: ResizeObserver;
@@ -70,8 +72,8 @@ export class RamsDial extends Piece<DialConfig> {
       :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); }
       :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); }
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
-      .dial { height: 100%; min-height: 72px; }
-      .room { box-sizing: border-box; height: 100%; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+      .dial { height: 100%; min-height: max(72px, var(--_min, 0px)); display: flex; flex-direction: column; }
+      .room { box-sizing: border-box; flex: 1; min-height: 0; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
       svg { display: block; flex: none; width: 100%; touch-action: none; }
       .face { display: block; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
@@ -88,8 +90,12 @@ export class RamsDial extends Piece<DialConfig> {
     `,
   ];
 
-  static getStubConfig(): DialConfig {
-    return { type: "custom:rams-dial", min: 0, max: 100, interval: 10, value: 40, start_angle: -90, end_angle: 90, columns: 6, rows: 3 };
+  /** Your thermostat if there is one (the red mark is the room temperature, the dark pointer the target), else a fixed example. */
+  static getStubConfig(hass?: Hass): DialConfig {
+    const e = pick(hass, ["climate"], (x) => typeof x.attributes.current_temperature === "number");
+    const arc = { start_angle: -120, end_angle: 120, columns: 6, rows: 3 };
+    if (e) return { type: "custom:rams-dial", entity: e.entity_id, attribute: "current_temperature", setpoint: e.entity_id, min: Number(e.attributes.min_temp ?? 7), max: Number(e.attributes.max_temp ?? 35), interval: 1, major: 5, unit: "\u00b0C", title: String(e.attributes.friendly_name ?? "Temperature"), ...arc };
+    return { type: "custom:rams-dial", title: "Temperature", unit: "\u00b0C", min: 10, max: 30, interval: 1, major: 5, value: 21, ...arc };
   }
 
   static getConfigForm() {

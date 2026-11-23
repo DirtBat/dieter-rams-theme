@@ -615,6 +615,7 @@ class Piece extends i {
     this.defaultFrame = "none";
     this.hostFrame = true;
     this.minRows = false;
+    this.honourRows = false;
     this.lastRows = 0;
   }
   setConfig(config) {
@@ -637,7 +638,7 @@ class Piece extends i {
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? ((_a2 = this.config) == null ? void 0 : _a2.frame) ?? this.defaultFrame : "none");
     this.toggleAttribute("actionable", this.actionable());
-    if (this.minRows) {
+    if (this.minRows || this.honourRows && this.rowsSet() !== void 0) {
       const n3 = this.rowsSet() ?? 1;
       const min = `calc(var(--_row) * ${n3} + var(--_gap) * ${n3 - 1})`;
       this.style.minHeight = min;
@@ -1080,6 +1081,13 @@ async function writeNumber(hass, entity, value) {
       throw new Error(`rams: cannot set a number on ${entity}`);
   }
 }
+function pick(hass, domains, ok = () => true) {
+  return Object.values((hass == null ? void 0 : hass.states) ?? {}).find(
+    (e2) => domains.includes(e2.entity_id.split(".")[0]) && e2.state !== "unavailable" && e2.state !== "unknown" && ok(e2)
+  );
+}
+const pickAll = (hass, domains, max, ok) => Object.values((hass == null ? void 0 : hass.states) ?? {}).filter((e2) => domains.includes(e2.entity_id.split(".")[0]) && e2.state !== "unavailable" && e2.state !== "unknown" && ((ok == null ? void 0 : ok(e2)) ?? true)).slice(0, max);
+const numeric = (e2) => e2.state.trim() !== "" && !Number.isNaN(Number(e2.state));
 var __defProp$5 = Object.defineProperty;
 var __getOwnPropDesc$b = Object.getOwnPropertyDescriptor;
 var __decorateClass$c = (decorators, target, key, kind) => {
@@ -1132,8 +1140,11 @@ let RamsButton = class extends Piece {
     super.disconnectedCallback();
     (_a2 = this.ro) == null ? void 0 : _a2.disconnect();
   }
-  static getStubConfig() {
-    return { type: "custom:rams-button", name: "Button", columns: 2, rows: 2 };
+  /** A key for one of your lights or switches: it stays pressed and lights its lamp while the entity is on. */
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["light", "switch"]);
+    if (!e2) return { type: "custom:rams-button", name: "Lamp", icon: "mdi:lightbulb-outline", light: "on", columns: 2, rows: 2 };
+    return { type: "custom:rams-button", entity: e2.entity_id, icon: e2.entity_id.startsWith("light.") ? "mdi:lightbulb-outline" : "mdi:power", light: "on", columns: 2, rows: 2 };
   }
   static getConfigElement() {
     return formEditor(this.getConfigForm());
@@ -1307,14 +1318,12 @@ let RamsSelector = class extends Piece {
       set("--_dy", `${Math.round(-((e2.minY + e2.maxY) / 2) * k2)}px`);
     };
   }
-  static getStubConfig() {
-    return {
-      type: "custom:rams-selector",
-      title: "Mode",
-      options: [{ option: "off", label: "off" }, { option: "auto", label: "auto" }, { option: "manual", label: "manual" }],
-      columns: 6,
-      rows: 2
-    };
+  /** A pointer knob with a lamp on each option: on one of your input_selects (3 to 6 options) if there is one, else a fixed example. */
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["input_select", "select"], (x2) => Array.isArray(x2.attributes.options) && x2.attributes.options.length >= 3 && x2.attributes.options.length <= 6);
+    const knob = { shape: "knob", cap: "pointer", light: "options", columns: 6, rows: 3 };
+    if (e2) return { type: "custom:rams-selector", entity: e2.entity_id, title: String(e2.attributes.friendly_name ?? "Mode"), ...knob };
+    return { type: "custom:rams-selector", title: "Mode", options: ["Off", "Eco", "Auto", "Comfort", "Boost"].map((o2) => ({ option: o2.toLowerCase(), label: o2 })), ...knob };
   }
   static getConfigElement() {
     return formEditor(this.getConfigForm());
@@ -1872,8 +1881,12 @@ let RamsDisplay = class extends Piece {
     var _a2;
     return !!((_a2 = this.config) == null ? void 0 : _a2.light) && this.config.light !== "none";
   }
-  static getStubConfig() {
-    return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
+  /** A large LCD with the value of one of your number sensors and its unit. */
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["sensor"], numeric);
+    if (!e2) return { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "°C", size: "large", frame: "recessed", columns: 6, rows: 2 };
+    const unit = typeof e2.attributes.unit_of_measurement === "string" ? e2.attributes.unit_of_measurement : void 0;
+    return { type: "custom:rams-display", title: String(e2.attributes.friendly_name ?? "Value"), entity: e2.entity_id, ...unit ? { unit } : {}, size: "large", frame: "recessed", columns: 6, rows: 2 };
   }
   static getConfigElement() {
     return formEditor(this.getConfigForm());
@@ -2044,7 +2057,7 @@ let RamsLabel = class extends Piece {
     return readState(this.hass, (_a2 = this.config) == null ? void 0 : _a2.entity, this.config ?? {}).signal;
   }
   static getStubConfig() {
-    return { type: "custom:rams-label", text: "Section", line: "below" };
+    return { type: "custom:rams-label", text: "Living room", line: "beside", size: "medium", columns: 12 };
   }
   static getConfigElement() {
     return formEditor(this.getConfigForm());
@@ -2319,14 +2332,18 @@ let RamsPanel = class extends Piece {
     };
   }
   static getStubConfig() {
-    const key = (name) => ({ type: "custom:rams-button", name, columns: 3, rows: 2 });
     const cards = [
-      { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "°C", size: "large", columns: 8, rows: 2 },
-      { type: "custom:rams-dial", value: 40, min: 0, max: 100, interval: 10, label: "Level", columns: 4, rows: 3 },
-      key("Lamp"),
-      key("Fan"),
-      key("Scene"),
-      key("Alarm")
+      { type: "custom:rams-label", text: "Living room", line: "below", columns: 12 },
+      { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "°C", size: "large", frame: "recessed", columns: 8, rows: 2 },
+      { type: "custom:rams-dial", title: "Target", value: 21, min: 10, max: 30, interval: 1, major: 5, unit: "°C", start_angle: -120, end_angle: 120, columns: 4, rows: 3 },
+      { type: "custom:rams-ruler", value: 40, min: 0, max: 100, interval: 5, major: 25, labels: true, columns: 8, rows: 1 },
+      { type: "custom:rams-button", name: "Rewind", icon: "mdi:rewind", shape: "wide", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Play", icon: "mdi:play", shape: "wide", tone: "orange", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Stop", icon: "mdi:stop", shape: "wide", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Lamp", icon: "mdi:lightbulb-outline", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Fan", icon: "mdi:fan", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Scene", icon: "mdi:palette-outline", shape: "round", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Alarm", icon: "mdi:shield-outline", shape: "round", tone: "green", columns: 3, rows: 2 }
     ];
     return { type: "custom:rams-panel", columns: 12, cards };
   }
@@ -2457,7 +2474,7 @@ let RamsRuler = class extends Piece {
     };
   }
   static getStubConfig() {
-    return { type: "custom:rams-ruler", labels: true };
+    return { type: "custom:rams-ruler", title: "Level", value: 40, min: 0, max: 100, interval: 5, major: 25, number: true, labels: true, columns: 6, rows: 2 };
   }
   static getConfigForm() {
     return {
@@ -2617,12 +2634,15 @@ let RamsArtwork = class extends Piece {
   constructor() {
     super(...arguments);
     this.defaultFrame = "raised";
+    this.honourRows = true;
     this.onTap = () => {
       if (this.config) fireAction(this, this.config, "tap");
     };
   }
-  static getStubConfig() {
-    return { type: "custom:rams-artwork", columns: 4 };
+  /** The cover of a media player that has one, with transport keys; else an empty frame with a caption. */
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["media_player"], (x2) => typeof x2.attributes.entity_picture === "string");
+    return e2 ? { type: "custom:rams-artwork", entity: e2.entity_id, controls: true, columns: 4, rows: 3 } : { type: "custom:rams-artwork", caption: "Now playing", columns: 4, rows: 3 };
   }
   static getConfigForm() {
     return {
@@ -2689,7 +2709,7 @@ RamsArtwork.styles = [
   tokens,
   i$3`
       :host { --_fpad: 0px; overflow: hidden; }
-      .art { position: relative; box-sizing: border-box; height: 100%; background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      .art { position: relative; box-sizing: border-box; height: 100%; min-height: var(--_min, 0px); background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
       .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
       .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
@@ -2725,7 +2745,7 @@ let RamsClock = class extends Piece {
     };
   }
   static getStubConfig() {
-    return { type: "custom:rams-clock", variant: "analog", columns: 6, rows: 3 };
+    return { type: "custom:rams-clock", variant: "analog", seconds: true, title: "Local time", columns: 6, rows: 3 };
   }
   static getConfigForm() {
     return {
@@ -2821,8 +2841,12 @@ const states = (a2) => {
 };
 const COLOURS = { red: "var(--_red)", orange: "var(--_orange)", blue: "var(--_blue)", green: "var(--_green)", grey: "var(--_grey)" };
 let RamsList = class extends Piece {
-  static getStubConfig() {
-    return { type: "custom:rams-list", entities: [] };
+  /** Up to four of your lights with a switch key on each (else number sensors), so the preview shows a live list. */
+  static getStubConfig(hass) {
+    const lights = pickAll(hass, ["light", "switch"], 4);
+    if (lights.length) return { type: "custom:rams-list", title: "Lights", entities: lights.map((e2) => e2.entity_id), keys: "toggle", compact: true, columns: 6, rows: 3 };
+    const sensors = pickAll(hass, ["sensor"], 4, numeric);
+    return { type: "custom:rams-list", title: sensors.length ? "Sensors" : void 0, entities: sensors.map((e2) => e2.entity_id), empty_text: "Add entities", columns: 6, rows: 3 };
   }
   static getConfigForm() {
     return {
@@ -2973,8 +2997,8 @@ let RamsList = class extends Piece {
     const small = c2.compact ? "" : c2.attribute ? String(e2.attributes[c2.attribute] ?? "") : String(e2.attributes.device_class ?? "");
     const view = readState(this.hass, id, { alert_when: states(r2.alert_when ?? c2.alert_when), value_colours: c2.value_colours });
     const alert = view.alert;
-    const numeric = !!((_b = c2.value_colours) == null ? void 0 : _b.length) && e2.state !== "" && !Number.isNaN(Number(e2.state));
-    const tone = view.tone ?? (alert ? r2.lamp_tone ?? "red" : numeric ? "grey" : void 0);
+    const numeric2 = !!((_b = c2.value_colours) == null ? void 0 : _b.length) && e2.state !== "" && !Number.isNaN(Number(e2.state));
+    const tone = view.tone ?? (alert ? r2.lamp_tone ?? "red" : numeric2 ? "grey" : void 0);
     const lamp = r2.lamp ?? c2.lamp ? b`<i class="lamp ${tone ? "on" : ""}" style="--l:${COLOURS[tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? b`<i class="lamp spacer"></i>` : A;
     const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
     return b`<div class="row" @click=${() => this.more(id)}>
@@ -3046,8 +3070,9 @@ let RamsKeypad = class extends Piece {
     super(...arguments);
     this.code = "";
   }
-  static getStubConfig() {
-    return { type: "custom:rams-keypad", columns: 12 };
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["alarm_control_panel"]);
+    return { type: "custom:rams-keypad", ...e2 ? { entity: e2.entity_id } : {}, columns: 12 };
   }
   static getConfigForm() {
     return {
@@ -3319,6 +3344,7 @@ const END_GAP = 8;
 let RamsDial = class extends Piece {
   constructor() {
     super(...arguments);
+    this.honourRows = true;
     this.room = { w: 0, h: 0 };
     this.origin = [0, 0];
     this.onDown = (e2) => {
@@ -3336,8 +3362,12 @@ let RamsDial = class extends Piece {
       this.drag = void 0;
     };
   }
-  static getStubConfig() {
-    return { type: "custom:rams-dial", min: 0, max: 100, interval: 10, value: 40, start_angle: -90, end_angle: 90, columns: 6, rows: 3 };
+  /** Your thermostat if there is one (the red mark is the room temperature, the dark pointer the target), else a fixed example. */
+  static getStubConfig(hass) {
+    const e2 = pick(hass, ["climate"], (x2) => typeof x2.attributes.current_temperature === "number");
+    const arc = { start_angle: -120, end_angle: 120, columns: 6, rows: 3 };
+    if (e2) return { type: "custom:rams-dial", entity: e2.entity_id, attribute: "current_temperature", setpoint: e2.entity_id, min: Number(e2.attributes.min_temp ?? 7), max: Number(e2.attributes.max_temp ?? 35), interval: 1, major: 5, unit: "°C", title: String(e2.attributes.friendly_name ?? "Temperature"), ...arc };
+    return { type: "custom:rams-dial", title: "Temperature", unit: "°C", min: 10, max: 30, interval: 1, major: 5, value: 21, ...arc };
   }
   static getConfigForm() {
     return {
@@ -3569,8 +3599,8 @@ RamsDial.styles = [
       :host([frame="backlit"]) { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); }
       :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); }
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
-      .dial { height: 100%; min-height: 72px; }
-      .room { box-sizing: border-box; height: 100%; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+      .dial { height: 100%; min-height: max(72px, var(--_min, 0px)); display: flex; flex-direction: column; }
+      .room { box-sizing: border-box; flex: 1; min-height: 0; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
       svg { display: block; flex: none; width: 100%; touch-action: none; }
       .face { display: block; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
@@ -3595,7 +3625,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 11:45 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:37 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

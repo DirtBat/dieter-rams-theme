@@ -58,14 +58,18 @@ export class RamsPanel extends Piece<PanelConfig> {
 
   static getStubConfig(): PanelConfig {
     // A small example that shows the pieces working together; delete what you do not need.
-    const key = (name: string) => ({ type: "custom:rams-button", name, columns: 3, rows: 2 });
     const cards: unknown[] = [
-        { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "\u00b0C", size: "large", columns: 8, rows: 2 },
-        { type: "custom:rams-dial", value: 40, min: 0, max: 100, interval: 10, label: "Level", columns: 4, rows: 3 },
-        key("Lamp"),
-        key("Fan"),
-        key("Scene"),
-        key("Alarm"),
+      { type: "custom:rams-label", text: "Living room", line: "below", columns: 12 },
+      { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "\u00b0C", size: "large", frame: "recessed", columns: 8, rows: 2 },
+      { type: "custom:rams-dial", title: "Target", value: 21, min: 10, max: 30, interval: 1, major: 5, unit: "\u00b0C", start_angle: -120, end_angle: 120, columns: 4, rows: 3 },
+      { type: "custom:rams-ruler", value: 40, min: 0, max: 100, interval: 5, major: 25, labels: true, columns: 8, rows: 1 },
+      { type: "custom:rams-button", name: "Rewind", icon: "mdi:rewind", shape: "wide", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Play", icon: "mdi:play", shape: "wide", tone: "orange", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Stop", icon: "mdi:stop", shape: "wide", columns: 4, rows: 1 },
+      { type: "custom:rams-button", name: "Lamp", icon: "mdi:lightbulb-outline", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Fan", icon: "mdi:fan", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Scene", icon: "mdi:palette-outline", shape: "round", columns: 3, rows: 2 },
+      { type: "custom:rams-button", name: "Alarm", icon: "mdi:shield-outline", shape: "round", tone: "green", columns: 3, rows: 2 },
     ];
     return { type: "custom:rams-panel", columns: 12, cards: cards as PieceConfig[] };
   }

@@ -16,6 +16,8 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
   protected hostFrame = true;
   /** True for pieces with no height of their own: they take `rows` (default 1) as a minimum, so they never collapse in an editor preview. */
   protected minRows = false;
+  /** True for pieces that need a height from their `rows` to draw at all (a scale, a picture): alone, with no grid around them, they would collapse. */
+  protected honourRows = false;
 
   setConfig(config: C): void {
     this.config = config;
@@ -39,7 +41,7 @@ export abstract class Piece<C extends PieceConfig> extends LitElement {
     if (!changed.has("config")) return;
     this.setAttribute("frame", this.hostFrame ? (this.config?.frame ?? this.defaultFrame) : "none");
     this.toggleAttribute("actionable", this.actionable());
-    if (this.minRows) {
+    if (this.minRows || (this.honourRows && this.rowsSet() !== undefined)) {
       const n = this.rowsSet() ?? 1;
       const min = `calc(var(--_row) * ${n} + var(--_gap) * ${n - 1})`;
       this.style.minHeight = min;

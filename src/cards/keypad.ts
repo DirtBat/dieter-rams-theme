@@ -5,7 +5,8 @@ import { readState, TONES, type StateRules } from "../shared/state-rules";
 import { tokens } from "../shared/styles";
 import { keyStyles } from "../shared/key";
 import { computeLabel, computeHelper, layoutFields } from "../shared/form";
-import type { PieceConfig } from "../shared/types";
+import { pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 type Mode = "home" | "away" | "night" | "vacation" | "disarm";
 const MODES: [Mode, string][] = [["home", "Home"], ["away", "Away"], ["night", "Night"], ["vacation", "Vacation"], ["disarm", "Disarm"]];
@@ -53,8 +54,9 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     `,
   ];
 
-  static getStubConfig(): KeypadConfig {
-    return { type: "custom:rams-keypad", columns: 12 };
+  static getStubConfig(hass?: Hass): KeypadConfig {
+    const e = pick(hass, ["alarm_control_panel"]);
+    return { type: "custom:rams-keypad", ...(e ? { entity: e.entity_id } : {}), columns: 12 };
   }
 
   static getConfigForm() {

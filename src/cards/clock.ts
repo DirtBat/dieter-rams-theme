@@ -44,7 +44,7 @@ export class RamsClock extends Piece<ClockConfig> {
   ];
 
   static getStubConfig(): ClockConfig {
-    return { type: "custom:rams-clock", variant: "analog", columns: 6, rows: 3 };
+    return { type: "custom:rams-clock", variant: "analog", seconds: true, title: "Local time", columns: 6, rows: 3 };
   }
 
   static getConfigForm() {

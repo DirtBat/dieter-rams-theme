@@ -4,7 +4,8 @@ import { Piece } from "../shared/piece";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
-import type { PieceConfig } from "../shared/types";
+import { pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 export interface ArtworkConfig extends PieceConfig {
   /** Entity whose picture is shown (media player, camera ...). */
@@ -29,11 +30,12 @@ const RATIO: Record<string, number> = { square: 1, "4:3": 4 / 3, "3:2": 3 / 2, "
 @customElement("rams-artwork")
 export class RamsArtwork extends Piece<ArtworkConfig> {
   protected defaultFrame = "raised" as const;
+  protected honourRows = true;
   static styles = [
     tokens,
     css`
       :host { --_fpad: 0px; overflow: hidden; }
-      .art { position: relative; box-sizing: border-box; height: 100%; background: var(--_field) center / cover no-repeat; cursor: pointer; }
+      .art { position: relative; box-sizing: border-box; height: 100%; min-height: var(--_min, 0px); background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
       .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
       .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
@@ -44,8 +46,10 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
     `,
   ];
 
-  static getStubConfig(): ArtworkConfig {
-    return { type: "custom:rams-artwork", columns: 4 };
+  /** The cover of a media player that has one, with transport keys; else an empty frame with a caption. */
+  static getStubConfig(hass?: Hass): ArtworkConfig {
+    const e = pick(hass, ["media_player"], (x) => typeof x.attributes.entity_picture === "string");
+    return e ? { type: "custom:rams-artwork", entity: e.entity_id, controls: true, columns: 4, rows: 3 } : { type: "custom:rams-artwork", caption: "Now playing", columns: 4, rows: 3 };
   }
 
   static getConfigForm() {

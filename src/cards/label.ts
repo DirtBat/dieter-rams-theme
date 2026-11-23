@@ -62,7 +62,7 @@ export class RamsLabel extends Piece<LabelConfig> {
   ];
 
   static getStubConfig(): LabelConfig {
-    return { type: "custom:rams-label", text: "Section", line: "below" };
+    return { type: "custom:rams-label", text: "Living room", line: "beside", size: "medium", columns: 12 };
   }
 
   static getConfigElement(): Promise<HTMLElement> {

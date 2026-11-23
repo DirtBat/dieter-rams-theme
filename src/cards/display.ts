@@ -8,7 +8,8 @@ import { faceStyles } from "../shared/face";
 import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
 import { Press } from "../shared/press";
 import { readState, TONES, type Tone } from "../shared/state-rules";
-import type { PieceConfig } from "../shared/types";
+import { numeric, pick } from "../shared/stub";
+import type { Hass, PieceConfig } from "../shared/types";
 
 type Size = "small" | "medium" | "large";
 
@@ -96,8 +97,12 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     `,
   ];
 
-  static getStubConfig(): DisplayConfig {
-    return { type: "custom:rams-display", title: "Title", text: "Value", size: "medium" };
+  /** A large LCD with the value of one of your number sensors and its unit. */
+  static getStubConfig(hass?: Hass): DisplayConfig {
+    const e = pick(hass, ["sensor"], numeric);
+    if (!e) return { type: "custom:rams-display", title: "Temperature", text: "21.5", unit: "\u00b0C", size: "large", frame: "recessed", columns: 6, rows: 2 };
+    const unit = typeof e.attributes.unit_of_measurement === "string" ? e.attributes.unit_of_measurement : undefined;
+    return { type: "custom:rams-display", title: String(e.attributes.friendly_name ?? "Value"), entity: e.entity_id, ...(unit ? { unit } : {}), size: "large", frame: "recessed", columns: 6, rows: 2 };
   }
 
   static getConfigElement(): Promise<HTMLElement> {

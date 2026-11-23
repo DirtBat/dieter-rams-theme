@@ -81,7 +81,7 @@ export class RamsRuler extends Piece<RulerConfig> {
   ];
 
   static getStubConfig(): RulerConfig {
-    return { type: "custom:rams-ruler", labels: true };
+    return { type: "custom:rams-ruler", title: "Level", value: 40, min: 0, max: 100, interval: 5, major: 25, number: true, labels: true, columns: 6, rows: 2 };
   }
 
   static getConfigForm() {
