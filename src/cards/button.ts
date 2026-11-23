@@ -22,7 +22,7 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   icon?: string;
   /** Where the text goes: below (default), above, left, right, or printed on the key. */
   label_position?: "below" | "above" | "left" | "right" | "inside";
-  /** Square (default): always a square, the biggest that fits, in a black cut-out; wide is a flat graphite pill three times as wide as high, like a transport key; round is a dome, always a circle. */
+  /** Square (default): always a square, the biggest that fits, in a black cut-out; wide is a pill of the same light cap, three times as wide as high, like a transport key; round is a dome, always a circle. */
   shape?: "square" | "wide" | "round";
   /** Colours the whole key. A state rule's colour then replaces it while the rule matches; a key with no tone shows the rule's colour as a dot. */
   tone?: Tone;

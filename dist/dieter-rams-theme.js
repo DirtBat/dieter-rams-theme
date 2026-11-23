@@ -835,9 +835,6 @@ const tokens = i$3`
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
-    --_graphite: var(--rams-graphite, #4a4741);
-    /* a wide key that is down: darker by day, lit at night, like every other key */
-    --_graphite-down: var(--rams-graphite-down, color-mix(in srgb, var(--_graphite) 80%, #000));
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
@@ -937,12 +934,11 @@ const keyStyles = i$3`
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
 
-  /* wide: a flat graphite pill three times as wide as high (ends rounded to half its height), as the transport keys of a Braun cassette deck. No dish, no cut-out. */
-  .key.wide { border: 1px solid rgba(0, 0, 0, 0.55); border-radius: 999px; color: var(--_ink-on); background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite) 86%, #fff), var(--_graphite) 40%, color-mix(in srgb, var(--_graphite) 88%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.22); }
+  /* wide: the same light cap as the other keys, as a pill three times as wide as high (ends rounded to half its height), like the transport keys of a cassette deck. No dish, no cut-out. It is down, toned and lit like any other key. */
+  .key.wide { border-radius: 999px; }
   .key.wide::before { display: none; }
   .key.wide .ico { --mdc-icon-size: 18px; }
   .key.wide .legend { font-size: 10px; }
-  .key.wide.down, .key.wide:active { background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite-down) 86%, #fff), var(--_graphite-down) 40%, color-mix(in srgb, var(--_graphite-down) 88%, #000)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
 
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }
@@ -3653,7 +3649,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:52 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:54 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
