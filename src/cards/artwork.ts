@@ -1,6 +1,7 @@
 import { css, html, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
+import "./button";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
 import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
@@ -40,8 +41,10 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
       .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
       .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
-      .ctl { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
-      .ctl button { flex: 1; max-width: 56px; height: 28px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); color: var(--_ink); box-shadow: var(--_raised); font: inherit; font-size: 10px; cursor: pointer; }
+      /* the transport keys are the Rams wide keys, on the picture */
+      .ctl { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; justify-content: center; }
+      .ctl > span { flex: 1; max-width: 96px; height: 30px; display: block; }
+      .ctl rams-button { height: 100%; }
       .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
     `,
   ];
@@ -96,9 +99,21 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
     if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth / (RATIO[this.config.proportion ?? "square"] ?? 1) + 8) / 64)));
   }
 
-  private media(service: string): void {
-    const e = this.config?.entity;
-    if (e) void this.hass?.callService("media_player", service, { entity_id: e });
+  /** One transport key: a Rams wide key that runs a media_player service on the entity. Pressed while the player plays, when it is the play key. */
+  private key(icon: string, title: string, service: string, lit = false): TemplateResult {
+    const entity = this.config?.entity;
+    const config = {
+      type: "custom:rams-button",
+      icon,
+      name: "",
+      shape: "wide",
+      light: "none",
+      label_position: "inside",
+      rows: 0.5,
+      ...(lit ? { entity: this.config?.playing_entity ?? entity, selected_when: ["playing"] } : {}),
+      tap_action: { action: "perform-action", perform_action: `media_player.${service}`, target: { entity_id: entity } },
+    };
+    return html`<span title=${title}><rams-button .hass=${this.hass} .config=${config}></rams-button></span>`;
   }
 
   protected render(): TemplateResult | typeof nothing {
@@ -112,9 +127,9 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
       ${c.caption ? html`<span class="cap">${c.caption}</span>` : nothing}
       ${playing ? html`<span class="led"></span>` : nothing}
       ${c.controls ? html`<div class="ctl" @click=${(e: Event) => e.stopPropagation()}>
-        <button @click=${() => this.media("media_previous_track")}>&#9664;&#9664;</button>
-        <button @click=${() => this.media("media_play_pause")}>${playing ? "II" : "▶"}</button>
-        <button @click=${() => this.media("media_next_track")}>&#9654;&#9654;</button>
+        ${this.key("mdi:skip-previous", "Previous", "media_previous_track")}
+        ${this.key(playing ? "mdi:pause" : "mdi:play", playing ? "Pause" : "Play", "media_play_pause", true)}
+        ${this.key("mdi:skip-next", "Next", "media_next_track")}
       </div>` : nothing}
     </div>`;
   }

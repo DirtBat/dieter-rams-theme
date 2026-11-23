@@ -10,7 +10,7 @@ import type { PieceConfig } from "../shared/types";
 export interface ClockConfig extends PieceConfig {
   variant?: "analog" | "digital";
   seconds?: boolean;
-  /** Printed outside the clock, at `title_position` (default above). */
+  /** Printed outside the clock, at `title_position` (default below). */
   title?: string;
   title_position?: "above" | "below" | "left" | "right";
   /** Toggle entity (e.g. an alarm switch): a small LED on the clock, lit while on; tap it to switch. */
@@ -93,7 +93,7 @@ export class RamsClock extends Piece<ClockConfig> {
     const led = c.alarm_entity ? html`<button class="led ${alarm ? "on" : ""}" aria-label="Alarm" @click=${this.toggleAlarm}></button>` : nothing;
     // A digital clock is a display: recessed by default. An analog one sits on the plate.
     const frame = c.frame ?? (digital ? "recessed" : this.defaultFrame);
-    const pos = c.title ? (c.title_position ?? "above") : "";
+    const pos = c.title ? (c.title_position ?? "below") : "";
     const hourDeg = ((h % 12) + m / 60) * 30;
     const minDeg = (m + s / 60) * 6;
     const pad = (n: number) => String(n).padStart(2, "0");

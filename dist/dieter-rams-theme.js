@@ -836,6 +836,8 @@ const tokens = i$3`
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
     --_graphite: var(--rams-graphite, #34312d);
+    /* a wide key that is down: darker by day, lit at night, like every other key */
+    --_graphite-down: var(--rams-graphite-down, color-mix(in srgb, var(--_graphite) 80%, #000));
     --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
@@ -940,7 +942,7 @@ const keyStyles = i$3`
   .key.wide::before { display: none; }
   .key.wide .ico { --mdc-icon-size: 18px; }
   .key.wide .legend { font-size: 10px; }
-  .key.wide.down, .key.wide:active { background: color-mix(in srgb, var(--_graphite) 82%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
+  .key.wide.down, .key.wide:active { background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite-down) 86%, #fff), var(--_graphite-down) 40%, color-mix(in srgb, var(--_graphite-down) 88%, #000)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
 
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }
@@ -1239,7 +1241,7 @@ let RamsButton = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const view = readState(this.hass, c2.entity, c2);
-    const name = c2.name || String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
+    const name = c2.name ?? String(((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.entity ?? ""]) == null ? void 0 : _b.attributes.friendly_name) ?? "");
     const pos = c2.label_position ?? "below";
     const own = c2.tone && c2.tone !== "neutral" ? c2.tone : "";
     const tone = own ? view.tone ?? own : "";
@@ -1247,7 +1249,7 @@ let RamsButton = class extends Piece {
     const cls = ["key", square ? "sq" : "", c2.shape === "round" || c2.shape === "wide" ? c2.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return b`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${this.lamp(view, c2)}"></i>
+        ${c2.light === "none" ? A : b`<i class="led ${this.lamp(view, c2)}"></i>`}
         <div class="keyarea" style=${this.areaSize()}>${square ? b`<i class="plate"></i>` : A}<button class=${cls} style=${this.keySize(c2.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? b`<i class="dot ${view.tone}"></i>` : A}
           ${c2.icon ? b`<ha-icon class="ico ${c2.icon_tone && c2.icon_tone !== "neutral" ? `tinted ${c2.icon_tone}` : ""}" .icon=${c2.icon}></ha-icon>` : A}
@@ -1972,7 +1974,8 @@ let RamsDisplay = class extends Piece {
     const c2 = this.config;
     if (!c2) return A;
     const title = ((_a2 = c2.title) == null ? void 0 : _a2.trim()) ?? "";
-    const outside = c2.title_position && c2.title_position !== "inside" && !!title;
+    const where = c2.title_position ?? "below";
+    const outside = where !== "inside" && !!title && (c2.show ?? "all") !== "title";
     const inside = !!title && !outside;
     const light = this.lamp() ? c2.light : "none";
     const show = c2.show ?? "all";
@@ -1982,7 +1985,7 @@ let RamsDisplay = class extends Piece {
     const cls = [c2.align ?? "start", c2.size ?? "medium", showTitle && light !== "only" ? "has-title" : "", notext ? "notext" : "", !showValue ? "noval" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c2.entity, c2).signal : void 0;
     const face = [c2.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x2) => x2 && x2 !== "none").join(" ");
-    return b`<div class="wrap ${outside ? c2.title_position : ""} ${light === "only" ? "lamp-only" : ""}">
+    return b`<div class="wrap ${outside ? where : ""} ${light === "only" ? "lamp-only" : ""}">
       ${outside ? b`<span class="outer">${title}</span>` : A}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">
@@ -2578,7 +2581,7 @@ let RamsRuler = class extends Piece {
       ${c2.number && value !== void 0 ? b`<div class="num ${c2.align ?? "center"}">${this.fmt(value)}</div>` : A}
       ${c2.labels ? b`<div class="labels"><span>${this.fmt(min)}</span>${c2.centre ? b`<span>${this.fmt(0)}</span>` : A}<span>${this.fmt(max)}</span></div>` : A}
     </div>`;
-    return title ? b`<div class="t ${c2.title_position ?? "above"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
+    return title ? b`<div class="t ${c2.title_position ?? "below"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
   }
 };
 RamsRuler.styles = [
@@ -2681,10 +2684,22 @@ let RamsArtwork = class extends Piece {
   fit() {
     if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth / (RATIO[this.config.proportion ?? "square"] ?? 1) + 8) / 64)));
   }
-  media(service) {
+  /** One transport key: a Rams wide key that runs a media_player service on the entity. Pressed while the player plays, when it is the play key. */
+  key(icon, title, service, lit = false) {
     var _a2, _b;
-    const e2 = (_a2 = this.config) == null ? void 0 : _a2.entity;
-    if (e2) void ((_b = this.hass) == null ? void 0 : _b.callService("media_player", service, { entity_id: e2 }));
+    const entity = (_a2 = this.config) == null ? void 0 : _a2.entity;
+    const config = {
+      type: "custom:rams-button",
+      icon,
+      name: "",
+      shape: "wide",
+      light: "none",
+      label_position: "inside",
+      rows: 0.5,
+      ...lit ? { entity: ((_b = this.config) == null ? void 0 : _b.playing_entity) ?? entity, selected_when: ["playing"] } : {},
+      tap_action: { action: "perform-action", perform_action: `media_player.${service}`, target: { entity_id: entity } }
+    };
+    return b`<span title=${title}><rams-button .hass=${this.hass} .config=${config}></rams-button></span>`;
   }
   render() {
     var _a2, _b, _c, _d, _e;
@@ -2698,9 +2713,9 @@ let RamsArtwork = class extends Piece {
       ${c2.caption ? b`<span class="cap">${c2.caption}</span>` : A}
       ${playing ? b`<span class="led"></span>` : A}
       ${c2.controls ? b`<div class="ctl" @click=${(e2) => e2.stopPropagation()}>
-        <button @click=${() => this.media("media_previous_track")}>&#9664;&#9664;</button>
-        <button @click=${() => this.media("media_play_pause")}>${playing ? "II" : "▶"}</button>
-        <button @click=${() => this.media("media_next_track")}>&#9654;&#9654;</button>
+        ${this.key("mdi:skip-previous", "Previous", "media_previous_track")}
+        ${this.key(playing ? "mdi:pause" : "mdi:play", playing ? "Pause" : "Play", "media_play_pause", true)}
+        ${this.key("mdi:skip-next", "Next", "media_next_track")}
       </div>` : A}
     </div>`;
   }
@@ -2714,8 +2729,10 @@ RamsArtwork.styles = [
       .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
       .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
-      .ctl { position: absolute; left: 6px; right: 6px; bottom: 6px; display: flex; gap: 6px; justify-content: center; }
-      .ctl button { flex: 1; max-width: 56px; height: 28px; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); color: var(--_ink); box-shadow: var(--_raised); font: inherit; font-size: 10px; cursor: pointer; }
+      /* the transport keys are the Rams wide keys, on the picture */
+      .ctl { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; justify-content: center; }
+      .ctl > span { flex: 1; max-width: 96px; height: 30px; display: block; }
+      .ctl rams-button { height: 100%; }
       .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
     `
 ];
@@ -2786,7 +2803,7 @@ let RamsClock = class extends Piece {
     const alarm = c2.alarm_entity ? ((_b = (_a2 = this.hass) == null ? void 0 : _a2.states[c2.alarm_entity]) == null ? void 0 : _b.state) === "on" : false;
     const led = c2.alarm_entity ? b`<button class="led ${alarm ? "on" : ""}" aria-label="Alarm" @click=${this.toggleAlarm}></button>` : A;
     const frame = c2.frame ?? (digital ? "recessed" : this.defaultFrame);
-    const pos = c2.title ? c2.title_position ?? "above" : "";
+    const pos = c2.title ? c2.title_position ?? "below" : "";
     const hourDeg = (h2 % 12 + m2 / 60) * 30;
     const minDeg = (m2 + s2 / 60) * 6;
     const pad = (n3) => String(n3).padStart(2, "0");
@@ -2915,10 +2932,20 @@ let RamsList = class extends Piece {
   more(entity) {
     fireAction(this, { entity, tap_action: { action: "more-info" } }, "tap");
   }
-  call(e2, domain, service, entity) {
-    var _a2;
-    e2.stopPropagation();
-    void ((_a2 = this.hass) == null ? void 0 : _a2.callService(domain, service, { entity_id: entity }));
+  /** A small round Rams key on a row. It runs the service on the entity; pressed while the entity is on, when `lit`. */
+  key(icon, title, domain, service, entity, lit = false) {
+    const config = {
+      type: "custom:rams-button",
+      icon,
+      name: "",
+      shape: "round",
+      light: "none",
+      label_position: "inside",
+      rows: 0.5,
+      ...lit ? { entity } : {},
+      tap_action: { action: "perform-action", perform_action: `${domain}.${service}`, target: { entity_id: entity } }
+    };
+    return b`<span class="k" title=${title} @click=${(e2) => e2.stopPropagation()}><rams-button .hass=${this.hass} .config=${config}></rams-button></span>`;
   }
   value(hass, e2) {
     var _a2, _b;
@@ -3000,7 +3027,7 @@ let RamsList = class extends Piece {
     const numeric2 = !!((_b = c2.value_colours) == null ? void 0 : _b.length) && e2.state !== "" && !Number.isNaN(Number(e2.state));
     const tone = view.tone ?? (alert ? r2.lamp_tone ?? "red" : numeric2 ? "grey" : void 0);
     const lamp = r2.lamp ?? c2.lamp ? b`<i class="lamp ${tone ? "on" : ""}" style="--l:${COLOURS[tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? b`<i class="lamp spacer"></i>` : A;
-    const keys = c2.keys === "toggle" ? b`<button class="key" @click=${(ev) => this.call(ev, "homeassistant", "toggle", id)}>${e2.state === "on" ? "on" : "off"}</button>` : c2.keys === "cover" ? b`<button class="key" @click=${(ev) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>` : A;
+    const keys = c2.keys === "toggle" ? this.key("mdi:power", "Toggle", "homeassistant", "toggle", id, true) : c2.keys === "cover" ? b`${this.key("mdi:arrow-up", "Open", "cover", "open_cover", id)}${this.key("mdi:arrow-down", "Close", "cover", "close_cover", id)}` : A;
     return b`<div class="row" @click=${() => this.more(id)}>
       ${dot}${icon}${lamp}
       ${show === "all" || show === "name" ? b`<span class="name">${small ? b`<small>${small.replace(/_/g, " ")}</small>` : A}${name}</span>` : A}
@@ -3045,8 +3072,9 @@ RamsList.styles = [
       .name small { display: block; font-size: 0.72em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); line-height: 1.3; }
       .val { color: var(--_muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .val.alert { color: var(--_alert); }
-      .key { flex: none; min-width: 34px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); box-shadow: var(--_raised); color: var(--_ink); font: inherit; font-size: 11px; cursor: pointer; }
-      .key:active { box-shadow: var(--_pressed); }
+      /* the row keys are small round Rams keys */
+      .k { flex: none; width: 32px; height: 28px; display: block; }
+      .k rams-button { height: 100%; }
       .empty, .more { font-size: 0.85em; color: var(--_muted); padding: 4px 0; flex: none; }
     `
 ];
@@ -3445,7 +3473,7 @@ let RamsDial = class extends Piece {
   }
   inside() {
     var _a2;
-    return !((_a2 = this.config) == null ? void 0 : _a2.title_position) || this.config.title_position === "inside";
+    return ((_a2 = this.config) == null ? void 0 : _a2.title_position) === "inside";
   }
   /** Text size of the end numbers: it follows the dial a little, within limits. */
   endSize(r2) {
@@ -3589,7 +3617,7 @@ let RamsDial = class extends Piece {
     </div></div>`;
     const outside = !this.inside() && !!this.text();
     if (!outside) return dial;
-    return b`<div class="wrap ${c2.title_position}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
+    return b`<div class="wrap ${c2.title_position ?? "below"}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
 };
 RamsDial.styles = [
@@ -3625,7 +3653,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:37 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:49 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

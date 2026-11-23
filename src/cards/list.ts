@@ -2,6 +2,7 @@ import { css, html, nothing, type PropertyValues, type TemplateResult } from "li
 import { customElement } from "lit/decorators.js";
 import { readState, TONES, type Tone } from "../shared/state-rules";
 import { Piece } from "../shared/piece";
+import "./button";
 import { fireAction } from "../shared/actions";
 import { tokens } from "../shared/styles";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
@@ -89,8 +90,9 @@ export class RamsList extends Piece<ListConfig> {
       .name small { display: block; font-size: 0.72em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); line-height: 1.3; }
       .val { color: var(--_muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
       .val.alert { color: var(--_alert); }
-      .key { flex: none; min-width: 34px; height: 28px; padding: 0 6px; box-sizing: border-box; border-radius: var(--_radius); border: var(--_border); background: var(--_cap); box-shadow: var(--_raised); color: var(--_ink); font: inherit; font-size: 11px; cursor: pointer; }
-      .key:active { box-shadow: var(--_pressed); }
+      /* the row keys are small round Rams keys */
+      .k { flex: none; width: 32px; height: 28px; display: block; }
+      .k rams-button { height: 100%; }
       .empty, .more { font-size: 0.85em; color: var(--_muted); padding: 4px 0; flex: none; }
     `,
   ];
@@ -173,9 +175,21 @@ export class RamsList extends Piece<ListConfig> {
     fireAction(this, { entity, tap_action: { action: "more-info" } }, "tap");
   }
 
-  private call(e: Event, domain: string, service: string, entity: string): void {
-    e.stopPropagation();
-    void this.hass?.callService(domain, service, { entity_id: entity });
+  /** A small round Rams key on a row. It runs the service on the entity; pressed while the entity is on, when `lit`. */
+  private key(icon: string, title: string, domain: string, service: string, entity: string, lit = false): TemplateResult {
+    const config = {
+      type: "custom:rams-button",
+      icon,
+      name: "",
+      shape: "round",
+      light: "none",
+      label_position: "inside",
+      rows: 0.5,
+      ...(lit ? { entity } : {}),
+      tap_action: { action: "perform-action", perform_action: `${domain}.${service}`, target: { entity_id: entity } },
+    };
+    // a press on a key must not also open the row's more-info
+    return html`<span class="k" title=${title} @click=${(e: Event) => e.stopPropagation()}><rams-button .hass=${this.hass} .config=${config}></rams-button></span>`;
   }
 
   private value(hass: Hass, e: HassEntity): string {
@@ -260,9 +274,9 @@ export class RamsList extends Piece<ListConfig> {
     const tone = view.tone ?? (alert ? (r.lamp_tone ?? "red") : numeric ? "grey" : undefined);
     const lamp = (r.lamp ?? c.lamp) ? html`<i class="lamp ${tone ? "on" : ""}" style="--l:${COLOURS[tone ?? "red"] ?? COLOURS.red}"></i>` : this.any("lamp") ? html`<i class="lamp spacer"></i>` : nothing;
     const keys = c.keys === "toggle"
-      ? html`<button class="key" @click=${(ev: Event) => this.call(ev, "homeassistant", "toggle", id)}>${e.state === "on" ? "on" : "off"}</button>`
+      ? this.key("mdi:power", "Toggle", "homeassistant", "toggle", id, true)
       : c.keys === "cover"
-        ? html`<button class="key" @click=${(ev: Event) => this.call(ev, "cover", "open_cover", id)}>&#9650;</button><button class="key" @click=${(ev: Event) => this.call(ev, "cover", "close_cover", id)}>&#9660;</button>`
+        ? html`${this.key("mdi:arrow-up", "Open", "cover", "open_cover", id)}${this.key("mdi:arrow-down", "Close", "cover", "close_cover", id)}`
         : nothing;
     return html`<div class="row" @click=${() => this.more(id)}>
       ${dot}${icon}${lamp}

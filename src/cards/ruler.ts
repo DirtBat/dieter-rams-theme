@@ -206,6 +206,6 @@ export class RamsRuler extends Piece<RulerConfig> {
       ${c.number && value !== undefined ? html`<div class="num ${c.align ?? "center"}">${this.fmt(value)}</div>` : nothing}
       ${c.labels ? html`<div class="labels"><span>${this.fmt(min)}</span>${c.centre ? html`<span>${this.fmt(0)}</span>` : nothing}<span>${this.fmt(max)}</span></div>` : nothing}
     </div>`;
-    return title ? html`<div class="t ${c.title_position ?? "above"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
+    return title ? html`<div class="t ${c.title_position ?? "below"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;
   }
 }

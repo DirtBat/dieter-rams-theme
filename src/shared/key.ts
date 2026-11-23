@@ -65,7 +65,7 @@ export const keyStyles = css`
   .key.wide::before { display: none; }
   .key.wide .ico { --mdc-icon-size: 18px; }
   .key.wide .legend { font-size: 10px; }
-  .key.wide.down, .key.wide:active { background: color-mix(in srgb, var(--_graphite) 82%, #000); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
+  .key.wide.down, .key.wide:active { background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite-down) 86%, #fff), var(--_graphite-down) 40%, color-mix(in srgb, var(--_graphite-down) 88%, #000)); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7); transform: translateY(1px); }
 
   /* a toned key: the whole key takes the colour */
   .key.filled { --c: var(--t); color: var(--_ink-on); }

@@ -31,7 +31,7 @@ export interface DisplayConfig extends PieceConfig {
   state_colours?: Array<{ state: string; tone: Tone }>;
   /** A colour per number: above or below a value. */
   value_colours?: Array<{ when: "above" | "below"; value: number; tone: Tone }>;
-  /** Where the title goes: inside the box (default), or printed outside it. */
+  /** Where the title goes: printed below the box (default), or above, left, right of it, or inside the box. */
   title_position?: "inside" | "above" | "below" | "left" | "right";
   /** A status lamp in the display: left or right of the text, or alone. It lights in the colour the state rules give, and the display then stays unfilled. */
   light?: "none" | "left" | "right" | "only";
@@ -190,7 +190,9 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const c = this.config;
     if (!c) return nothing;
     const title = c.title?.trim() ?? "";
-    const outside = c.title_position && c.title_position !== "inside" && !!title;
+    // the title is printed below the display unless it is told to sit inside, or the display shows nothing but the title
+    const where = c.title_position ?? "below";
+    const outside = where !== "inside" && !!title && (c.show ?? "all") !== "title";
     const inside = !!title && !outside;
     const light = this.lamp() ? c.light! : "none";
     const show = c.show ?? "all";
@@ -200,7 +202,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const cls = [c.align ?? "start", c.size ?? "medium", showTitle && light !== "only" ? "has-title" : "", notext ? "notext" : "", !showValue ? "noval" : "", light !== "none" ? `lamp-${light}` : ""].filter(Boolean).join(" ");
     const tone = light !== "none" ? readState(this.hass, c.entity, c).signal : undefined;
     const face = [c.frame ?? this.defaultFrame, this.hasAttribute("signal") ? "sig" : ""].filter((x) => x && x !== "none").join(" ");
-    return html`<div class="wrap ${outside ? c.title_position : ""} ${light === "only" ? "lamp-only" : ""}">
+    return html`<div class="wrap ${outside ? where : ""} ${light === "only" ? "lamp-only" : ""}">
       ${outside ? html`<span class="outer">${title}</span>` : nothing}
       <div class="face ${face}" @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
         <div class="box ${cls}">

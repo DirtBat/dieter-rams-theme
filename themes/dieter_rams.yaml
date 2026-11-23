@@ -17,6 +17,7 @@ Dieter Rams:
       rams-lens: "#b9b3a6"            # warning LED, unlit
       rams-slot: "#2b2118"            # selector slot
       rams-graphite: "#34312d"        # wide keys
+      rams-graphite-down: "#272421"   # a wide key that is down
       rams-backlit-bg: "linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%)"   # frame: backlit, the same by day and night
       rams-backlit-ink: "#12160f"
       rams-led-bg: "linear-gradient(180deg, #0a0b08 0%, #12140e 100%)"   # black display
@@ -53,6 +54,7 @@ Dieter Rams:
       rams-lens: "#3a1512"
       rams-slot: "#0e0d0c"
       rams-graphite: "#4a4741"
+      rams-graphite-down: "#6b665c"   # lit, like the other keys
       rams-led-bg: "linear-gradient(180deg, #060705 0%, #0d0f0a 100%)"
       rams-led-ink: "#c6e63c"
       rams-lever: "#8d887c"

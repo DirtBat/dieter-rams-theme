@@ -25,7 +25,7 @@ export interface DialConfig extends PieceConfig {
   /** Distance between the thick tick marks. Empty: only the first and the last. */
   major?: number;
   unit?: string;
-  /** Printed with the dial: inside the arc (default), or above, below, left or right of it. */
+  /** Printed with the dial: below it (default), or above, left or right of it, or inside the arc. */
   title?: string;
   title_position?: "inside" | "above" | "below" | "left" | "right";
   /** Earlier name of title. */
@@ -178,7 +178,7 @@ export class RamsDial extends Piece<DialConfig> {
   }
 
   private inside(): boolean {
-    return !this.config?.title_position || this.config.title_position === "inside";
+    return this.config?.title_position === "inside";
   }
 
   /** Text size of the end numbers: it follows the dial a little, within limits. */
@@ -339,6 +339,6 @@ export class RamsDial extends Piece<DialConfig> {
     </div></div>`;
     const outside = !this.inside() && !!this.text();
     if (!outside) return dial;
-    return html`<div class="wrap ${c.title_position}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
+    return html`<div class="wrap ${c.title_position ?? "below"}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
 }

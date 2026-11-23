@@ -188,7 +188,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const c = this.config;
     if (!c) return nothing;
     const view = readState(this.hass, c.entity, c);
-    const name = c.name || String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
+    const name = c.name ?? String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     const pos = c.label_position ?? "below";
     const own = c.tone && c.tone !== "neutral" ? c.tone : "";
     // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
@@ -197,7 +197,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "wide" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
     return html`<div class="cell ${pos === "inside" ? "below" : pos}">
       <div class="stack">
-        <i class="led ${this.lamp(view, c)}"></i>
+        ${c.light === "none" ? nothing : html`<i class="led ${this.lamp(view, c)}"></i>`}
         <div class="keyarea" style=${this.areaSize()}>${square ? html`<i class="plate"></i>` : nothing}<button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${view.tone && !own ? html`<i class="dot ${view.tone}"></i>` : nothing}
           ${c.icon ? html`<ha-icon class="ico ${c.icon_tone && c.icon_tone !== "neutral" ? `tinted ${c.icon_tone}` : ""}" .icon=${c.icon}></ha-icon>` : nothing}
