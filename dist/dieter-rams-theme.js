@@ -835,7 +835,7 @@ const tokens = i$3`
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
-    --_graphite: var(--rams-graphite, #34312d);
+    --_graphite: var(--rams-graphite, #4a4741);
     /* a wide key that is down: darker by day, lit at night, like every other key */
     --_graphite-down: var(--rams-graphite-down, color-mix(in srgb, var(--_graphite) 80%, #000));
     --_lever: var(--rams-lever, #efece4);
@@ -3653,7 +3653,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:49 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 22:52 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

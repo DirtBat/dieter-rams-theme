@@ -34,7 +34,7 @@ export const tokens = css`
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
-    --_graphite: var(--rams-graphite, #34312d);
+    --_graphite: var(--rams-graphite, #4a4741);
     /* a wide key that is down: darker by day, lit at night, like every other key */
     --_graphite-down: var(--rams-graphite-down, color-mix(in srgb, var(--_graphite) 80%, #000));
     --_lever: var(--rams-lever, #efece4);
