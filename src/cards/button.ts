@@ -21,7 +21,7 @@ export interface ButtonConfig extends PieceConfig, StateRules {
   icon?: string;
   /** Where the text goes: below (default), above, left, right, or printed on the key. */
   label_position?: "below" | "above" | "left" | "right" | "inside";
-  /** Square (default): always a square, the biggest that fits, in a black cut-out; wide is a flat, graphite oblong twice as wide as high, like a transport key; round is a dome, always a circle. */
+  /** Square (default): always a square, the biggest that fits, in a black cut-out; wide is a flat graphite pill three times as wide as high, like a transport key; round is a dome, always a circle. */
   shape?: "square" | "wide" | "round";
   /** Colours the whole key. A state rule's colour then replaces it while the rule matches; a key with no tone shows the rule's colour as a dot. */
   tone?: Tone;
@@ -72,7 +72,7 @@ export class RamsButton extends Piece<ButtonConfig> {
     const w = Math.max(aw, 24), h = Math.max(ah, 24);
     // a round key is always a circle: its room is the biggest square
     const sq = this.isSquare();
-    const f = this.config?.shape === "wide" ? { n: 2, m: 1, u: Math.max(0, Math.min(h, w / 2)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
+    const f = this.config?.shape === "wide" ? { n: 3, m: 1, u: Math.max(0, Math.min(h, w / 3)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w, sq ? h - 2 * FRAME : h)) };
     if (f.n !== this.fit.n || f.m !== this.fit.m || Math.abs(f.u - this.fit.u) > 0.5) this.fit = f;
   }
 

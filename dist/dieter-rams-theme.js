@@ -934,8 +934,8 @@ const keyStyles = i$3`
   .key:has(.legend) { flex-direction: column; gap: 2px; }
   .legend { max-width: 86%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
 
-  /* wide: a flat graphite oblong twice as wide as high, as the transport keys of a Braun cassette deck. No dish, no cut-out. */
-  .key.wide { border: 1px solid rgba(0, 0, 0, 0.55); border-radius: 3px; color: var(--_ink-on); background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite) 86%, #fff), var(--_graphite) 40%, color-mix(in srgb, var(--_graphite) 88%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.22); }
+  /* wide: a flat graphite pill three times as wide as high (ends rounded to half its height), as the transport keys of a Braun cassette deck. No dish, no cut-out. */
+  .key.wide { border: 1px solid rgba(0, 0, 0, 0.55); border-radius: 999px; color: var(--_ink-on); background: linear-gradient(180deg, color-mix(in srgb, var(--_graphite) 86%, #fff), var(--_graphite) 40%, color-mix(in srgb, var(--_graphite) 88%, #000)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 1px rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.22); }
   .key.wide::before { display: none; }
   .key.wide .ico { --mdc-icon-size: 18px; }
   .key.wide .legend { font-size: 10px; }
@@ -1110,7 +1110,7 @@ let RamsButton = class extends Piece {
     const ah = cell.clientHeight - (led ? led.offsetHeight + gap : 0) - (!side && txt ? txt.offsetHeight + gap : 0);
     const w2 = Math.max(aw, 24), h2 = Math.max(ah, 24);
     const sq = this.isSquare();
-    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "wide" ? { n: 2, m: 1, u: Math.max(0, Math.min(h2, w2 / 2)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
+    const f2 = ((_a2 = this.config) == null ? void 0 : _a2.shape) === "wide" ? { n: 3, m: 1, u: Math.max(0, Math.min(h2, w2 / 3)) } : { n: 1, m: 1, u: Math.max(0, Math.min(w2, sq ? h2 - 2 * FRAME : h2)) };
     if (f2.n !== this.fit.n || f2.m !== this.fit.m || Math.abs(f2.u - this.fit.u) > 0.5) this.fit = f2;
   }
   disconnectedCallback() {
@@ -3583,7 +3583,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-22 18:36 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-23 11:12 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
