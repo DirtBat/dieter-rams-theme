@@ -5,7 +5,7 @@ import { Piece } from "../shared/piece";
 import { formEditor } from "../shared/form-editor";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
-import { actionFields, computeLabel, computeHelper, layoutFields } from "../shared/form";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { Press } from "../shared/press";
 import { readState, TONES, type Tone } from "../shared/state-rules";
 import { numeric, pick } from "../shared/stub";
@@ -48,6 +48,10 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   protected hostFrame = false;
   private press = new Press(this, () => (this.actionable() ? this.config : undefined));
 
+  protected actionable(): boolean {
+    return !!this.config?.entity || super.actionable();
+  }
+
   protected signal(): string | undefined {
     if (this.lamp()) return undefined;
     return readState(this.hass, this.config?.entity, this.config ?? {}).signal;
@@ -85,15 +89,15 @@ export class RamsDisplay extends Piece<DisplayConfig> {
       .lamp-only .lamp { width: 16px; height: 16px; }
       .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 6px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
       .lamp.red { --l: var(--_alert); } .lamp.orange { --l: var(--_orange); } .lamp.blue { --l: var(--_blue); } .lamp.green { --l: var(--_green); } .lamp.grey { --l: var(--_grey); }
-      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
+      .title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); }
       /* icon and text on one centre line; the unit sits on the text's baseline */
       .value { display: flex; align-items: center; line-height: 1.1; }
       .txt { display: flex; align-items: baseline; gap: 3px; white-space: nowrap; }
-      .ico { --mdc-icon-size: 1em; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1em; height: 1em; margin-right: 6px; }
+      .ico { --mdc-icon-size: 1.1em; flex: none; display: inline-flex; align-items: center; justify-content: center; width: 1.1em; height: 1.1em; margin-right: 6px; }
       .small .value { font-size: 12px; }
       .medium .value { font-size: 20px; }
       .large .value { font-size: 44px; letter-spacing: -0.02em; }
-      .unit { font-size: 0.4em; color: var(--_muted); letter-spacing: 0; }
+      .unit { font-size: max(0.45em, 11px); color: var(--_muted); letter-spacing: 0; }
     `,
   ];
 
@@ -110,10 +114,6 @@ export class RamsDisplay extends Piece<DisplayConfig> {
   }
 
   static getConfigForm() {
-    const dropdown = (name: string, options: Array<[string, string]>) => ({
-      name,
-      selector: { select: { mode: "dropdown", options: options.map(([value, label]) => ({ value, label })) } },
-    });
     return {
       schema: [
         { name: "title", selector: { text: {} } },
@@ -130,7 +130,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
             dropdown("show", [["all", "Title and value"], ["value", "Value only"], ["title", "Title only"], ["none", "Icon and light only"]]),
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
-            dropdown("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]]),
+            dropdown("light", [["none", "None"], ["left", "Left"], ["right", "Right"], ["only", "Only the light"]], { label: "Lamp in the display", helper: "A small lamp next to the text. It lights when the entity is on, or shows a warning colour from your warning states." }),
           ],
         },
         ...layoutFields(),
@@ -182,7 +182,7 @@ export class RamsDisplay extends Piece<DisplayConfig> {
     const c = this.config!;
     if (!c.entity) return c.text ?? "";
     const entity = this.hass?.states[c.entity];
-    if (!entity) return "";
+    if (!entity) return "\u2013";
     return formatValue(this.hass, c.entity, c.attribute);
   }
 

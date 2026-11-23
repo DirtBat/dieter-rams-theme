@@ -12,7 +12,7 @@ The cards have no look of their own beyond the day defaults: everything is a `--
 | `rams-down` | key that is down: darker than the cap | key that is down: lit |
 | `rams-raised`, `rams-pressed`, `rams-inset` | shadows | no drop shadows, hairline edges |
 | `rams-glow` | 0 | blur radius of the light around LEDs, lit keys and warnings |
-| `rams-cap-rest`, `rams-cap-on`, `rams-cap-on-mix` | full colour; pressed is a darker shade | dim tint at rest; lit when active |
+| `rams-cutout-edge` | the light hairline under a square key's black cut-out | transparent in the dark theme |
 | `rams-lcd-bg`, `rams-lcd-ink` | green, reflective | amber, lit from the top |
 
 Night: a colour stripe becomes an LED, a full-colour key is backlit, light reaches beyond the key. All treatments are static (no animation, no filters), so they stay light to render.

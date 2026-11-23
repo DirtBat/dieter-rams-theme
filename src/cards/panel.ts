@@ -30,7 +30,7 @@ export class RamsPanel extends Piece<PanelConfig> {
   static styles = [
     tokens,
     css`
-      .plate { display: flex; flex-direction: column; justify-content: center; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
+      .plate { display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; height: 100%; padding: var(--_gap); border-radius: calc(var(--_radius) + var(--_gap)); }
       .plate.f-outline, .plate.f-recessed, .plate.f-backlit, .plate.f-black, .plate.f-raised { background: var(--_plate); border: var(--_border); }
       .plate.f-recessed { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); --rams-ink: var(--_lcd-ink); --rams-muted: var(--_lcd-muted); box-shadow: var(--_inset); }
       .plate.f-backlit { background: var(--_backlit-bg); color: var(--_backlit-ink); --_ink: var(--_backlit-ink); --_muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); --rams-ink: var(--_backlit-ink); --rams-muted: color-mix(in srgb, var(--_backlit-ink) 72%, transparent); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px -2px rgba(255, 255, 255, 0.25); }
@@ -44,7 +44,7 @@ export class RamsPanel extends Piece<PanelConfig> {
       .screw::after { transform: rotate(-45deg); }
       .screw.tl { top: 9px; left: 9px; } .screw.tr { top: 9px; right: 9px; } .screw.bl { bottom: 9px; left: 9px; } .screw.br { bottom: 9px; right: 9px; }
       .plate.f-none { padding: 0; border-radius: 0; }
-      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
+      .title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); padding: 2px 2px calc(var(--_gap) - 2px); }
       /* the grid counts in half rows: two of them and the gap between make one row, so a label (half a row) and a whole row line up */
       .grid { --_half: calc((var(--_row) - var(--_gap)) / 2); display: grid; gap: var(--_gap); grid-auto-rows: var(--_half); }
       /* Inside another panel the cell is a whole number of outer rows: the rows share the spare height instead of leaving a blank strip */
@@ -166,7 +166,7 @@ export class RamsPanel extends Piece<PanelConfig> {
   };
 
   /** The panel's own action fires only when the press did not land on a piece that has its own. */
-  private fits = (e: Event) => !e.composedPath().some((n) => (n as HTMLElement).hasAttribute?.("actionable"));
+  private fits = (e: Event) => !e.composedPath().some((n) => n !== this && (n as HTMLElement).hasAttribute?.("actionable"));
   private onClick = (e: Event) => { if (this.fits(e)) this.press.click(); };
   private onDown = (e: Event) => { if (this.fits(e)) this.press.down(); };
 

@@ -51,7 +51,7 @@ export class RamsClock extends Piece<ClockConfig> {
     return {
       schema: [
         { name: "title", selector: { text: {} } },
-        { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analog" }, { value: "digital", label: "Digital" }] } } },
+        { name: "variant", selector: { select: { mode: "dropdown", options: [{ value: "analog", label: "Analogue" }, { value: "digital", label: "Digital" }] } } },
         { name: "seconds", selector: { boolean: {} } },
         { name: "alarm_entity", selector: { entity: { domain: ["input_boolean", "switch"] } } },
         dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),

@@ -31,7 +31,11 @@ class RamsPanelEditor extends LitElement {
 
   private columnsChanged = (e: CustomEvent) => {
     e.stopPropagation();
-    this.emit({ ...this.config!, ...(e.detail.value as Partial<PanelConfig>) });
+    const original = this.config as unknown as Record<string, unknown>;
+    const value = { ...(e.detail.value as Record<string, unknown>) };
+    // The form shows defaults as values; do not write them into the YAML unless they were already there.
+    for (const [key, def] of Object.entries({ columns: 12, spacing: 8, frame: "raised" })) if (value[key] === def && !(key in original)) delete value[key];
+    this.emit({ ...this.config!, ...(value as Partial<PanelConfig>) });
   };
 
   private cardsChanged = (e: CustomEvent) => {
@@ -76,7 +80,7 @@ class RamsPanelEditor extends LitElement {
         type: "expandable",
         name: "",
         title: "Size in panel",
-        schema: [num("rows", 1, 24)],
+        schema: [num("rows", 0.5, 24, { step: 0.5 })],
       },
       ...actionFields(),
     ];

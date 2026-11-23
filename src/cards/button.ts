@@ -64,7 +64,8 @@ export class RamsButton extends Piece<ButtonConfig> {
   private measure(): void {
     const cell = this.renderRoot.querySelector<HTMLElement>(".cell");
     if (!cell) return;
-    const side = cell.classList.contains("left") || cell.classList.contains("right");
+    const grp = cell.querySelector(".grp");
+    const side = !!grp && (grp.classList.contains("left") || grp.classList.contains("right"));
     const led = cell.querySelector<HTMLElement>(".led");
     const txt = cell.querySelector<HTMLElement>(".txt");
     const gap = 5;
@@ -109,9 +110,10 @@ export class RamsButton extends Piece<ButtonConfig> {
             dropdown("shape", [["square", "Square"], ["wide", "Wide"], ["round", "Round"]]),
             dropdown("tone", TONES),
             dropdown("icon_tone", TONES),
-            dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]]),
+            dropdown("light", [["auto", "Automatic: lamp only with warning states"], ["none", "None"], ["alert", "Lit on a warning"], ["on", "Lit while on or selected"], ["both", "Lit while on, or on a warning"]], { label: "Lamp above the key" }),
           ],
         },
+        { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } },
         ...layoutFields(false),
         ...actionFields(),
         {
@@ -135,7 +137,6 @@ export class RamsButton extends Piece<ButtonConfig> {
                 },
               },
             },
-            { name: "adjust_by", selector: { number: { step: "any", mode: "box" } } },
           ],
         },
       ],
@@ -191,20 +192,20 @@ export class RamsButton extends Piece<ButtonConfig> {
     const name = c.name ?? String(this.hass?.states[c.entity ?? ""]?.attributes.friendly_name ?? "");
     const pos = c.label_position ?? "below";
     const own = c.tone && c.tone !== "neutral" ? c.tone : "";
-    // a coloured key takes the colour a state rule gives it; a plain key shows it as a dot
-    const tone = own ? (view.tone ?? own) : "";
+    // the key takes the colour a state rule gives it while the rule matches, else its own colour
+    const tone = view.tone ?? own;
+    const lamp = this.lamp(view, c);
     const square = this.isSquare();
     const cls = ["key", square ? "sq" : "", c.shape === "round" || c.shape === "wide" ? c.shape : "", tone ? `filled ${tone}` : "", view.active ? "down" : ""].filter(Boolean).join(" ");
-    return html`<div class="cell ${pos === "inside" ? "below" : pos}">
+    return html`<div class="cell"><div class="grp ${pos === "inside" ? "below" : pos} ${lamp === "off" ? "" : "has-led"}">
       <div class="stack">
-        ${c.light === "none" ? nothing : html`<i class="led ${this.lamp(view, c)}"></i>`}
-        <div class="keyarea" style=${this.areaSize()}>${square ? html`<i class="plate"></i>` : nothing}<button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
-          ${view.tone && !own ? html`<i class="dot ${view.tone}"></i>` : nothing}
+        ${lamp === "off" ? nothing : html`<i class="led ${lamp}"></i>`}
+        <div class="keyarea" style=${this.areaSize()}>${square ? html`<i class="plate"></i>` : nothing}<button class=${cls} style=${this.keySize(c.shape)} data-n=${this.fit.n} data-m=${this.fit.m} aria-label=${name || nothing} @pointerdown=${this.press.down} @pointerup=${this.press.up} @pointerleave=${this.press.up} @click=${this.press.click}>
           ${c.icon ? html`<ha-icon class="ico ${c.icon_tone && c.icon_tone !== "neutral" ? `tinted ${c.icon_tone}` : ""}" .icon=${c.icon}></ha-icon>` : nothing}
           ${pos === "inside" && name ? html`<span class="legend">${name}</span>` : nothing}
         </button></div>
       </div>
       ${pos === "inside" || (!name.trim() && (pos === "left" || pos === "right")) ? nothing : html`<div class="txt">${name}</div>`}
-    </div>`;
+    </div></div>`;
   }
 }

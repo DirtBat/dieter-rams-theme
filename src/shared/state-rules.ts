@@ -42,7 +42,7 @@ function valueTone(state: string, rows: StateRules["value_colours"]): Tone | und
   return (above ?? below)?.tone;
 }
 
-const same = (a: string | undefined, b: string): boolean => (a ?? "").trim().toLowerCase() === b.toLowerCase();
+export const same = (a: string | undefined, b: string): boolean => (a ?? "").trim().toLowerCase() === b.toLowerCase();
 
 export function readState(hass: Hass | undefined, entity: string | undefined, rules: StateRules): StateView {
   const own = entity ? hass?.states[entity] : undefined;
@@ -56,7 +56,7 @@ export function readState(hass: Hass | undefined, entity: string | undefined, ru
   return {
     state: own?.state ?? "",
     alert,
-    active: (rules.selected_when ?? ACTIVE_STATES).some((a) => same(a, state)),
+    active: (rules.selected_when ?? ACTIVE_STATES).some((a) => same(a, state)) && !(alert && !rules.selected_when),
     signal: byValue && byValue !== "neutral" ? byValue : alert ? "red" : undefined,
     tone: byValue && byValue !== "neutral" ? byValue : undefined,
   };

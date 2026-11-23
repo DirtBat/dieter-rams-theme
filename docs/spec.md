@@ -1,5 +1,7 @@
 # Scaffolding spec v0.2
 
+> Historical: this is the early design spec. The current behaviour is in `docs/cards.md` and the README.
+
 Supersedes the HA project doc `design-scaffolding-spec-2026-11-13.md` (v0.1). Changes follow the 13 Nov review.
 
 ## Layers

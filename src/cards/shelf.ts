@@ -30,7 +30,7 @@ export interface ShelfConfig extends PieceConfig {
   player?: string;
   /** An input_select or select that says where to play, for example the music output selector. */
   player_from?: string;
-  /** Which player goes with which option. Empty: an option is matched by name (Kitchen: media_player.kitchen_ma or media_player.kitchen). */
+  /** Which player goes with which option. Empty: an option is matched by name (the option Kitchen finds the media player called Kitchen). */
   players?: Array<{ option: string; player: string }>;
 }
 
@@ -43,7 +43,7 @@ export class RamsShelf extends Piece<ShelfConfig> {
       .grid { display: grid; gap: var(--_gap); }
       /* square covers: the picture is the object, a rounded corner would show the picture behind its edge */
       .tile { aspect-ratio: 1; box-sizing: border-box; position: relative; overflow: hidden; border-radius: 0; box-shadow: var(--_raised); background: var(--_field) center / cover no-repeat; cursor: pointer; }
-      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
       .empty { font-size: 12px; color: var(--_muted); }
     `,
   ];

@@ -1,6 +1,6 @@
 {
   "name": "dieter-rams-theme",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "private": true,
   "description": "Rams/Braun-inspired Home Assistant cards: panel container plus small pieces",
   "type": "module",

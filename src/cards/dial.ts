@@ -1,7 +1,7 @@
 import { css, html, nothing, svg, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
-import { clamp, readNumber, writeNumber } from "../shared/entity-value";
+import { clamp, readNumber, shownNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
@@ -73,7 +73,7 @@ export class RamsDial extends Piece<DialConfig> {
       :host([frame="black"]) { background: var(--_led-bg); color: var(--_led-ink); --_ink: var(--_led-ink); --_muted: color-mix(in srgb, var(--_led-ink) 62%, transparent); }
       :host([frame="recessed"]) { background: var(--_lcd-bg); color: var(--_lcd-ink); --_ink: var(--_lcd-ink); --_muted: var(--_lcd-muted); }
       .dial { height: 100%; min-height: max(72px, var(--_min, 0px)); display: flex; flex-direction: column; }
-      .room { box-sizing: border-box; flex: 1; min-height: 0; padding: 4px 0; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+      .room { box-sizing: border-box; flex: 1; min-height: 0; padding: 4px 0; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
       svg { display: block; flex: none; width: 100%; touch-action: none; }
       .face { display: block; }
       .arc { fill: none; stroke: var(--_muted); stroke-width: 1.5; }
@@ -81,11 +81,11 @@ export class RamsDial extends Piece<DialConfig> {
       .tick.major { stroke: var(--_ink); stroke-width: 2.5; }
       .pointer { fill: var(--_ink); }
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
-      .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.06em; text-transform: uppercase; }
+      .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.1em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
       .num { flex: none; box-sizing: border-box; height: ${NUMBER_H}px; margin-top: 4px; padding: 0 2px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 24px; line-height: ${NUMBER_H}px; color: var(--_ink); }
       .num.start { justify-content: flex-start; } .num.end { justify-content: flex-end; }
-      .num small { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
+      .num small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
       .interactive { cursor: pointer; }
     `,
   ];
@@ -252,8 +252,11 @@ export class RamsDial extends Piece<DialConfig> {
   private onMove = (e: PointerEvent) => {
     if (this.drag !== undefined) this.drag = this.fromPointer(e);
   };
+  /** The browser took the gesture (for example to scroll): drop the drag, write nothing. */
+  private onCancel = () => {
+    this.drag = undefined;
+  };
   private onUp = () => {
-    const c = this.config;
     if (this.drag !== undefined && this.hass) for (const e of this.all()) void writeNumber(this.hass, e, this.drag);
     this.drag = undefined;
   };
@@ -301,7 +304,7 @@ export class RamsDial extends Piece<DialConfig> {
     const [m2x, m2y] = f === undefined ? [0, 0] : this.at(f, r - MARK_IN);
     return {
       height,
-      svg: html`<svg viewBox="${vx} ${vy} ${w} ${height}" style="height:${height}px" class=${c.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+      svg: html`<svg viewBox="${vx} ${vy} ${w} ${height}" style="height:${height}px" class=${c.interactive ? "interactive" : ""} @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
         ${svg`<path class="arc" d="M ${sx} ${sy} A ${r} ${r} 0 ${large} 1 ${ex} ${ey}" />
         ${minors.map((t) => tick(t, MINOR, ""))}
         ${majors.map((t) => tick(t, MAJOR, "major"))}
@@ -331,7 +334,7 @@ export class RamsDial extends Piece<DialConfig> {
     const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c.attribute) : c.value);
     const showNumber = c.show !== "none";
     const { w, h } = this.room;
-    const shown = value === undefined ? "\u2013" : String(Math.round(value * 10) / 10);
+    const shown = value === undefined ? "\u2013" : shownNumber(this.hass, this.lead(), c.attribute, value, this.drag !== undefined);
     const ready = w > 0 && h > 0;
     const dial = html`<div class="dial"><div class="room">
       ${ready ? this.scale(w, Math.max(20, h - 8 - (showNumber ? NUMBER_H + 4 : 0)), value).svg : nothing}

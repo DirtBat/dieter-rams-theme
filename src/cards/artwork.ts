@@ -38,14 +38,14 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
       :host { --_fpad: 0px; overflow: hidden; }
       .art { position: relative; box-sizing: border-box; height: 100%; min-height: var(--_min, 0px); background: var(--_field) center / cover no-repeat; cursor: pointer; }
       .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-      .art.screen { border: 9px solid #1e1f20; border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
+      .art.screen { border: 9px solid var(--_bezel); border-radius: 22px / 18px; background-color: #8a9a88; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 0 18px rgba(0, 0, 0, 0.45); overflow: hidden; }
       .art.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 12px / 10px; background: linear-gradient(160deg, rgba(150, 175, 150, 0.28), rgba(90, 110, 95, 0.22)); mix-blend-mode: multiply; box-shadow: inset 0 0 22px rgba(0, 0, 0, 0.4); }
       .cap { position: absolute; left: 6px; bottom: 6px; padding: 2px 5px; border-radius: 2px; font-size: 11px; background: var(--_cap); color: var(--_ink); }
       /* the transport keys are the Rams wide keys, on the picture */
       .ctl { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 8px; justify-content: center; }
       .ctl > span { flex: 1; max-width: 96px; height: 30px; display: block; }
       .ctl rams-button { height: 100%; }
-      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
+      .led { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--_active); box-shadow: 0 0 var(--_glow) color-mix(in srgb, var(--_active) 80%, transparent); }
     `,
   ];
 
@@ -96,7 +96,7 @@ export class RamsArtwork extends Piece<ArtworkConfig> {
     this.fit();
   }
   private fit(): void {
-    if (this.config && typeof this.config.rows !== "number") this.reportRows(Math.max(1, Math.round((this.offsetWidth / (RATIO[this.config.proportion ?? "square"] ?? 1) + 8) / 64)));
+    if (this.config && typeof this.config.rows !== "number") this.reportRows(this.rowsFor(this.offsetWidth / (RATIO[this.config.proportion ?? "square"] ?? 1)));
   }
 
   /** One transport key: a Rams wide key that runs a media_player service on the entity. Pressed while the player plays, when it is the play key. */

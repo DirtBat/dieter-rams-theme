@@ -4,7 +4,7 @@ import { customElement } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { formEditor } from "../shared/form-editor";
 import { tokens } from "../shared/styles";
-import { actionFields, computeHelper, computeLabel, dropdown, num, SIZES } from "../shared/form";
+import { actionFields, computeHelper, computeLabel, dropdown, layoutFields, SIZES } from "../shared/form";
 import { Press } from "../shared/press";
 import { readState, TONES, type Tone } from "../shared/state-rules";
 import type { PieceConfig } from "../shared/types";
@@ -36,6 +36,10 @@ export class RamsLabel extends Piece<LabelConfig> {
   protected hostFrame = false;
   private press = new Press(this, () => (this.actionable() ? this.config : undefined));
 
+  protected actionable(): boolean {
+    return !!this.config?.entity || super.actionable();
+  }
+
   protected signal(): string | undefined {
     return readState(this.hass, this.config?.entity, this.config ?? {}).signal;
   }
@@ -48,7 +52,7 @@ export class RamsLabel extends Piece<LabelConfig> {
       .lab.start { justify-content: flex-start; } .lab.center { justify-content: center; } .lab.end { justify-content: flex-end; }
       .t { display: inline-flex; align-items: baseline; gap: 3px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-transform: uppercase; letter-spacing: 0.1em; color: var(--_muted); }
       :host([signal]) .t { color: var(--_sig); }
-      .ico { --mdc-icon-size: 1.2em; flex: none; align-self: center; margin-right: 4px; }
+      .ico { --mdc-icon-size: 1.1em; flex: none; align-self: center; margin-right: 6px; }
       .unit { font-size: 0.85em; letter-spacing: 0; }
       .small .t { font-size: 11px; }
       .medium .t { font-size: 14px; }
@@ -87,12 +91,7 @@ export class RamsLabel extends Piece<LabelConfig> {
             dropdown("line", [["none", "None"], ["below", "Below the text"], ["above", "Above the text"], ["beside", "Both sides of the text"]]),
           ],
         },
-        {
-          type: "expandable",
-          name: "",
-          title: "Size in panel",
-          schema: [{ type: "grid", name: "", schema: [num("columns", 1, 24), num("rows", 0.5, 12, { step: 0.5 })] }],
-        },
+        ...layoutFields(false),
         ...actionFields(),
         {
           type: "expandable",
@@ -146,7 +145,7 @@ export class RamsLabel extends Piece<LabelConfig> {
     const c = this.config!;
     if (!c.entity) return c.text ?? "";
     const e = this.hass?.states[c.entity];
-    if (!e) return "";
+    if (!e) return "\u2013";
     return formatValue(this.hass, c.entity, c.attribute);
   }
 

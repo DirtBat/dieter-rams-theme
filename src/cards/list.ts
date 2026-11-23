@@ -4,6 +4,7 @@ import { readState, TONES, type Tone } from "../shared/state-rules";
 import { Piece } from "../shared/piece";
 import "./button";
 import { fireAction } from "../shared/actions";
+import { formatValue } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import { numeric, pickAll } from "../shared/stub";
@@ -75,15 +76,15 @@ export class RamsList extends Piece<ListConfig> {
       :host([size="large"]) { --sz: 18px; }
       /* the side padding keeps a lit lamp's glow inside the clipped area */
       .list { display: flex; flex-direction: column; height: 100%; overflow: hidden; padding: 0 6px; margin: 0 -6px; font-size: var(--sz); }
-      .title { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
+      .title { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--_muted); padding: 2px 0 6px; flex: none; }
       /* a column of values only: its title sits over the numbers */
       .list.valonly .title { text-align: right; }
       .row { display: flex; align-items: center; gap: var(--_gap); box-sizing: border-box; padding: 6px 0; cursor: pointer; flex: none; }
       .dot.spacer, .lamp.spacer { background: none; box-shadow: none; }
       .lamp { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
       .lamp.on { background: var(--l); box-shadow: 0 0 max(var(--_glow), 5px) 1px color-mix(in srgb, var(--l) 85%, transparent), inset 0 0 2px rgba(255, 255, 255, 0.6); }
-      .ico { --mdc-icon-size: 1.3em; flex: none; color: var(--_ink); }
-      .ico.spacer { display: inline-block; width: 1.3em; }
+      .ico { --mdc-icon-size: 1.1em; flex: none; color: var(--_ink); }
+      .ico.spacer { display: inline-block; width: 1.1em; }
       .row[hidden], .more[hidden] { display: none; }
       .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c); }
       .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -167,10 +168,6 @@ export class RamsList extends Piece<ListConfig> {
     };
   }
 
-  protected actionable(): boolean {
-    return true;
-  }
-
   private more(entity: string): void {
     fireAction(this, { entity, tap_action: { action: "more-info" } }, "tap");
   }
@@ -197,8 +194,7 @@ export class RamsList extends Piece<ListConfig> {
     if (a) {
       const v = e.attributes[a];
       if (v === undefined || v === null || v === "") return "–";
-      const n = typeof v === "number" ? Math.round(v * 10) / 10 : v;
-      return `${n}${this.config?.unit ?? ""}`;
+      return `${formatValue(hass, e.entity_id, a)}${this.config?.unit ?? ""}`;
     }
     return hass.formatEntityState ? hass.formatEntityState(e) : `${e.state}${e.attributes.unit_of_measurement ? ` ${e.attributes.unit_of_measurement}` : ""}`;
   }
@@ -265,7 +261,7 @@ export class RamsList extends Piece<ListConfig> {
     const e = this.hass?.states[id];
     const dot = category && COLOURS[category] ? html`<span class="dot" style="--c:${COLOURS[category]}"></span>` : this.categorised ? html`<span class="dot spacer"></span>` : nothing;
     const icon = r.icon ? html`<ha-icon class="ico" .icon=${r.icon}></ha-icon>` : this.any("icon") ? html`<span class="ico spacer"></span>` : nothing;
-    if (!this.hass || !e) return html`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">n/a</span></div>`;
+    if (!this.hass || !e) return html`<div class="row">${dot}${icon}<span class="name">${own || id}</span><span class="val">\u2013</span></div>`;
     const name = own || String(e.attributes.friendly_name ?? id);
     const small = c.compact ? "" : c.attribute ? String(e.attributes[c.attribute] ?? "") : String(e.attributes.device_class ?? "");
     const view = readState(this.hass, id, { alert_when: states(r.alert_when ?? c.alert_when), value_colours: c.value_colours });
@@ -278,7 +274,7 @@ export class RamsList extends Piece<ListConfig> {
       : c.keys === "cover"
         ? html`${this.key("mdi:arrow-up", "Open", "cover", "open_cover", id)}${this.key("mdi:arrow-down", "Close", "cover", "close_cover", id)}`
         : nothing;
-    return html`<div class="row" @click=${() => this.more(id)}>
+    return html`<div class="row" actionable @click=${() => this.more(id)}>
       ${dot}${icon}${lamp}
       ${show === "all" || show === "name" ? html`<span class="name">${small ? html`<small>${small.replace(/_/g, " ")}</small>` : nothing}${name}</span>` : nothing}
       ${show === "all" || show === "value" ? html`<span class="val ${alert ? "alert" : ""}" style=${show === "value" ? "margin-left:auto" : ""}>${this.value(this.hass, e)}</span>` : nothing}${keys}

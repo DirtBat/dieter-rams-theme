@@ -31,24 +31,22 @@ export const tokens = css`
     --_down: var(--rams-down, #cfcbc1);
     --_key-edge: var(--rams-key-edge, rgba(38, 18, 1, 0.35));
     --_cutout: var(--rams-cutout, #17110c);
+    --_bezel: var(--rams-bezel, #1e1f20);
+    --_cutout-edge: var(--rams-cutout-edge, rgba(255, 255, 255, 0.5));
     --_lens: var(--rams-lens, #b9b3a6);
     --_ring: var(--rams-ring, color-mix(in srgb, var(--_plate) 82%, #000));
     --_slot: var(--rams-slot, #2b2118);
-    --_lever: var(--rams-lever, #efece4);
     --_dish: color-mix(in srgb, var(--_cap) 88%, #000);
     --_gap: var(--rams-gap, 8px);
-    /* night roles: day values make them invisible */
+    /* night role: day value makes it invisible */
     --_glow: var(--rams-glow, 0px);
-    --_cap-rest: var(--rams-cap-rest, 100%);
-    --_cap-on: var(--rams-cap-on, 78%);
-    --_cap-on-mix: var(--rams-cap-on-mix, #000);
     --_lcd-bg: var(--rams-lcd-bg, var(--_field));
     --_lcd-ink: var(--rams-lcd-ink, var(--_ink));
     --_lcd-muted: color-mix(in srgb, var(--_lcd-ink) 72%, transparent);
     /* the green backlit LCD, as the recessed field is at night: a dim grey-green, lighter at the top where the backlight is, dark ink */
     --_backlit-bg: var(--rams-backlit-bg, linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%));
     --_backlit-ink: var(--rams-backlit-ink, #12160f);
-    /* the black display: a black field with yellow-green lights, as on a Braun tuner */
+    /* the black display: a black field with yellow-green lights, like a vintage radio tuner */
     --_led-bg: var(--rams-led-bg, linear-gradient(180deg, #0a0b08 0%, #12140e 100%));
     --_led-ink: var(--rams-led-ink, #c6e63c);
     font-family: var(--rams-font, "Helvetica Neue", Helvetica, Arial, sans-serif);

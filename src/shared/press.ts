@@ -26,7 +26,9 @@ export class Press {
   up = (): void => window.clearTimeout(this.timer);
   click = (): void => {
     const a = this.actions();
-    if (this.held || !a) return;
+    const held = this.held;
+    this.held = false;
+    if (held || !a) return;
     if (this.onTap?.()) return;
     fireAction(this.node, a, "tap");
   };

@@ -2,21 +2,24 @@ import { css } from "lit";
 
 /**
  * The key, drawn once: a beige-grey cap with a recessed dish, an optional dot (the colour a state rule gives it),
- * a warning LED above and the printed name below. Buttons, switches and the keypad share it.
+ * a warning lamp above and the printed name below. Buttons, switches and the keypad share it.
  *
  * A key is a square, or a whole number of squares (1x2, 4x1, 2x2 ...): the card's box decides how many fit and the
  * key never stretches off-square. The dish is a circle on a square key; the wide key is a light pill with no dish.
  */
 export const keyStyles = css`
-  /* The key, its LED and its name are one group, centred in whatever room the card has: spare room goes
-     outside the group, never between the key and its name. One gap (5px) everywhere. */
-  .cell { height: 100%; min-height: var(--_min, var(--_row)); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
-  .cell.above { flex-direction: column-reverse; }
-  .cell.left { flex-direction: row-reverse; }
-  .cell.right { flex-direction: row; }
+  /* The key, its lamp and its name are one group, at the top of whatever room the card has: spare room goes
+     below the group, never between the key and its name. One gap (5px) everywhere. */
+  .cell { height: 100%; min-height: var(--_min, var(--_row)); box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-width: 0; }
+  .grp { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; max-width: 100%; }
+  .grp.above { flex-direction: column-reverse; }
+  .grp.left { flex-direction: row-reverse; }
+  .grp.right { flex-direction: row; }
   .stack { flex: none; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-  .cell.left .txt, .cell.right .txt { max-width: 45%; margin-top: 13px; }
-  .cell.left .txt { text-align: right; } .cell.right .txt { text-align: left; }
+  /* beside the key the text lines up with the key itself, not with the lamp above it */
+  .grp.left .txt, .grp.right .txt { max-width: 45%; }
+  .grp.has-led.left .txt, .grp.has-led.right .txt { margin-top: 13px; }
+  .grp.left .txt { text-align: right; } .grp.right .txt { text-align: left; }
   .led.off { visibility: hidden; }
   .led.on.orange { --_alert: var(--_orange); } .led.on.blue { --_alert: var(--_blue); } .led.on.green { --_alert: var(--_green); } .led.on.grey { --_alert: var(--_grey); }
   .led { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--_lens); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.35); }
@@ -27,7 +30,7 @@ export const keyStyles = css`
   .cell .keyarea { flex: none; min-height: 0; width: auto; position: relative; align-items: center; }
   /* A square key sits in a black cut-out in the panel. The cut-out is square-cornered (no dips where plates meet) and reaches half a gap past the key at the sides and 3px above and below, so keys side by side
      share one black block: the black between two keys is twice the black round the outside. */
-  .plate { position: absolute; top: 0; bottom: 0; left: calc(var(--_gap, 8px) / -2); right: calc(var(--_gap, 8px) / -2); border-radius: 0; background: var(--_cutout); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.5); pointer-events: none; }
+  .plate { position: absolute; top: 0; bottom: 0; left: calc(var(--_gap, 8px) / -2); right: calc(var(--_gap, 8px) / -2); border-radius: 0; background: var(--_cutout); box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.7), 0 1px 0 var(--_cutout-edge); pointer-events: none; }
   .key.sq { flex: none; border-radius: 3px; margin: auto; }
   .keyarea { flex: 1; min-height: 24px; min-width: 0; width: 100%; display: flex; justify-content: center; container-type: size; }
   .key {
@@ -71,7 +74,7 @@ export const keyStyles = css`
   .key.filled:not(.round) { background: linear-gradient(180deg, color-mix(in srgb, var(--c) 92%, #fff), var(--c)); box-shadow: var(--_raised), 0 0 var(--_glow) 1px color-mix(in srgb, var(--c) 45%, transparent); }
   .key.filled:not(.round)::before { background: radial-gradient(circle at 50% 80%, color-mix(in srgb, var(--c) 88%, #fff) 0%, color-mix(in srgb, var(--c) 76%, #000) 75%); }
 
-  /* round: a dome on a dark ring, as on the Braun calculator. Always a circle: the biggest that fits. */
+  /* round: a dome on a dark ring, like a calculator key. Always a circle: the biggest that fits. */
   .key.round {
     --dome: radial-gradient(circle at 38% 28%, color-mix(in srgb, var(--c, var(--_cap)) 78%, #fff) 0%, var(--c, var(--_cap)) 52%, color-mix(in srgb, var(--c, var(--_cap)) 78%, #000) 100%);
     flex: none; align-self: center; width: calc(min(100cqw, 100cqh) - 6px); height: calc(min(100cqw, 100cqh) - 6px); border: 0; border-radius: 50%;
@@ -83,7 +86,5 @@ export const keyStyles = css`
   .key.round .legend { text-transform: none; letter-spacing: 0; font-size: 11px; font-weight: 500; }
   .key.round.down, .key.round:active { background: var(--dome); filter: brightness(0.88); transform: translateY(1px); }
 
-  /* the dot: only where a state rule (or a keypad mode) gives the key a colour */
-  .dot { width: 11px; height: 11px; border-radius: 50%; background: var(--t); box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25), 0 0 var(--_glow) 1px color-mix(in srgb, var(--t) 70%, transparent); }
   .red { --t: var(--_red); } .orange { --t: var(--_orange); } .blue { --t: var(--_blue); } .green { --t: var(--_green); } .grey { --t: var(--_grey); }
 `;

@@ -1,7 +1,7 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
-import { clamp, defaultRange, readNumber, writeNumber } from "../shared/entity-value";
+import { clamp, defaultRange, readNumber, shownNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
 import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
@@ -57,14 +57,14 @@ export class RamsRuler extends Piece<RulerConfig> {
       .left .outer, .right .outer { max-width: 40%; }
       .num { font-size: 12px; color: var(--_ink); line-height: 1.1; }
       .num.start { text-align: left; } .num.center { text-align: center; } .num.end { text-align: right; }
-      .wrap { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 0 2px; }
+      .wrap { box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: flex-start; gap: 4px; padding: 0 2px; }
       .track { position: relative; height: 24px; touch-action: none; }
       .track.interactive { cursor: pointer; }
       .line { position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--_muted); }
       .tick { position: absolute; top: 50%; width: 1px; height: 6px; background: var(--_muted); transform: translateY(-50%); }
       .tick.major { height: 12px; }
       .bar { position: absolute; top: 50%; height: 4px; transform: translateY(-50%); background: var(--_ink); }
-      .pointer { position: absolute; top: 2px; bottom: 2px; width: 3px; margin-left: -1.5px; background: var(--_active); }
+      .pointer { position: absolute; top: 2px; bottom: 2px; width: 3px; margin-left: -1.5px; background: var(--_red); }
       .target { position: absolute; top: 0; height: 8px; width: 3px; margin-left: -1.5px; background: var(--_honey, var(--_muted)); }
       .labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--_muted); }
       /* vertical: the same scale turned up, lowest value at the bottom */
@@ -166,8 +166,11 @@ export class RamsRuler extends Piece<RulerConfig> {
     if (this.drag === undefined) return;
     this.drag = this.fromPointer(e, e.currentTarget as HTMLElement);
   };
+  /** The browser took the gesture (for example to scroll): drop the drag, write nothing. */
+  private onCancel = () => {
+    this.drag = undefined;
+  };
   private onUp = () => {
-    const c = this.config;
     if (this.drag !== undefined && this.hass) for (const e of this.all()) void writeNumber(this.hass, e, this.drag);
     this.drag = undefined;
   };
@@ -196,14 +199,14 @@ export class RamsRuler extends Piece<RulerConfig> {
       : html`<div class="bar" style="${at(Math.min(f, 0.5))};${vertical ? "height" : "width"}:${pct(Math.abs(f - 0.5))}"></div>`;
     const title = c.title?.trim() ?? "";
     const ruler = html`<div class="wrap ${vertical ? "v" : ""}">
-      <div class="track ${c.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onUp}>
+      <div class="track ${c.interactive ? "interactive" : ""}" @pointerdown=${this.onDown} @pointermove=${this.onMove} @pointerup=${this.onUp} @pointercancel=${this.onCancel}>
         <div class="line"></div>
         ${ticks.map((t) => html`<div class="tick ${isMajor(t) ? "major" : ""}" style="${at(t)}"></div>`)}
         ${bar}
         ${tf === undefined ? nothing : html`<div class="target" style="${at(tf)}"></div>`}
         ${f === undefined || c.centre ? nothing : html`<div class="pointer" style="${at(f)}"></div>`}
       </div>
-      ${c.number && value !== undefined ? html`<div class="num ${c.align ?? "center"}">${this.fmt(value)}</div>` : nothing}
+      ${c.number && value !== undefined ? html`<div class="num ${c.align ?? "center"}">${value > 0 && c.centre ? "+" : ""}${shownNumber(this.hass, this.lead(), c.attribute, value, this.drag !== undefined)}${c.unit ?? ""}</div>` : nothing}
       ${c.labels ? html`<div class="labels"><span>${this.fmt(min)}</span>${c.centre ? html`<span>${this.fmt(0)}</span>` : nothing}<span>${this.fmt(max)}</span></div>` : nothing}
     </div>`;
     return title ? html`<div class="t ${c.title_position ?? "below"}"><span class="outer">${title}</span>${ruler}</div>` : ruler;

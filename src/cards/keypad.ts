@@ -20,7 +20,7 @@ export interface KeypadConfig extends PieceConfig, Pick<StateRules, "state_colou
 const IDLE_MS = 30_000;
 
 /**
- * Code entry for an alarm panel, after the default Alarmo keypad: a code field that shows the alarm state,
+ * Code entry for an alarm panel, like the Alarmo keypad: a code field that shows the alarm state,
  * the digits 1 to 9, clear, 0 and confirm. The code lives only in this element while typing; it is never stored in a config.
  */
 @customElement("rams-keypad")
@@ -32,7 +32,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     tokens,
     keyStyles,
     css`
-      :host { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+      :host { display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
       /* a framed keypad has the same margin above and below as at the sides */
       :host([frame="outline"]), :host([frame="recessed"]), :host([frame="backlit"]), :host([frame="black"]), :host([frame="raised"]) { padding-block: var(--_gap); }
       /* one centred block: the screen and the keys share the same width and margins (12px all round) */
@@ -126,7 +126,7 @@ export class RamsKeypad extends Piece<KeypadConfig> {
     return html`<div class="pad">
       <div class="screen ${view.signal ? `sig ${view.signal}` : ""}">
         <div class="dots">${Array.from({ length: Math.max(4, this.code.length) }, (_, i) => html`<b class=${i < this.code.length ? "f" : ""}></b>`)}</div>
-        <span class="state">${alarm.replace(/_/g, " ")}</span>
+        <span class="state">${this.hass?.formatEntityState && this.hass.states[c.entity ?? ""] ? this.hass.formatEntityState(this.hass.states[c.entity ?? ""]) : alarm.replace(/_/g, " ")}</span>
       </div>
       ${["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => this.cap(d, () => this.press(d)))}
       ${this.cap("✕", () => (this.code = ""))}

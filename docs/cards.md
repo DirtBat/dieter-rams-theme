@@ -69,7 +69,7 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 ## Selector (2026-11-19)
 - Replaces `rams-switch`, which is removed. Migrate: `type: custom:rams-selector`, `name` becomes `title`, and set `title_position: below` to keep the name under the switch.
 - Lever: tap the lever to step on to the next option (wraps); tap another stop to go there. Labels sit on one side, with optional leading lines (hooked on a horizontal lever) or one lamp per option, never both. Icons replace labels when `show: auto` and an option has an icon.
-- Knob: `shape: knob`. The left half steps left on the scale, the right half right, with no wrap. `cap: round` or `cap: pointer` (a round body with a slim tab, measured from a Braun knob, 36 degrees per step, shadow).
+- Knob: `shape: knob`. The left half steps left on the scale, the right half right, with no wrap. `cap: round` or `cap: pointer` (a round body with a slim tab, 36 degrees per step, shadow).
 - The knob needs room: the cap and its scale are a fixed size per `size` (104, 128, 156 px).
 - Knob labels: `labels_position` is above (default), below, left or right of the knob, and the fan of options turns to match. At the side the labels stand in a straight column with the text flush against it; above and below they follow the arc. `order` is normal (first option on the left, or on top at the side) or reversed. Both caps draw the same scale arc with a tick at each option (`lines` does not apply to a knob); with `light: options` there is no arc and the lamps sit on its circle. At the side, each label is centred on its tick or lamp. At the side the two active halves are top and bottom instead of left and right.
 - Round cap: spun-metal face with a red triangle pointing out at the current option; the shadow falls the same way whatever the position.
@@ -117,3 +117,17 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Titles (2026-11-23, breaking): every title is printed below its piece unless `title_position` says otherwise (display, dial, ruler, clock and selector; the display and dial can still put it `inside`). Before, the display and dial printed it inside, the ruler and clock above. A display that only shows its title (`show: title`) still prints it inside.
 - Controls on a card are the Rams keys, not separate button styles: the artwork's media keys are wide keys (previous, play / pause, next; play is pressed while the player plays) and the list's row keys are small round keys (a power key pressed while the entity is on, or up / down for covers).
 - Button: `light: none` now draws no lamp and reserves no room above the key (`auto` still reserves it so keys in a row line up); `name: ""` prints no text (it used to fall back to the entity name); a wide key is the same light cap colour as the other keys and goes down, takes a tone and lights exactly like them (the `rams-graphite` tokens are gone).
+
+## 2026-11-24 consistency pass (breaking changes)
+- Frame names in the editor are plain: Raised plate, and three displays (light by day and green at night; green backlit; black with yellow-green light). Stored values are unchanged.
+- Dial: any arc, with a red mark and a target pointer. Selector: knob or lever, with the lamp option called "Lamps".
+- Lamps: the button, display and selector each label their `light` field for what it is. `light: none` and automatic without warning states show no lamp and take no room.
+- Titles default to below on every card. Pieces in a row align to the top; leftover space sits at the bottom.
+- Controls on the artwork and list cards are Rams buttons (round or wide), not HA defaults.
+- Button: a colour from the state rules fills the key. The small state dot is gone.
+- Units (for example °C) are never smaller than 11px. A missing entity shows a dash.
+- A panel's own tap action now fires when nothing inside it is actionable. List rows are actionable per row.
+- Number fields snap to the step from the minimum and show no float noise.
+- The card picker shows a real example when an entity of the right kind exists.
+- Tokens removed: `rams-lever`, `rams-cap-rest`, `rams-cap-on`, `rams-cap-on-mix`. Copy the updated theme file after updating.
+- The panel editor no longer writes default columns, spacing or frame into the YAML.

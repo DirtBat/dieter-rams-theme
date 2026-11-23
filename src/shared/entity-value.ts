@@ -54,6 +54,19 @@ function stripUnit(text: string, unit: unknown): string {
   return typeof unit === "string" && unit && text.endsWith(unit) ? text.slice(0, -unit.length).trim() : text;
 }
 
+/**
+ * The number printed with a scale. When the value is an entity's state or attribute it goes through Home Assistant's own formatting (the display
+ * precision set on the entity applies); a value from a light, thermostat or media player, a dragged value or a fixed one is rounded to one decimal.
+ */
+export function shownNumber(hass: Hass | undefined, entity: string | undefined, attribute: string | undefined, value: number, dragging: boolean): string {
+  const derived = !attribute && ["climate", "light", "media_player"].includes(domainOf(entity ?? ""));
+  if (!dragging && entity && !derived && hass?.states[entity]) {
+    const text = formatValue(hass, entity, attribute);
+    if (/\d/.test(text)) return text;
+  }
+  return String(Math.round(value * 10) / 10);
+}
+
 export function defaultRange(hass: Hass | undefined, entity: string | undefined): Range {
   const e = entity ? hass?.states[entity] : undefined;
   const a = e?.attributes ?? {};
@@ -68,7 +81,17 @@ export function defaultRange(hass: Hass | undefined, entity: string | undefined)
   }
 }
 
-export const clamp = (v: number, r: Range): number => Math.min(r.max, Math.max(r.min, Math.round(v / r.step) * r.step));
+const decimals = (n: number): number => {
+  const s = String(n);
+  const i = s.indexOf(".");
+  return i < 0 ? 0 : Math.min(8, s.length - i - 1);
+};
+
+/** The nearest step from the minimum, inside the range, without float noise (0.1 steps give 0.3, not 0.30000000000000004). */
+export const clamp = (v: number, r: Range): number => {
+  const snapped = r.min + Math.round((v - r.min) / r.step) * r.step;
+  return +Math.min(r.max, Math.max(r.min, snapped)).toFixed(Math.max(decimals(r.step), decimals(r.min)));
+};
 
 export async function writeNumber(hass: Hass, entity: string, value: number): Promise<void> {
   const entity_id = entity;

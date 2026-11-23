@@ -20,7 +20,6 @@ Dieter Rams:
       rams-backlit-ink: "#12160f"
       rams-led-bg: "linear-gradient(180deg, #0a0b08 0%, #12140e 100%)"   # black display
       rams-led-ink: "#c6e63c"         # ... its yellow-green lights
-      rams-lever: "#efece4"
       rams-red: "#c8362b"
       rams-orange: "#e8801a"
       rams-blue: "#2f5fa8"
@@ -32,9 +31,6 @@ Dieter Rams:
       rams-inset: "inset 0 2px 3px rgba(38, 18, 1, 0.12)"
       # Night roles, off by day
       rams-glow: "0px"
-      rams-cap-rest: "100%"           # how much of its colour a full-colour key shows at rest
-      rams-cap-on: "78%"              # ... and when active (mixed with the next value)
-      rams-cap-on-mix: "#000000"
       # LCD (recessed display and dial): green, reflective
       rams-lcd-bg: "linear-gradient(180deg, #d6dac9 0%, #cbd0bd 100%)"
       rams-lcd-ink: "#2b3026"
@@ -49,11 +45,11 @@ Dieter Rams:
       rams-down: "#4d463a"            # a key that is down is lit
       rams-key-edge: "rgba(0, 0, 0, 0.7)"
       rams-ring: "#0b0b0a"
+      rams-cutout-edge: "transparent"   # no light edge under a key by night
       rams-lens: "#3a1512"
       rams-slot: "#0e0d0c"
       rams-led-bg: "linear-gradient(180deg, #060705 0%, #0d0f0a 100%)"
       rams-led-ink: "#c6e63c"
-      rams-lever: "#8d887c"
       rams-red: "#e0483a"
       rams-orange: "#f09a2e"
       rams-blue: "#5c8fe0"
@@ -65,9 +61,6 @@ Dieter Rams:
       rams-inset: "inset 0 0 0 1px rgba(0, 0, 0, 0.45)"
       # Night roles: stripes become LEDs, full-colour keys are backlit, glow reaches beyond the key
       rams-glow: "10px"
-      rams-cap-rest: "42%"
-      rams-cap-on: "100%"
-      rams-cap-on-mix: "#ffffff"
-      # LCD: a dim grey with a hint of green, backlit; dark ink (the iPod's screen, at night)
+      # LCD: a dim grey with a hint of green, backlit; dark ink
       rams-lcd-bg: "linear-gradient(180deg, #98a090 0%, #8b9385 55%, #7d8578 100%)"
       rams-lcd-ink: "#12160f"

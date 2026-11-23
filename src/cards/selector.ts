@@ -4,8 +4,8 @@ import { Piece } from "../shared/piece";
 import { formEditor } from "../shared/form-editor";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
-import { readState, TONES, type StateRules } from "../shared/state-rules";
-import { computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
+import { readState, same, TONES, type StateRules } from "../shared/state-rules";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields } from "../shared/form";
 import { pick } from "../shared/stub";
 import type { Hass, PieceConfig } from "../shared/types";
 
@@ -35,7 +35,7 @@ export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_ent
   size?: "small" | "medium" | "large";
   /** A lever on a slot (default), or a rotary knob with the options around it. A knob puts its labels where `labels_position` says (above by default) and turns its axis to match; `orientation` is for the lever. */
   shape?: "lever" | "knob";
-  /** Knob only: a round cap with a stripe (default), or a pointer: a round body with a slim tab, as measured from a Braun knob, that points at the option, with a thin scale arc round the options. */
+  /** Knob only: a round cap with a stripe (default), or a pointer: a round body with a slim tab, that points at the option, with a thin scale arc round the options. */
   cap?: "round" | "pointer";
   /** Knob only: normal reads first option on the left (labels above or below) or on top (labels left or right); reversed turns that round. */
   order?: "normal" | "reversed";
@@ -43,7 +43,6 @@ export interface SelectorConfig extends PieceConfig, Pick<StateRules, "rules_ent
   light?: "none" | "above" | "below" | "options";
   /** A line from each label to its stop (hooked on a horizontal lever). Ignored when each option has its own lamp. */
   lines?: boolean;
-  /** A tap on the lever (a knob has left and right halves instead, and does not wrap) moves it one stop, toward the last option (default) or toward the first, and wraps around. */
 }
 
 const KNOB = { small: 104, medium: 128, large: 156 } as const;
@@ -73,8 +72,8 @@ export class RamsSelector extends Piece<SelectorConfig> {
       /* a flex column, so the card fills the height its rows give it even where the host's own height is not known (sections view) */
       :host { display: flex; flex-direction: column; }
       .wrap { flex: 1; }
-      /* a horizontal lever and its title sit together in the middle of the cell; a vertical one takes the cell's height */
-      .wrap { justify-content: center; }
+      /* a horizontal lever and its title sit together at the top of the cell; a vertical one takes the cell's height */
+      .wrap { justify-content: flex-start; }
       .face.h { flex: none; }
       .wrap.left .face.h, .wrap.right .face.h { flex: 1; }
       .face { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; padding: 0; overflow: visible; }
@@ -217,12 +216,13 @@ export class RamsSelector extends Piece<SelectorConfig> {
             dropdown("order", [["normal", "Normal: first on the left or on top"], ["reversed", "Reversed"]]),
             dropdown("labels_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
             dropdown("show", [["auto", "Icon if set, else label"], ["labels", "Labels only"], ["both", "Icons and labels"], ["none", "None: no labels or icons"]]),
-            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]]),
+            dropdown("light", [["none", "None"], ["above", "One above"], ["below", "One below"], ["options", "One on each option"]], { label: "Lamps", helper: "Lamps next to the knob or lever: none, one above or below, or one for each option." }),
             dropdown("title_position", [["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
           ],
         },
         { name: "lines", selector: { boolean: {} } },
         ...layoutFields(false),
+        ...actionFields(),
         {
           type: "expandable",
           name: "",
@@ -255,11 +255,19 @@ export class RamsSelector extends Piece<SelectorConfig> {
     return !!this.config?.entity || this.sceneMode() || super.actionable();
   }
 
+  /** The translated name of an on/off state, as Home Assistant shows it. */
+  private stateName(state: string): string {
+    const c = this.config!;
+    const e = c.entity ? this.hass?.states[c.entity] : undefined;
+    const t = e ? (this.hass as unknown as { formatEntityState?: (s: unknown, v?: string) => string }).formatEntityState?.(e, state) : undefined;
+    return t || state;
+  }
+
   /** The stops in the entity's order (or as the options list gives them). */
   private stops(): Array<Required<Pick<SelectorOption, "option" | "label">> & { icon?: string; scene?: string }> {
     const c = this.config!;
     if (c.options?.length) return c.options.filter((o) => o?.option !== undefined).map((o) => ({ option: String(o.option), label: o.label?.trim() ? o.label : String(o.option), icon: o.icon || undefined, scene: o.scene || undefined }));
-    if (this.isBoolean()) return [{ option: "off", label: "off" }, { option: "on", label: "on" }];
+    if (this.isBoolean()) return [{ option: "off", label: this.stateName("off") }, { option: "on", label: this.stateName("on") }];
     const options = c.entity ? this.hass?.states[c.entity]?.attributes.options : undefined;
     return Array.isArray(options) ? options.map((o) => ({ option: String(o), label: String(o) })) : [];
   }
@@ -291,9 +299,9 @@ export class RamsSelector extends Piece<SelectorConfig> {
   private lampTone(option: string): string | undefined {
     const c = this.config!;
     const judged = this.judgedOption();
-    if (judged !== option) return undefined;
+    if (judged === undefined || !same(judged, option)) return undefined;
     if (!c.state_colours?.length) return "red";
-    const tone = c.state_colours.find((r) => r.state === option)?.tone;
+    const tone = c.state_colours.find((r) => same(r.state, option))?.tone;
     return tone && tone !== "neutral" ? tone : undefined;
   }
 
@@ -435,7 +443,6 @@ export class RamsSelector extends Piece<SelectorConfig> {
     const out: Array<{ cx: number; cy: number; w: number; h: number }> = [];
     let y = -H / 2;
     for (const i of order) { out[i] = { cx: col * (reach + size[i].w / 2), cy: y + size[i].h / 2, w: size[i].w, h: size[i].h }; y += size[i].h + gap; }
-    void ptr; void angles;
     return out;
   }
 
