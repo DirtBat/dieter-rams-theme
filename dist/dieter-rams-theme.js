@@ -3581,6 +3581,10 @@ let RamsDial = class extends Piece {
     };
     label(a0, min);
     label(a1, max);
+    if (this.centred !== void 0) {
+      const n3 = this.numberBox(r2);
+      pts.push([n3.x - n3.w / 2, n3.y - n3.size * 0.55], [n3.x + n3.w / 2, n3.y + n3.size * 0.55]);
+    }
     const title = this.inside() ? this.text() : "";
     if (title) {
       const top = Math.min(...pts.map((p2) => p2[1]));
@@ -3669,12 +3673,29 @@ let RamsDial = class extends Piece {
       </svg>`
     };
   }
+  /** Where the centred number goes: for a half circle or less, just above the line between the arc's ends and clear of the scale; for a bigger arc, the middle of the circle. */
+  numberBox(r2) {
+    var _a2;
+    const [a0, a1] = this.angles();
+    const text = this.centred ?? "";
+    const unit = ((_a2 = this.config) == null ? void 0 : _a2.unit) ? this.config.unit.length * 7 + 6 : 0;
+    const wide = (s2) => text.length * s2 * 0.58 + unit;
+    if (a1 - a0 > 180) {
+      const size2 = Math.max(14, Math.min(34, r2 * 0.45));
+      return { x: 0, y: 0, size: size2, w: wide(size2) };
+    }
+    const x2 = (at(a0, r2)[0] + at(a1, r2)[0]) / 2;
+    const base = Math.max(at(a0, r2)[1], at(a1, r2)[1]);
+    const inner = Math.min(...[a0, a1, ...a0 < 0 && a1 > 0 ? [0] : []].map((a2) => at(a2, r2 - MAJOR)[1]));
+    const room = base - inner;
+    const size = Math.max(12, Math.min(34, r2 * 0.45, room * 0.7));
+    return { x: x2, y: base - size * 0.6, size, w: wide(size) };
+  }
   /** The number in the centre of the gauge: in the middle of the arc, or for a half circle or less, in the middle of the half disc. */
   centreNumber(r2, text) {
     const c2 = this.config;
     const [a0, a1] = this.angles();
-    const [x2, y3] = a1 - a0 <= 180 ? at((a0 + a1) / 2, r2 * 0.42) : [0, 0];
-    const size = Math.max(14, Math.min(34, r2 * 0.5));
+    const { x: x2, y: y3, size } = this.numberBox(r2);
     return w$1`<text class="cnum" x=${x2} y=${y3} text-anchor="middle" dominant-baseline="central" style="font-size:${size}px">${text}${c2.unit ? w$1`<tspan class="cunit" dx="3">${c2.unit}</tspan>` : A}</text>`;
   }
   /** The entities the dial stands for. */
@@ -3700,6 +3721,7 @@ let RamsDial = class extends Piece {
     const { w: w2, h: h2 } = this.room;
     const shown = value === void 0 ? "–" : shownNumber(this.hass, this.lead(), c2.attribute, value, this.drag !== void 0);
     const ready = w2 > 0 && h2 > 0;
+    this.centred = centred ? shown : void 0;
     const dial = b`<div class="dial"><div class="room">
       ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : void 0).svg : A}
       ${ready && showNumber && !centred ? b`<div class="num ${c2.align ?? "center"}">${shown}${c2.unit ? b`<small>${c2.unit}</small>` : A}</div>` : A}
@@ -3744,7 +3766,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-25 10:56 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-25 11:04 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

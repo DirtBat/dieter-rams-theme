@@ -227,6 +227,10 @@ export class RamsDial extends Piece<DialConfig> {
     };
     label(a0, min);
     label(a1, max);
+    if (this.centred !== undefined) {
+      const n = this.numberBox(r);
+      pts.push([n.x - n.w / 2, n.y - n.size * 0.55], [n.x + n.w / 2, n.y + n.size * 0.55]);
+    }
     const title = this.inside() ? this.text() : "";
     if (title) {
       const top = Math.min(...pts.map((p) => p[1]));
@@ -336,12 +340,32 @@ export class RamsDial extends Piece<DialConfig> {
     };
   }
 
+  /** The shown number while it sits in the centre of the gauge (set by render), else undefined. */
+  private centred?: string;
+
+  /** Where the centred number goes: for a half circle or less, just above the line between the arc's ends and clear of the scale; for a bigger arc, the middle of the circle. */
+  private numberBox(r: number): { x: number; y: number; size: number; w: number } {
+    const [a0, a1] = this.angles();
+    const text = this.centred ?? "";
+    const unit = this.config?.unit ? this.config.unit.length * 7 + 6 : 0;
+    const wide = (s: number) => text.length * s * 0.58 + unit;
+    if (a1 - a0 > 180) {
+      const size = Math.max(14, Math.min(34, r * 0.45));
+      return { x: 0, y: 0, size, w: wide(size) };
+    }
+    const x = (at(a0, r)[0] + at(a1, r)[0]) / 2;
+    const base = Math.max(at(a0, r)[1], at(a1, r)[1]);
+    const inner = Math.min(...[a0, a1, ...(a0 < 0 && a1 > 0 ? [0] : [])].map((a) => at(a, r - MAJOR)[1]));
+    const room = base - inner;
+    const size = Math.max(12, Math.min(34, r * 0.45, room * 0.7));
+    return { x, y: base - size * 0.6, size, w: wide(size) };
+  }
+
   /** The number in the centre of the gauge: in the middle of the arc, or for a half circle or less, in the middle of the half disc. */
   private centreNumber(r: number, text: string): TemplateResult {
     const c = this.config!;
     const [a0, a1] = this.angles();
-    const [x, y] = a1 - a0 <= 180 ? at((a0 + a1) / 2, r * 0.42) : [0, 0];
-    const size = Math.max(14, Math.min(34, r * 0.5));
+    const { x, y, size } = this.numberBox(r);
     return svg`<text class="cnum" x=${x} y=${y} text-anchor="middle" dominant-baseline="central" style="font-size:${size}px">${text}${c.unit ? svg`<tspan class="cunit" dx="3">${c.unit}</tspan>` : nothing}</text>`;
   }
 
@@ -366,6 +390,7 @@ export class RamsDial extends Piece<DialConfig> {
     const { w, h } = this.room;
     const shown = value === undefined ? "\u2013" : shownNumber(this.hass, this.lead(), c.attribute, value, this.drag !== undefined);
     const ready = w > 0 && h > 0;
+    this.centred = centred ? shown : undefined;
     const dial = html`<div class="dial"><div class="room">
       ${ready ? this.scale(w, Math.max(20, h - 8 - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : undefined).svg : nothing}
       ${ready && showNumber && !centred ? html`<div class="num ${c.align ?? "center"}">${shown}${c.unit ? html`<small>${c.unit}</small>` : nothing}</div>` : nothing}
