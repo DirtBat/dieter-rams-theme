@@ -221,10 +221,12 @@ export class RamsDial extends Piece<DialConfig> {
     for (const a of angles) {
       pts.push(at(a, r + out), at(a, r - MAJOR));
     }
+    const arcXs = pts.map((p) => p[0]);
+    const mx = (Math.min(...arcXs) + Math.max(...arcXs)) / 2;
     const label = (a: number, value: number) => {
       const [x, y] = at(a, r + END_GAP);
       const sin = Math.sin(rad(a));
-      const w = String(value).length * fs * 0.62;
+      const w = String(value).length * fs * 0.72;
       const left = sin > 0.4 ? x : sin < -0.4 ? x - w : x - w / 2;
       pts.push([left, y - fs * 0.65], [left + w, y + fs * 0.35]);
     };
@@ -242,7 +244,9 @@ export class RamsDial extends Piece<DialConfig> {
       pts.push([cx - w / 2, top - 18], [cx + w / 2, top - 8]);
     }
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    // Symmetric about the arc, so a long end number (15000) next to a short one (0) does not push the gauge off centre.
+    const half = Math.max(mx - Math.min(...xs), Math.max(...xs) - mx);
+    return [mx - half, Math.min(...ys), mx + half, Math.max(...ys)];
   }
 
   /** The largest radius whose drawing fits the room. */

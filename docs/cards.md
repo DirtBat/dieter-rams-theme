@@ -137,3 +137,4 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Dial: `align: inside` puts the number in the centre of the gauge; the old centre option is labelled "Below" (stored value unchanged). The field is called "Number position".
 - Selector knob: label text follows the Size setting instead of the knob's width, so a wide horizontal knob no longer gets very large labels.
 - Dial: with the title above or below, the title sits directly against the gauge instead of at the bottom of the card. The centred number is centred between the arc's ends with its bottom on the line between them, and as large as fits inside the scale.
+- Dial: the gauge is centred on its arc, not on its end numbers, so a short start value (0) with a long end value (15000) no longer pushes it off centre. End numbers are measured including their letter spacing, so a long one is not cut off.

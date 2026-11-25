@@ -3573,10 +3573,12 @@ let RamsDial = class extends Piece {
     for (const a2 of angles) {
       pts.push(at(a2, r2 + out), at(a2, r2 - MAJOR));
     }
+    const arcXs = pts.map((p2) => p2[0]);
+    const mx = (Math.min(...arcXs) + Math.max(...arcXs)) / 2;
     const label = (a2, value) => {
       const [x2, y3] = at(a2, r2 + END_GAP);
       const sin = Math.sin(rad(a2));
-      const w2 = String(value).length * fs * 0.62;
+      const w2 = String(value).length * fs * 0.72;
       const left = sin > 0.4 ? x2 : sin < -0.4 ? x2 - w2 : x2 - w2 / 2;
       pts.push([left, y3 - fs * 0.65], [left + w2, y3 + fs * 0.35]);
     };
@@ -3594,7 +3596,8 @@ let RamsDial = class extends Piece {
       pts.push([cx - w2 / 2, top - 18], [cx + w2 / 2, top - 8]);
     }
     const xs = pts.map((p2) => p2[0]), ys = pts.map((p2) => p2[1]);
-    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    const half = Math.max(mx - Math.min(...xs), Math.max(...xs) - mx);
+    return [mx - half, Math.min(...ys), mx + half, Math.max(...ys)];
   }
   /** The largest radius whose drawing fits the room. */
   radius(w2, h2) {
@@ -3775,7 +3778,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-25 11:12 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-25 11:23 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
