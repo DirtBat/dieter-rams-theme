@@ -3434,6 +3434,7 @@ const MARK_OUT = 4;
 const POINTER = 10;
 const MARK_IN = 14;
 const NUMBER_H = 28;
+const TITLE_H = 17;
 const END_GAP = 8;
 let RamsDial = class extends Piece {
   constructor() {
@@ -3583,7 +3584,7 @@ let RamsDial = class extends Piece {
     label(a1, max);
     if (this.centred !== void 0) {
       const n3 = this.numberBox(r2);
-      pts.push([n3.x - n3.w / 2, n3.y - n3.size * 0.55], [n3.x + n3.w / 2, n3.y + n3.size * 0.55]);
+      pts.push([n3.x - n3.w / 2, n3.y - n3.size * 0.5], [n3.x + n3.w / 2, n3.y + n3.size * 0.4]);
     }
     const title = this.inside() ? this.text() : "";
     if (title) {
@@ -3673,23 +3674,25 @@ let RamsDial = class extends Piece {
       </svg>`
     };
   }
-  /** Where the centred number goes: for a half circle or less, just above the line between the arc's ends and clear of the scale; for a bigger arc, the middle of the circle. */
+  /** Where the centred number goes: for a half circle or less, centred between the arc's ends with its bottom on the line between them, as large as fits inside the scale; for a bigger arc, the middle of the circle. */
   numberBox(r2) {
     var _a2;
     const [a0, a1] = this.angles();
     const text = this.centred ?? "";
     const unit = ((_a2 = this.config) == null ? void 0 : _a2.unit) ? this.config.unit.length * 7 + 6 : 0;
     const wide = (s2) => text.length * s2 * 0.58 + unit;
+    const fit = (chord2) => Math.max(0, (chord2 - unit) / Math.max(1, text.length * 0.58));
     if (a1 - a0 > 180) {
-      const size2 = Math.max(14, Math.min(34, r2 * 0.45));
+      const size2 = Math.max(14, Math.min(48, r2 * 0.55, fit(r2 * 1.3)));
       return { x: 0, y: 0, size: size2, w: wide(size2) };
     }
     const x2 = (at(a0, r2)[0] + at(a1, r2)[0]) / 2;
     const base = Math.max(at(a0, r2)[1], at(a1, r2)[1]);
     const inner = Math.min(...[a0, a1, ...a0 < 0 && a1 > 0 ? [0] : []].map((a2) => at(a2, r2 - MAJOR)[1]));
     const room = base - inner;
-    const size = Math.max(12, Math.min(34, r2 * 0.45, room * 0.7));
-    return { x: x2, y: base - size * 0.6, size, w: wide(size) };
+    const chord = Math.abs(at(a1, r2)[0] - at(a0, r2)[0]) - 2 * MAJOR;
+    const size = Math.max(12, Math.min(48, r2 * 0.6, room * 0.85, fit(chord * 0.92)));
+    return { x: x2, y: base - size * 0.36, size, w: wide(size) };
   }
   /** The number in the centre of the gauge: in the middle of the arc, or for a half circle or less, in the middle of the half disc. */
   centreNumber(r2, text) {
@@ -3722,11 +3725,16 @@ let RamsDial = class extends Piece {
     const shown = value === void 0 ? "–" : shownNumber(this.hass, this.lead(), c2.attribute, value, this.drag !== void 0);
     const ready = w2 > 0 && h2 > 0;
     this.centred = centred ? shown : void 0;
+    const pos = c2.title_position ?? "below";
+    const stacked = !this.inside() && !!this.text() && (pos === "below" || pos === "above");
+    const title = stacked ? b`<div class="outer vt ${pos}">${this.text()}</div>` : A;
     const dial = b`<div class="dial"><div class="room">
-      ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : void 0).svg : A}
+      ${pos === "above" ? title : A}
+      ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (stacked ? TITLE_H : 0) - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : void 0).svg : A}
       ${ready && showNumber && !centred ? b`<div class="num ${c2.align ?? "center"}">${shown}${c2.unit ? b`<small>${c2.unit}</small>` : A}</div>` : A}
+      ${pos === "below" ? title : A}
     </div></div>`;
-    const outside = !this.inside() && !!this.text();
+    const outside = !this.inside() && !!this.text() && !stacked;
     if (!outside) return dial;
     return b`<div class="wrap ${c2.title_position ?? "below"}"><div class="outer">${this.text()}</div><div class="face">${dial}</div></div>`;
   }
@@ -3749,6 +3757,7 @@ RamsDial.styles = [
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
       .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.1em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
+      .vt { flex: none; height: 12px; line-height: 12px; } .vt.below { margin-top: 5px; } .vt.above { margin-bottom: 5px; }
       .cnum { fill: var(--_ink); }
       .cunit { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--_muted); }
       .num { flex: none; box-sizing: border-box; height: ${NUMBER_H}px; margin-top: 4px; padding: 0 2px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 24px; line-height: ${NUMBER_H}px; color: var(--_ink); }
@@ -3766,7 +3775,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-25 11:04 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-25 11:12 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(

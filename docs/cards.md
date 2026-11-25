@@ -136,3 +136,4 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - Dial and ruler: `tap_action` and `hold_action` are back (default: no action). They are not used while `interactive` is on, because a touch then sets the value.
 - Dial: `align: inside` puts the number in the centre of the gauge; the old centre option is labelled "Below" (stored value unchanged). The field is called "Number position".
 - Selector knob: label text follows the Size setting instead of the knob's width, so a wide horizontal knob no longer gets very large labels.
+- Dial: with the title above or below, the title sits directly against the gauge instead of at the bottom of the card. The centred number is centred between the arc's ends with its bottom on the line between them, and as large as fits inside the scale.
