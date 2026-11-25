@@ -3,7 +3,8 @@ import { customElement, state } from "lit/decorators.js";
 import { Piece } from "../shared/piece";
 import { clamp, defaultRange, readNumber, shownNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
-import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
+import { Press } from "../shared/press";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import type { PieceConfig } from "../shared/types";
 
 export interface RulerConfig extends PieceConfig {
@@ -43,6 +44,21 @@ export interface RulerConfig extends PieceConfig {
 
 @customElement("rams-ruler")
 export class RamsRuler extends Piece<RulerConfig> {
+  private press = new Press(this, () => (this.actionable() ? this.config : undefined));
+
+  constructor() {
+    super();
+    this.addEventListener("pointerdown", this.press.down);
+    this.addEventListener("pointerup", this.press.up);
+    this.addEventListener("pointerleave", this.press.up);
+    this.addEventListener("click", this.press.click);
+  }
+
+  /** Tap and hold actions work unless touch to set is on: then a touch sets the value. */
+  protected actionable(): boolean {
+    return !this.config?.interactive && super.actionable();
+  }
+
   @state() private drag?: number;
 
   static styles = [
@@ -119,6 +135,7 @@ export class RamsRuler extends Piece<RulerConfig> {
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
         ...layoutFields(),
+        ...actionFields(),
       ],
       computeLabel,
       computeHelper,

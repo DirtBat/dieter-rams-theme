@@ -55,6 +55,7 @@ const HELPERS: Record<string, string> = {
   state_colours: "Optional. A colour for each state, instead of red for every warning. A state listed here wins over \"warning when\".",
   value_colours: "Optional. Colour the piece when the number is above or below a value, for example CO2 above 1000. The strictest matching row wins.",
   value: "A fixed value. Used only when no entity is set. The red mark sits at the value; nothing is drawn when there is none.",
+  interactive: "A touch sets the value on the entity. While this is on, the tap and hold actions are not used.",
   interval: "Distance between the small tick marks. On an interactive dial it is also the step.",
   major: "Distance between the thick tick marks, counted from the minimum. Empty: only the first and the last.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",

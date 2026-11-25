@@ -4,7 +4,8 @@ import { Piece } from "../shared/piece";
 import { clamp, readNumber, shownNumber, writeNumber } from "../shared/entity-value";
 import { tokens } from "../shared/styles";
 import { faceStyles } from "../shared/face";
-import { computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
+import { Press } from "../shared/press";
+import { actionFields, computeLabel, computeHelper, dropdown, layoutFields, num } from "../shared/form";
 import { pick } from "../shared/stub";
 import type { Hass, PieceConfig } from "../shared/types";
 
@@ -32,8 +33,8 @@ export interface DialConfig extends PieceConfig {
   label?: string;
   /** The number under the scale: shown (default) or not, when the red mark says enough. */
   show?: "all" | "none";
-  /** Where the number sits under the scale. */
-  align?: "start" | "center" | "end";
+  /** Where the number sits: under the scale at the left, in the middle (default) or at the right, or in the centre of the gauge. */
+  align?: "start" | "center" | "end" | "inside";
   /** The scale's first and last angle in degrees: 0 is straight up, positive is clockwise. -90 to 90 is a horizontal VU style arc, 30 to 150 a vertical one on the right. */
   start_angle?: number;
   end_angle?: number;
@@ -57,6 +58,21 @@ const END_GAP = 8;
 /** A scale on any arc with one red mark at the value. The arc is as large as the room allows; the number sits right under it. */
 @customElement("rams-dial")
 export class RamsDial extends Piece<DialConfig> {
+  private press = new Press(this, () => (this.actionable() ? this.config : undefined));
+
+  constructor() {
+    super();
+    this.addEventListener("pointerdown", this.press.down);
+    this.addEventListener("pointerup", this.press.up);
+    this.addEventListener("pointerleave", this.press.up);
+    this.addEventListener("click", this.press.click);
+  }
+
+  /** Tap and hold actions work unless touch to set is on: then a touch sets the value. */
+  protected actionable(): boolean {
+    return !this.config?.interactive && super.actionable();
+  }
+
   protected honourRows = true;
   @state() private drag?: number;
   @state() private room = { w: 0, h: 0 };
@@ -83,6 +99,8 @@ export class RamsDial extends Piece<DialConfig> {
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
       .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.1em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
+      .cnum { fill: var(--_ink); }
+      .cunit { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--_muted); }
       .num { flex: none; box-sizing: border-box; height: ${NUMBER_H}px; margin-top: 4px; padding: 0 2px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 24px; line-height: ${NUMBER_H}px; color: var(--_ink); }
       .num.start { justify-content: flex-start; } .num.end { justify-content: flex-end; }
       .num small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
@@ -127,10 +145,11 @@ export class RamsDial extends Piece<DialConfig> {
             num("end_angle", -360, 360, { step: 5 }),
             dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]]),
+            dropdown("align", [["start", "Below, left"], ["center", "Below"], ["end", "Below, right"], ["inside", "Centre of the gauge"]], { label: "Number position" }),
           ],
         },
         ...layoutFields(),
+        ...actionFields(),
       ],
       computeLabel,
       computeHelper,
@@ -262,7 +281,7 @@ export class RamsDial extends Piece<DialConfig> {
   };
 
   /** The scale, in a room of w x h pixels (the number's line already taken off). */
-  private scale(w: number, h: number, value: number | undefined): { svg: TemplateResult; height: number } {
+  private scale(w: number, h: number, value: number | undefined, numberText?: string): { svg: TemplateResult; height: number } {
     const c = this.config!;
     const { min, max, step } = this.range();
     const [a0, a1] = this.angles();
@@ -311,9 +330,19 @@ export class RamsDial extends Piece<DialConfig> {
         ${f === undefined ? nothing : svg`<line class="mark" x1=${m1x} y1=${m1y} x2=${m2x} y2=${m2y} />`}
         ${sp === undefined ? nothing : pointer(sp)}
         ${endLabel(a0, min)}${endLabel(a1, max)}
+        ${numberText === undefined ? nothing : this.centreNumber(r, numberText)}
         ${this.inside() && this.text() ? svg`<text class="lab" x=${(sx + ex) / 2} y=${top - 10}>${this.text()}</text>` : nothing}`}
       </svg>`,
     };
+  }
+
+  /** The number in the centre of the gauge: in the middle of the arc, or for a half circle or less, in the middle of the half disc. */
+  private centreNumber(r: number, text: string): TemplateResult {
+    const c = this.config!;
+    const [a0, a1] = this.angles();
+    const [x, y] = a1 - a0 <= 180 ? at((a0 + a1) / 2, r * 0.42) : [0, 0];
+    const size = Math.max(14, Math.min(34, r * 0.5));
+    return svg`<text class="cnum" x=${x} y=${y} text-anchor="middle" dominant-baseline="central" style="font-size:${size}px">${text}${c.unit ? svg`<tspan class="cunit" dx="3">${c.unit}</tspan>` : nothing}</text>`;
   }
 
   /** The entities the dial stands for. */
@@ -333,12 +362,13 @@ export class RamsDial extends Piece<DialConfig> {
     if (!c) return nothing;
     const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c.attribute) : c.value);
     const showNumber = c.show !== "none";
+    const centred = showNumber && c.align === "inside";
     const { w, h } = this.room;
     const shown = value === undefined ? "\u2013" : shownNumber(this.hass, this.lead(), c.attribute, value, this.drag !== undefined);
     const ready = w > 0 && h > 0;
     const dial = html`<div class="dial"><div class="room">
-      ${ready ? this.scale(w, Math.max(20, h - 8 - (showNumber ? NUMBER_H + 4 : 0)), value).svg : nothing}
-      ${ready && showNumber ? html`<div class="num ${c.align ?? "center"}">${shown}${c.unit ? html`<small>${c.unit}</small>` : nothing}</div>` : nothing}
+      ${ready ? this.scale(w, Math.max(20, h - 8 - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : undefined).svg : nothing}
+      ${ready && showNumber && !centred ? html`<div class="num ${c.align ?? "center"}">${shown}${c.unit ? html`<small>${c.unit}</small>` : nothing}</div>` : nothing}
     </div></div>`;
     const outside = !this.inside() && !!this.text();
     if (!outside) return dial;

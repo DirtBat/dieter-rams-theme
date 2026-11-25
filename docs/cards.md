@@ -131,3 +131,8 @@ Not yet verified: on a real HA with real entities, phone and tablet widths, the 
 - The card picker shows a real example when an entity of the right kind exists.
 - Tokens removed: `rams-lever`, `rams-cap-rest`, `rams-cap-on`, `rams-cap-on-mix`. Copy the updated theme file after updating.
 - The panel editor no longer writes default columns, spacing or frame into the YAML.
+
+## 2026-11-25
+- Dial and ruler: `tap_action` and `hold_action` are back (default: no action). They are not used while `interactive` is on, because a touch then sets the value.
+- Dial: `align: inside` puts the number in the centre of the gauge; the old centre option is labelled "Below" (stored value unchanged). The field is called "Number position".
+- Selector knob: label text follows the Size setting instead of the knob's width, so a wide horizontal knob no longer gets very large labels.

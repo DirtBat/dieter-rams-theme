@@ -101,7 +101,7 @@ export class RamsSelector extends Piece<SelectorConfig> {
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
       .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
-      .knobbox .lab { font-size: max(7px, calc(var(--lf, 8.6) * 1cqmin)); }
+      .knobbox .lab { font-size: min(calc(var(--fs) * 1.4), max(7px, calc(var(--lf, 8.6) * 1cqmin))); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
       /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */

@@ -1015,6 +1015,7 @@ const HELPERS = {
   state_colours: 'Optional. A colour for each state, instead of red for every warning. A state listed here wins over "warning when".',
   value_colours: "Optional. Colour the piece when the number is above or below a value, for example CO2 above 1000. The strictest matching row wins.",
   value: "A fixed value. Used only when no entity is set. The red mark sits at the value; nothing is drawn when there is none.",
+  interactive: "A touch sets the value on the entity. While this is on, the tap and hold actions are not used.",
   interval: "Distance between the small tick marks. On an interactive dial it is also the step.",
   major: "Distance between the thick tick marks, counted from the minimum. Empty: only the first and the last.",
   columns: "Only used inside a Rams panel. A standalone card is sized in the Layout tab.",
@@ -1840,7 +1841,7 @@ RamsSelector.styles = [
       .face.k { flex: 1; align-self: stretch; min-height: 0; }
       .kslot { flex: 1; min-height: 0; align-self: stretch; position: relative; }
       .knobbox { position: absolute; left: 50%; top: 50%; width: var(--_K, var(--S)); height: var(--_K, var(--S)); transform: translate(calc(-50% + var(--_dx, 0px)), calc(-50% + var(--_dy, 0px))); container-type: size; }
-      .knobbox .lab { font-size: max(7px, calc(var(--lf, 8.6) * 1cqmin)); }
+      .knobbox .lab { font-size: min(calc(var(--fs) * 1.4), max(7px, calc(var(--lf, 8.6) * 1cqmin))); }
       .knobbox .ico { --mdc-icon-size: max(var(--ico), 14cqmin); width: max(var(--ico), 14cqmin); height: max(var(--ico), 14cqmin); }
       .knobbox .lamp.sm { width: max(8px, 6cqmin); height: max(8px, 6cqmin); }
       /* round cap: spun metal with a sheen that stays put while the red dot turns; the shadow falls the same way whatever the position */
@@ -2514,7 +2515,8 @@ var __decorateClass$6 = (decorators, target, key, kind) => {
 };
 let RamsRuler = class extends Piece {
   constructor() {
-    super(...arguments);
+    super();
+    this.press = new Press(this, () => this.actionable() ? this.config : void 0);
     this.onDown = (e2) => {
       var _a2;
       if (!((_a2 = this.config) == null ? void 0 : _a2.interactive)) return;
@@ -2533,6 +2535,15 @@ let RamsRuler = class extends Piece {
       if (this.drag !== void 0 && this.hass) for (const e2 of this.all()) void writeNumber(this.hass, e2, this.drag);
       this.drag = void 0;
     };
+    this.addEventListener("pointerdown", this.press.down);
+    this.addEventListener("pointerup", this.press.up);
+    this.addEventListener("pointerleave", this.press.up);
+    this.addEventListener("click", this.press.click);
+  }
+  /** Tap and hold actions work unless touch to set is on: then a touch sets the value. */
+  actionable() {
+    var _a2;
+    return !((_a2 = this.config) == null ? void 0 : _a2.interactive) && super.actionable();
   }
   static getStubConfig() {
     return { type: "custom:rams-ruler", title: "Level", value: 40, min: 0, max: 100, interval: 5, major: 25, number: true, labels: true, columns: 6, rows: 2 };
@@ -2571,7 +2582,8 @@ let RamsRuler = class extends Piece {
         { name: "number", selector: { boolean: {} } },
         { name: "centre", selector: { boolean: {} } },
         { name: "labels", selector: { boolean: {} } },
-        ...layoutFields()
+        ...layoutFields(),
+        ...actionFields()
       ],
       computeLabel,
       computeHelper
@@ -3425,7 +3437,8 @@ const NUMBER_H = 28;
 const END_GAP = 8;
 let RamsDial = class extends Piece {
   constructor() {
-    super(...arguments);
+    super();
+    this.press = new Press(this, () => this.actionable() ? this.config : void 0);
     this.honourRows = true;
     this.room = { w: 0, h: 0 };
     this.origin = [0, 0];
@@ -3445,6 +3458,15 @@ let RamsDial = class extends Piece {
       if (this.drag !== void 0 && this.hass) for (const e2 of this.all()) void writeNumber(this.hass, e2, this.drag);
       this.drag = void 0;
     };
+    this.addEventListener("pointerdown", this.press.down);
+    this.addEventListener("pointerup", this.press.up);
+    this.addEventListener("pointerleave", this.press.up);
+    this.addEventListener("click", this.press.click);
+  }
+  /** Tap and hold actions work unless touch to set is on: then a touch sets the value. */
+  actionable() {
+    var _a2;
+    return !((_a2 = this.config) == null ? void 0 : _a2.interactive) && super.actionable();
   }
   /** Your thermostat if there is one (the red mark is the room temperature, the dark pointer the target), else a fixed example. */
   static getStubConfig(hass) {
@@ -3482,10 +3504,11 @@ let RamsDial = class extends Piece {
             num$1("end_angle", -360, 360, { step: 5 }),
             dropdown("show", [["all", "Scale and number"], ["none", "Scale only"]]),
             dropdown("title_position", [["inside", "Inside"], ["above", "Above"], ["below", "Below"], ["left", "Left"], ["right", "Right"]]),
-            dropdown("align", [["start", "Left"], ["center", "Centre"], ["end", "Right"]])
+            dropdown("align", [["start", "Below, left"], ["center", "Below"], ["end", "Below, right"], ["inside", "Centre of the gauge"]], { label: "Number position" })
           ]
         },
-        ...layoutFields()
+        ...layoutFields(),
+        ...actionFields()
       ],
       computeLabel,
       computeHelper
@@ -3592,7 +3615,7 @@ let RamsDial = class extends Piece {
     return clamp(r2.min + (a2 - a0) / (a1 - a0) * (r2.max - r2.min), r2);
   }
   /** The scale, in a room of w x h pixels (the number's line already taken off). */
-  scale(w2, h2, value) {
+  scale(w2, h2, value, numberText) {
     const c2 = this.config;
     const { min, max, step } = this.range();
     const [a0, a1] = this.angles();
@@ -3641,9 +3664,18 @@ let RamsDial = class extends Piece {
         ${f2 === void 0 ? A : w$1`<line class="mark" x1=${m1x} y1=${m1y} x2=${m2x} y2=${m2y} />`}
         ${sp === void 0 ? A : pointer(sp)}
         ${endLabel(a0, min)}${endLabel(a1, max)}
+        ${numberText === void 0 ? A : this.centreNumber(r2, numberText)}
         ${this.inside() && this.text() ? w$1`<text class="lab" x=${(sx + ex) / 2} y=${top - 10}>${this.text()}</text>` : A}`}
       </svg>`
     };
+  }
+  /** The number in the centre of the gauge: in the middle of the arc, or for a half circle or less, in the middle of the half disc. */
+  centreNumber(r2, text) {
+    const c2 = this.config;
+    const [a0, a1] = this.angles();
+    const [x2, y3] = a1 - a0 <= 180 ? at((a0 + a1) / 2, r2 * 0.42) : [0, 0];
+    const size = Math.max(14, Math.min(34, r2 * 0.5));
+    return w$1`<text class="cnum" x=${x2} y=${y3} text-anchor="middle" dominant-baseline="central" style="font-size:${size}px">${text}${c2.unit ? w$1`<tspan class="cunit" dx="3">${c2.unit}</tspan>` : A}</text>`;
   }
   /** The entities the dial stands for. */
   all() {
@@ -3664,12 +3696,13 @@ let RamsDial = class extends Piece {
     if (!c2) return A;
     const value = this.drag ?? (this.all().length ? readNumber(this.hass, this.lead(), c2.attribute) : c2.value);
     const showNumber = c2.show !== "none";
+    const centred = showNumber && c2.align === "inside";
     const { w: w2, h: h2 } = this.room;
     const shown = value === void 0 ? "–" : shownNumber(this.hass, this.lead(), c2.attribute, value, this.drag !== void 0);
     const ready = w2 > 0 && h2 > 0;
     const dial = b`<div class="dial"><div class="room">
-      ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (showNumber ? NUMBER_H + 4 : 0)), value).svg : A}
-      ${ready && showNumber ? b`<div class="num ${c2.align ?? "center"}">${shown}${c2.unit ? b`<small>${c2.unit}</small>` : A}</div>` : A}
+      ${ready ? this.scale(w2, Math.max(20, h2 - 8 - (showNumber && !centred ? NUMBER_H + 4 : 0)), value, centred ? shown : void 0).svg : A}
+      ${ready && showNumber && !centred ? b`<div class="num ${c2.align ?? "center"}">${shown}${c2.unit ? b`<small>${c2.unit}</small>` : A}</div>` : A}
     </div></div>`;
     const outside = !this.inside() && !!this.text();
     if (!outside) return dial;
@@ -3694,6 +3727,8 @@ RamsDial.styles = [
       .mark { stroke: var(--_red); stroke-width: 3.5; stroke-linecap: butt; }
       .unit, .lab, .end { fill: var(--_muted); letter-spacing: 0.1em; text-transform: uppercase; }
       .lab { font-size: 10px; text-anchor: middle; }
+      .cnum { fill: var(--_ink); }
+      .cunit { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--_muted); }
       .num { flex: none; box-sizing: border-box; height: ${NUMBER_H}px; margin-top: 4px; padding: 0 2px; display: flex; align-items: baseline; justify-content: center; gap: 3px; font-size: 24px; line-height: ${NUMBER_H}px; color: var(--_ink); }
       .num.start { justify-content: flex-start; } .num.end { justify-content: flex-end; }
       .num small { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_muted); }
@@ -3709,7 +3744,7 @@ __decorateClass([
 RamsDial = __decorateClass([
   t("rams-dial")
 ], RamsDial);
-console.info(`%c RAMS CARDS %c built ${"2026-11-23 23:02 UTC"}`, "background:#261201;color:#fff", "");
+console.info(`%c RAMS CARDS %c built ${"2026-11-25 10:56 UTC"}`, "background:#261201;color:#fff", "");
 const w = window;
 w.customCards = w.customCards ?? [];
 w.customCards.push(
